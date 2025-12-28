@@ -4,6 +4,11 @@
   flex-direction: column;
 }
 
+.MangaCard-cover-container {
+  position: relative;
+  width: 100%;
+}
+
 .MangaCard-cover {
   width: 100%;
   aspect-ratio: 3/4;
@@ -11,6 +16,28 @@
   overflow: hidden;
   border: 1px solid var(--accent-soft);
   background-color: var(--bg-main);
+}
+
+/* Favorite Button */
+.MangaCard-favorite {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.MangaCard-favorite.active {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.MangaCard-favorite-icon {
+  font-size: 18px;
 }
 
 .MangaCard-info {

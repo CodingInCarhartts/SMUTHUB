@@ -1,17 +1,17 @@
-// Simple settings store using module-level state
-// In a real app, this would persist to AsyncStorage/localStorage
+// Settings store with Supabase sync
+import { StorageService, type AppSettings } from './storage';
 
 export type ReadingMode = 'vertical' | 'horizontal';
 
-interface AppSettings {
-  readingMode: ReadingMode;
-}
-
-let settings: AppSettings = {
-  readingMode: 'vertical'  // Default to webtoon vertical
-};
+let settings: AppSettings = StorageService.getSettingsSync();
 
 const listeners: Set<() => void> = new Set();
+
+// Initialize from Supabase async
+StorageService.getSettings().then(cloudSettings => {
+  settings = cloudSettings;
+  listeners.forEach(fn => fn());
+});
 
 export const SettingsStore = {
   get(): AppSettings {
@@ -22,9 +22,21 @@ export const SettingsStore = {
     return settings.readingMode;
   },
 
+  getDarkMode(): boolean {
+    return settings.darkMode;
+  },
+
   setReadingMode(mode: ReadingMode): void {
     settings.readingMode = mode;
     console.log('[SettingsStore] Reading mode set to:', mode);
+    StorageService.saveSettings({ readingMode: mode });
+    listeners.forEach(fn => fn());
+  },
+
+  setDarkMode(enabled: boolean): void {
+    console.log('[SettingsStore] Toggling dark mode to:', enabled);
+    settings.darkMode = enabled;
+    StorageService.saveSettings({ darkMode: enabled });
     listeners.forEach(fn => fn());
   },
 

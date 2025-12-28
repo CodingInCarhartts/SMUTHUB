@@ -1,5 +1,7 @@
 import { useCallback, useState, useEffect } from '@lynx-js/react';
 import { BatotoService, type Manga, type Chapter, type MangaDetails, type SearchFilters } from './services/batoto';
+import { SettingsStore } from './services/settings';
+import { StorageService } from './services/storage';
 import { MangaCard } from './components/MangaCard';
 import { Reader } from './components/Reader';
 import { Search } from './components/Search';
@@ -7,10 +9,13 @@ import { SearchFiltersModal } from './components/SearchFilters';
 import { MangaDetailsUi } from './components/MangaDetailsUi';
 import { BottomNav } from './components/BottomNav';
 import { Settings } from './components/Settings';
+import { FavoritesView } from './components/FavoritesView';
+import { HistoryView } from './components/HistoryView';
 import './App.css';
 
 type Tab = 'home' | 'search' | 'settings';
 type ViewState = 'browse' | 'details' | 'reader';
+type SettingsSubview = 'main' | 'favorites' | 'history';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('home');
@@ -21,6 +26,7 @@ export function App() {
   const [selectedManga, setSelectedManga] = useState<Manga | null>(null);
   const [mangaDetails, setMangaDetails] = useState<MangaDetails | null>(null);
   const [selectedChapterUrl, setSelectedChapterUrl] = useState<string>('');
+  const [selectedChapterTitle, setSelectedChapterTitle] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [homeLoading, setHomeLoading] = useState(true);
   
@@ -29,9 +35,32 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentFilters, setCurrentFilters] = useState<SearchFilters | undefined>(undefined);
 
+  // Settings subviews
+  const [settingsSubview, setSettingsSubview] = useState<SettingsSubview>('main');
+  
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
+
+  // Subscribe to settings changes
+  useEffect(() => {
+    const unsubscribe = SettingsStore.subscribe(() => {
+      const newMode = SettingsStore.getDarkMode();
+      console.log('[App] Settings update received. Dark mode:', newMode);
+      setDarkMode(newMode);
+    });
+    return unsubscribe;
+  }, []);
+
   // Fetch popular/latest manga on mount
   useEffect(() => {
     fetchHomeFeed();
+    
+    // Load saved filters
+    const savedFilters = StorageService.getLastFilters();
+    if (savedFilters) {
+      setCurrentFilters(savedFilters);
+      console.log('[App] Loaded saved filters:', savedFilters);
+    }
   }, []);
 
   const loadBrowse = useCallback(async (filters?: SearchFilters) => {
@@ -93,6 +122,9 @@ export function App() {
       setCurrentFilters(filters);
       setShowFilters(false);
       
+      // Save filters for persistence
+      StorageService.saveFilters(filters);
+      
       // Reload browse with new filters
       await loadBrowse(filters);
   }, [loadBrowse]);
@@ -101,16 +133,23 @@ export function App() {
     console.log(`[App] Selected manga: ${manga.title}`);
     setSelectedManga(manga);
     setView('details');
+    setSettingsSubview('main'); // Reset settings subview when viewing manga
     setLoading(true);
     const details = await BatotoService.getMangaDetails(manga.url);
     setMangaDetails(details);
     setLoading(false);
   }, []);
 
-  const handleSelectChapter = useCallback((chapterUrl: string) => {
+  const handleSelectChapter = useCallback((chapterUrl: string, chapterTitle?: string) => {
     setSelectedChapterUrl(chapterUrl);
+    setSelectedChapterTitle(chapterTitle || '');
     setView('reader');
-  }, []);
+    
+    // Track history with chapter info
+    if (selectedManga) {
+      StorageService.addToHistory(selectedManga, chapterUrl, chapterTitle);
+    }
+  }, [selectedManga]);
 
   const handleBack = useCallback(() => {
     if (view === 'reader') {
@@ -131,7 +170,7 @@ export function App() {
   }
 
   return (
-    <view className="Main">
+    <view className={darkMode ? "Main dark-mode" : "Main"}>
       <view className="Content">
         {/* Details view */}
         {/* Details view */}
@@ -256,7 +295,25 @@ export function App() {
             )}
 
             {tab === 'settings' && (
-              <Settings />
+              <>
+                {settingsSubview === 'main' && (
+                  <Settings 
+                    onNavigate={(subview) => setSettingsSubview(subview)}
+                  />
+                )}
+                {settingsSubview === 'favorites' && (
+                  <FavoritesView 
+                    onBack={() => setSettingsSubview('main')}
+                    onSelectManga={handleSelectManga}
+                  />
+                )}
+                {settingsSubview === 'history' && (
+                  <HistoryView 
+                    onBack={() => setSettingsSubview('main')}
+                    onSelectManga={handleSelectManga}
+                  />
+                )}
+              </>
             )}
           </>
         )}
@@ -268,6 +325,7 @@ export function App() {
             onApply={handleApplyFilters} 
             onClose={() => setShowFilters(false)}
             onReset={() => setSearchQuery('')}
+            initialFilters={currentFilters}
           />
       )}
 

@@ -1,5 +1,6 @@
-/* Lumina Design System - Root Variables */
-:root {
+/* Lumina Design System - Variables & Main Shell */
+.Main {
+  /* Default (Light) Variables */
   --bg-main: #fcf9f9;
   --surface: #ffffff;
   --accent-soft: #fde2e4;
@@ -9,15 +10,26 @@
   --text-accent: #d47a94;
   --glass: rgba(255, 255, 255, 0.8);
   --shadow-soft: 0 10px 30px -10px rgba(212, 122, 148, 0.15);
-}
 
-/* Main App Shell */
-.Main {
+  /* Layout */
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: var(--surface);
+  background-color: var(--surface); /* Uses var immediately */
   min-height: 100%;
+}
+
+/* Dark Mode Variables Override */
+.Main.dark-mode {
+  --bg-main: #1a1a1a;
+  --surface: #2d2d2d;
+  --accent-soft: #3d2a2f;
+  --accent-border: #4a3640;
+  --text-primary: #f0e8e8;
+  --text-secondary: #a89898;
+  --text-accent: #e8a0b0;
+  --glass: rgba(45, 45, 45, 0.9);
+  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
 }
 
 .Content {

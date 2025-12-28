@@ -108,3 +108,110 @@
   font-size: 13px;
   color: var(--text-accent);
 }
+
+/* Toggle Switch */
+.Settings-toggle {
+  width: 50px;
+  height: 30px;
+  background-color: var(--accent-border);
+  border-radius: 15px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.Settings-toggle.active {
+  background-color: var(--text-accent);
+  justify-content: flex-end;
+}
+
+.Settings-toggle-knob {
+  width: 24px;
+  height: 24px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Danger Item */
+.Settings-item.danger .Settings-item-label {
+  color: #e74c3c;
+}
+
+.Settings-item.danger .Settings-item-description {
+  color: #e74c3c;
+  opacity: 0.7;
+}
+
+/* Confirmation Dialog Overlay */
+.ConfirmOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.ConfirmDialog {
+  background-color: var(--surface);
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.ConfirmTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.ConfirmMessage {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 24px;
+}
+
+.ConfirmActions {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.ConfirmButton {
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.ConfirmButton.cancel {
+  background-color: var(--accent-soft);
+}
+
+.ConfirmButton.danger {
+  background-color: #e74c3c;
+}
+
+.ConfirmButtonText {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.ConfirmButton.danger .ConfirmButtonText {
+  color: white;
+}

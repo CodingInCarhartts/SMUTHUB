@@ -6,6 +6,7 @@ interface Props {
   onApply: (filters: SearchFilters) => void;
   onClose: () => void;
   onReset?: () => void;  // Optional callback to reset search query
+  initialFilters?: SearchFilters;  // Pre-populate with saved filters
 }
 
 // Complete genre list from Batoto
@@ -36,8 +37,8 @@ const GENRES = [
     "Regression", "Samurai", "School Life", "Superhero", "Supernatural", "Vampires", "Villainess"
 ];
 
-export function SearchFiltersModal({ onApply, onClose, onReset }: Props) {
-    const [filters, setFilters] = useState<SearchFilters>({
+export function SearchFiltersModal({ onApply, onClose, onReset, initialFilters }: Props) {
+    const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
         genres: [],
         status: 'all',
         sort: 'views_d030',
@@ -72,6 +73,13 @@ export function SearchFiltersModal({ onApply, onClose, onReset }: Props) {
         { value: 'create', label: 'Newest' }
     ];
 
+    const STATUS_OPTIONS = [
+        { value: 'all', label: 'All' },
+        { value: 'ongoing', label: 'Ongoing' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'hiatus', label: 'Hiatus' }
+    ];
+
     return (
         <view className="FiltersOverlay" bindtap={onClose}>
             <view className="FiltersSheet" catchtap={() => {}}>
@@ -98,14 +106,14 @@ export function SearchFiltersModal({ onApply, onClose, onReset }: Props) {
 
                     <text className="SectionLabel">Status</text>
                     <view className="ChipRow">
-                        {['all', 'ongoing', 'completed', 'hiatus'].map(s => (
+                        {STATUS_OPTIONS.map(s => (
                             <view 
-                                key={s} 
-                                className={filters.status === s ? "Chip Chip-active" : "Chip"}
-                                bindtap={() => setFilters(prev => ({...prev, status: s as any}))}
+                                key={s.value} 
+                                className={filters.status === s.value ? "Chip Chip-active" : "Chip"}
+                                bindtap={() => setFilters(prev => ({...prev, status: s.value as any}))}
                             >
-                                <text className={filters.status === s ? "ChipText ChipText-active" : "ChipText"}>
-                                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                                <text className={filters.status === s.value ? "ChipText ChipText-active" : "ChipText"}>
+                                    {s.label}
                                 </text>
                             </view>
                         ))}

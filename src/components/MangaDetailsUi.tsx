@@ -5,7 +5,7 @@ import './MangaDetailsUi.css';
 interface Props {
   details: MangaDetails;
   onBack: () => void;
-  onRead: (chapterUrl: string) => void;
+  onRead: (chapterUrl: string, chapterTitle?: string) => void;
 }
 
 export function MangaDetailsUi({ details, onBack, onRead }: Props) {
@@ -73,7 +73,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
          {/* Chapter List */}
          <scroll-view className="DetailsChapterList" scroll-y>
              {displayChapters.map(ch => (
-                 <view key={ch.id} className="DetailChapterItem" bindtap={() => onRead(ch.url)}>
+                 <view key={ch.id} className="DetailChapterItem" bindtap={() => onRead(ch.url, ch.title)}>
                      <view>
                         <text className="ChTitle">{ch.title}</text>
                         <text className="ChMeta">{ch.group} • {ch.uploadDate}</text>
