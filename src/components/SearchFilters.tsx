@@ -5,6 +5,7 @@ import './SearchFilters.css';
 interface Props {
   onApply: (filters: SearchFilters) => void;
   onClose: () => void;
+  onReset?: () => void;  // Optional callback to reset search query
 }
 
 // Complete genre list from Batoto
@@ -35,7 +36,7 @@ const GENRES = [
     "Regression", "Samurai", "School Life", "Superhero", "Supernatural", "Vampires", "Villainess"
 ];
 
-export function SearchFiltersModal({ onApply, onClose }: Props) {
+export function SearchFiltersModal({ onApply, onClose, onReset }: Props) {
     const [filters, setFilters] = useState<SearchFilters>({
         genres: [],
         status: 'all',
@@ -53,12 +54,15 @@ export function SearchFiltersModal({ onApply, onClose }: Props) {
     };
 
     const handleReset = () => {
-        setFilters({
+        const resetFilters: SearchFilters = {
             genres: [],
             status: 'all',
             sort: 'views_d030',
             nsfw: false
-        });
+        };
+        setFilters(resetFilters);
+        onReset?.();  // Clear search query
+        onApply(resetFilters);  // Apply reset immediately
     };
 
     const SORT_OPTIONS = [

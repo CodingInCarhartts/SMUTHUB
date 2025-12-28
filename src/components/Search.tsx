@@ -1,13 +1,19 @@
-import { useState } from '@lynx-js/react';
+import { useState, useEffect } from '@lynx-js/react';
 import './Search.css';
 
 interface Props {
   onSearch: (query: string) => void;
   onFilterClick?: () => void;
+  value?: string;  // Controlled value from parent
 }
 
-export function Search({ onSearch, onFilterClick }: Props) {
-  const [query, setQuery] = useState('');
+export function Search({ onSearch, onFilterClick, value = '' }: Props) {
+  const [query, setQuery] = useState(value);
+
+  // Sync with parent value when it changes (e.g., on reset)
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
 
   const handleSearch = () => {
     console.log(`[Search] Search triggered: "${query}"`);
@@ -23,6 +29,7 @@ export function Search({ onSearch, onFilterClick }: Props) {
         <view className="Search-box">
           <text className="Search-icon">🔍</text>
           <input 
+            key={value}
             type="text"
             className="Search-input" 
             placeholder="Search manga..." 

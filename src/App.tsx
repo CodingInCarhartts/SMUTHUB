@@ -224,7 +224,7 @@ export function App() {
 
             {tab === 'search' && (
               <view className="SearchView">
-                <Search onSearch={handleSearch} onFilterClick={() => setShowFilters(true)} />
+                <Search onSearch={handleSearch} onFilterClick={() => setShowFilters(true)} value={searchQuery} />
                 <scroll-view className="MangaList" scroll-y>
                   {loading ? (
                     <view className="LoadingContainer">
@@ -266,7 +266,8 @@ export function App() {
       {showFilters && (
           <SearchFiltersModal 
             onApply={handleApplyFilters} 
-            onClose={() => setShowFilters(false)} 
+            onClose={() => setShowFilters(false)}
+            onReset={() => setSearchQuery('')}
           />
       )}
 
