@@ -41,7 +41,8 @@ export function App() {
       const browseParams = {
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres,
-        status: filters?.status
+        status: filters?.status,
+        word: (filters as any)?.word  // Search query
       };
       console.log('[App] Browse params:', JSON.stringify(browseParams));
       const results = await BatotoService.browse(browseParams);

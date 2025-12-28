@@ -384,9 +384,9 @@ export const BatotoService = {
               selectParams.sortby = sortMap[sort] || 'views_d030';
           }
 
-          // Add genres if specified
+          // Add genres if specified (lowercase for API compatibility)
           if (filters?.genres && filters.genres.length > 0) {
-              selectParams.incGenres = filters.genres;
+              selectParams.incGenres = filters.genres.map((g: string) => g.toLowerCase());
           }
 
           // Add status if not 'all'

@@ -7,10 +7,32 @@ interface Props {
   onClose: () => void;
 }
 
+// Complete genre list from Batoto
 const GENRES = [
-    "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Harem", "Horror", "Isekai", 
-    "Mecha", "Mystery", "Psychological", "Romance", "School Life", "Sci-Fi", "Seinen", 
-    "Shoujo", "Shounen", "Slice of Life", "Sports", "Supernatural", "Tragedy", "Yaoi", "Yuri"
+    // Main Types
+    "Manga", "Oneshot", "Shoujo(G)", "Shoujo ai",
+    "Manhua", "Artbook", "Shounen(B)", "Shounen ai",
+    "Manhwa", "Imageset", "Josei(W)", "Non-human",
+    "Webtoon", "Seinen(M)", "Yuri(GL)", "Yaoi(BL)", "Bara(ML)", "Kodomo(Kid)",
+    "Comic", "Cartoon", "Western", "Doujinshi", "4-Koma", "Silver & Golden",
+    // Content
+    "Gore", "Bloody", "Violence", "Ecchi", "Adult", "Mature", "Smut",
+    // Genres
+    "Action", "Adaptation", "Adventure", "Age Gap", "Aliens", "Animals", "Anthology",
+    "Boys", "Cars", "Cheating/Infidelity", "Childhood Friends", "College life", "Comedy", "Contest winning",
+    "Crossdressing", "Delinquents", "Dementia", "Demons", "Drama", "Dungeons", "Emperor's daughter",
+    "Fetish", "Full Color", "Game", "Gender Bender", "Genderswap", "Ghosts", "Girls",
+    "Harlequin", "Historical", "Horror", "Incest", "Isekai", "Kids", "Magic",
+    "Mecha", "Medical", "Military", "Monster Girls", "Monsters", "Music", "Mystery",
+    "Ninja", "Office Workers", "Omegaverse", "Parody", "Philosophical", "Police", "Post-Apocalyptic",
+    "Reincarnation", "Reverse Harem", "Revenge", "Reverse Isekai", "Romance", "Royal family", "Royalty",
+    "Sci-Fi", "Showbiz", "Slice of Life", "SM/BDSM/SUB-DOM", "Space", "Sports", "Tragedy",
+    "Survival", "Thriller", "Time Travel", "Tower Climbing", "Traditional Games", "Yakuzas", "Transmigration",
+    "Video Games", "Virtual Reality", "Wuxia", "Xianxia", "Xuanhuan", "Zombies",
+    // Content style
+    "Beasts", "Cooking", "Bodyswap", "Crime", "Fantasy", "Fan-Colored", "Harem",
+    "Gyaru", "Magical Girls", "Martial Arts", "Netori", "Netorare/NTR", "Psychological",
+    "Regression", "Samurai", "School Life", "Superhero", "Supernatural", "Vampires", "Villainess"
 ];
 
 export function SearchFiltersModal({ onApply, onClose }: Props) {
