@@ -14,7 +14,9 @@ export function Reader({ chapterUrl, onBack }: Props) {
   useEffect(() => {
     const loadPanels = async () => {
       setLoading(true);
+      console.log('[Reader] Loading panels for:', chapterUrl);
       const urls = await BatotoService.getChapterPanels(chapterUrl);
+      console.log('[Reader] Received panels:', urls.length, 'First URL:', urls[0]?.substring(0, 50));
       setPanels(urls);
       setLoading(false);
     };
@@ -25,14 +27,21 @@ export function Reader({ chapterUrl, onBack }: Props) {
     <view className="Reader">
       <view className="Reader-header">
         <text className="Reader-back" bindtap={onBack}>{"< Back"}</text>
+        <text className="Reader-title">{panels.length} panels</text>
       </view>
       <scroll-view className="Reader-content" scroll-y>
         {loading ? (
-          <text className="Reader-loading">Loading panels...</text>
+          <view className="Reader-loading-container">
+            <text className="Reader-loading">Loading panels...</text>
+          </view>
+        ) : panels.length === 0 ? (
+          <view className="Reader-loading-container">
+            <text className="Reader-loading">No panels found</text>
+          </view>
         ) : (
           panels.map((url, index) => (
             <image 
-              key={`${url}-${index}`} 
+              key={`panel-${index}`} 
               src={url} 
               className="Reader-panel" 
               mode="aspectFit"
@@ -43,3 +52,4 @@ export function Reader({ chapterUrl, onBack }: Props) {
     </view>
   );
 }
+

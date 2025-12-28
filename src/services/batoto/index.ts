@@ -194,12 +194,56 @@ export const BatotoService = {
   async getChapterPanels(chapterPath: string): Promise<string[]> {
       const client = BatotoClient.getInstance();
       try {
+          // Extract chapter ID from path - handles formats like:
+          // /title/191724-en-.../3405881-ch_1
+          // /title/187470-en-.../4017163-vol_1-ch_34
           const path = chapterPath.replace(/^https?:\/\/[^\/]+/, "");
-          const response = await client.fetch(path);
-          const html = await response.text();
-          return BatotoParsers.parseChapterPanels(html);
+          // Match the last path segment's numeric ID (before the first hyphen in that segment)
+          const segments = path.split('/');
+          const lastSegment = segments[segments.length - 1] || "";
+          const idMatch = lastSegment.match(/^(\d+)/);
+          const chapterId = idMatch ? idMatch[1] : "";
+          
+          if (!chapterId) {
+              console.warn(`[Service] Could not extract chapter ID from path: ${path}`);
+              return [];
+          }
+
+          console.log(`[Service] Fetching panels for chapter ID: ${chapterId}`);
+
+          const response = await client.fetch('/ap2/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  query: `
+                      query get_chapterNode($id: ID!) {
+                          get_chapterNode(id: $id) {
+                              id
+                              data {
+                                  dname
+                                  imageFile { urlList }
+                                  count_images
+                              }
+                          }
+                      }
+                  `,
+                  variables: { id: chapterId }
+              })
+          });
+
+          const json = await response.json();
+          const chapterData = json?.data?.get_chapterNode?.data;
+          
+          if (!chapterData) {
+              console.error("[Service] Chapter not found in GraphQL response", json?.errors);
+              return [];
+          }
+
+          const urls = chapterData.imageFile?.urlList || [];
+          console.log(`[Service] Found ${urls.length} panels for chapter`);
+          return urls;
       } catch (e) {
-          console.error("Panels failed", e);
+          console.error("[Service] Panels failed", e);
           return [];
       }
   },
