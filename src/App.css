@@ -1,0 +1,298 @@
+/* Lumina Design System - Root Variables */
+:root {
+  --bg-main: #fcf9f9;
+  --surface: #ffffff;
+  --accent-soft: #fde2e4;
+  --accent-border: #fad2e1;
+  --text-primary: #4a3f3f;
+  --text-secondary: #8e7c7c;
+  --text-accent: #d47a94;
+  --glass: rgba(255, 255, 255, 0.8);
+  --shadow-soft: 0 10px 30px -10px rgba(212, 122, 148, 0.15);
+}
+
+/* Main App Shell */
+.Main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+  min-height: 100%;
+}
+
+.Content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 90px;
+}
+
+/* Home View */
+.Home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.HomeHeader {
+  padding: 50px 24px 16px 24px;
+  background-color: var(--glass);
+}
+
+.HomeTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-accent);
+}
+
+.MangaList {
+  flex: 1;
+}
+
+/* Editorial Hero Section */
+.EditorialHero {
+  margin: 0 24px 24px 24px;
+  height: 420px;
+  border-radius: 32px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-soft);
+}
+
+.HeroImage {
+  width: 100%;
+  height: 100%;
+}
+
+.HeroOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 24px 24px 24px;
+  background: linear-gradient(to top, rgba(74, 63, 63, 0.8), transparent);
+}
+
+.HeroTag {
+  display: inline-flex;
+  padding: 4px 12px;
+  background-color: var(--accent-soft);
+  color: var(--text-accent);
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.HeroTitle {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.HeroActions {
+  display: flex;
+  flex-direction: row;
+  margin-top: 12px;
+}
+
+.HeroReadButton {
+  padding: 12px 24px;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+.HeroReadText {
+  color: var(--text-accent);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Category Scroll */
+.CategoryScrollContainer {
+  margin-bottom: 24px;
+}
+
+.CategoryScroll {
+  padding: 0 24px;
+  display: flex;
+  flex-direction: row;
+}
+
+.CatPill {
+  padding: 10px 20px;
+  border-radius: 100px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--accent-border);
+  margin-right: 12px;
+}
+
+.CatPill.active {
+  background-color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.CatText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.CatPill.active .CatText {
+  color: #ffffff;
+}
+
+/* Section Header */
+.SectionHeader {
+  padding: 0 24px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.SectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ViewAll {
+  font-size: 14px;
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+/* Manga Grid */
+.MangaGrid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 0 24px;
+}
+
+.GridItem {
+  width: 50%;
+  padding: 0 10px 20px 0;
+}
+
+.GridItem:nth-child(2n) {
+  padding: 0 0 20px 10px;
+}
+
+/* Search View */
+.SearchView {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-main);
+}
+
+.EmptyState {
+  padding: 40px 24px;
+  align-items: center;
+}
+
+.FilterStatus {
+  font-size: 13px;
+  color: var(--text-accent);
+  margin-top: 8px;
+}
+
+/* Loading & Empty States */
+.LoadingContainer {
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 40px;
+}
+
+.LoadingSpinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  border: 4px solid var(--accent-soft);
+  border-top-color: var(--text-accent);
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.LoadingPulse {
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  background-color: var(--accent-soft);
+  animation: pulse 2s ease-in-out infinite;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.LoadingIcon {
+  font-size: 40px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+}
+
+.StatusText {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+.EmptyState {
+  flex: 1;
+  padding: 100px 40px;
+  justify-content: center;
+  align-items: center;
+}
+
+.EmptyIcon {
+  font-size: 64px;
+  margin-bottom: 24px;
+  opacity: 0.5;
+}
+
+.EmptyTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.EmptySubtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}

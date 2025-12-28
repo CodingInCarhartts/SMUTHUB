@@ -1,0 +1,40 @@
+/* Floating Bottom Navigation */
+.BottomNav {
+  position: fixed;
+  bottom: 20px;
+  left: 24px;
+  right: 24px;
+  height: 64px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 10px 40px rgba(212, 122, 148, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  z-index: 1000;
+}
+
+.BottomNav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.BottomNav-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.BottomNav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.BottomNav-tab.active .BottomNav-label {
+  color: var(--text-accent);
+}

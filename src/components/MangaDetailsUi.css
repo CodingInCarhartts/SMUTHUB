@@ -1,0 +1,208 @@
+/* Manga Details Page */
+.DetailsContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+}
+
+/* Header with Backdrop */
+.DetailsHeader {
+  height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+.DetailsBackdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  filter: blur(20px);
+  opacity: 0.6;
+}
+
+.DetailsHeaderOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(74, 63, 63, 0.3), rgba(255, 255, 255, 0.95));
+  padding: 50px 24px 24px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.HeaderNav {
+  margin-bottom: 16px;
+}
+
+.BackButton {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.HeaderContent {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+.DetailsCover {
+  width: 120px;
+  height: 160px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  border: 3px solid #ffffff;
+  margin-right: 16px;
+}
+
+.HeaderInfo {
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.DetailsTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.DetailsBadges {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.Badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+.Badge.status {
+  background-color: var(--accent-soft);
+  color: var(--text-accent);
+}
+
+.Badge.rating {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+.DetailsMeta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Details Body */
+.DetailsBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background-color: var(--surface);
+  border-top-left-radius: 32px;
+  border-top-right-radius: 32px;
+  margin-top: -24px;
+}
+
+.DescriptionSection {
+  margin-bottom: 20px;
+}
+
+.DescriptionText {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.DescriptionText.expanded {
+  max-height: none;
+}
+
+.ExpandHint {
+  font-size: 13px;
+  color: var(--text-accent);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Genre Tags */
+.GenreRow {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: row;
+}
+
+.GenreTag {
+  padding: 8px 16px;
+  border-radius: 100px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--accent-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-right: 10px;
+}
+
+/* Chapter Actions */
+.ChapterActions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--accent-soft);
+}
+
+.SortButton {
+  padding: 8px 16px;
+  background-color: var(--bg-main);
+  border-radius: 12px;
+  border: 1px solid var(--accent-soft);
+}
+
+.SortText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+/* Chapter List */
+.DetailsChapterList {
+  flex: 1;
+}
+
+.DetailChapterItem {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--accent-soft);
+}
+
+.ChTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.ChMeta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
