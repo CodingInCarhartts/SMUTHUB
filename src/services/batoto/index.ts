@@ -239,8 +239,41 @@ export const BatotoService = {
               return [];
           }
 
-          const urls = chapterData.imageFile?.urlList || [];
-          console.log(`[Service] Found ${urls.length} panels for chapter`);
+          const rawUrls: string[] = chapterData.imageFile?.urlList || [];
+          console.log(`[Service] Raw urlList[0..2]:`, JSON.stringify(rawUrls.slice(0, 3)));
+          
+          // Reddit workaround: Batoto's k-servers are down, replace with n-servers
+          // See: https://www.reddit.com/r/Batoto/comments/1pjdr6y/
+          const fixBatoUrl = (url: string): string => {
+              // Replace //k with //n in image server URLs (e.g., //k02.mbwbm.org -> //n02.mbwbm.org)
+              return url.replace(/\/\/k(\d+)\.mb/g, '//n$1.mb');
+          };
+          
+          let urls: string[] = [];
+          if (rawUrls.length > 0) {
+              const first = rawUrls[0];
+              const second = rawUrls[1];
+              
+              // Detect if first is a prefix (absolute URL) and second is a relative path
+              const looksLikePrefix = first.startsWith('http') && second && !second.startsWith('http');
+              // Alternative: first has no image extension but is absolute
+              const isBase = looksLikePrefix || (first.startsWith('http') && !/\.(webp|jpg|jpeg|png|gif)(\?.*)?$/i.test(first));
+              
+              if (isBase && rawUrls.length > 1) {
+                  const prefix = first.endsWith('/') ? first : first + '/';
+                  urls = rawUrls.slice(1).map(function transform(item: string): string {
+                      if (item.startsWith('http')) return fixBatoUrl(item);
+                      const cleanItem = item.startsWith('/') ? item.substring(1) : item;
+                      return fixBatoUrl(prefix + cleanItem);
+                  });
+              } else {
+                  urls = rawUrls.map(function pass(item: string): string {
+                      return fixBatoUrl(item);
+                  });
+              }
+          }
+
+          console.log(`[Service] Final panels: ${urls.length}. First final: ${urls[0]?.substring(0, 60)}`);
           return urls;
       } catch (e) {
           console.error("[Service] Panels failed", e);
@@ -276,5 +309,9 @@ export const BatotoService = {
   async getPopularManga(): Promise<Manga[]> {
       const feed = await this.getHomeFeed();
       return [...feed.popular, ...feed.latest];
+  },
+
+  getMirror(): string {
+      return BatotoClient.getInstance().getBaseUrl();
   }
 };
