@@ -7,6 +7,32 @@ interface Props {
   onBack: () => void;
 }
 
+
+function ReaderPanel({ url }: { url: string }) {
+  const [ratio, setRatio] = useState<number | undefined>(undefined);
+
+  const handleLoad = (e: any) => {
+    const { width, height } = e.detail;
+    console.log(`[ReaderPanel] Loaded: ${width}x${height}`);
+    if (width && height) {
+      setRatio(width / height);
+    }
+  };
+
+  return (
+    <image 
+      src={url} 
+      className="Reader-panel" 
+      mode="scaleToFill"
+      bindload={handleLoad}
+      style={{ 
+        aspectRatio: ratio ? `${ratio}` : '0.75',
+        minHeight: ratio ? 'auto' : '200px'
+      }}
+    />
+  );
+}
+
 export function Reader({ chapterUrl, onBack }: Props) {
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,26 +55,27 @@ export function Reader({ chapterUrl, onBack }: Props) {
         <text className="Reader-back" bindtap={onBack}>{"< Back"}</text>
         <text className="Reader-title">{panels.length} panels</text>
       </view>
-      <scroll-view className="Reader-content" scroll-y>
+    <list className="Reader-content" scroll-y>
         {loading ? (
-          <view className="Reader-loading-container">
-            <text className="Reader-loading">Loading panels...</text>
-          </view>
+          <list-item item-key="loading" full-span>
+            <view className="Reader-loading-container">
+              <text className="Reader-loading">Loading panels...</text>
+            </view>
+          </list-item>
         ) : panels.length === 0 ? (
-          <view className="Reader-loading-container">
-            <text className="Reader-loading">No panels found</text>
-          </view>
+          <list-item item-key="empty" full-span>
+            <view className="Reader-loading-container">
+              <text className="Reader-loading">No panels found</text>
+            </view>
+          </list-item>
         ) : (
           panels.map((url, index) => (
-            <image 
-              key={`panel-${index}`} 
-              src={url} 
-              className="Reader-panel" 
-              mode="aspectFit"
-            />
+            <list-item key={`panel-${index}`} item-key={`panel-${index}`} full-span>
+               <ReaderPanel url={url} />
+            </list-item>
           ))
         )}
-      </scroll-view>
+      </list>
     </view>
   );
 }

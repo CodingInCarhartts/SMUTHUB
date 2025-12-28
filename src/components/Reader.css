@@ -62,7 +62,6 @@
 
 .Reader-panel {
   width: 100%;
-  height: 800px;
-  margin-bottom: 4px;
+  /* Height is controlled by aspect-ratio in inline style */
 }
 
