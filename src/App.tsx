@@ -175,6 +175,22 @@ export function App() {
     setView('browse');
   }, []);
 
+  const handleGenreClick = useCallback((genre: string) => {
+    if (genre === 'For You') {
+        // Reset to default (Trending)
+        setTab('search');
+        handleApplyFilters({ genres: [], sort: 'views_d030', status: 'all', nsfw: false });
+    } else {
+        setTab('search'); // Switch to browse/search tab
+        handleApplyFilters({ genres: [genre.toLowerCase()], sort: 'views_d030', status: 'all', nsfw: false });
+    }
+  }, [handleApplyFilters]);
+
+  const handleSeeAllNew = useCallback(() => {
+    setTab('search');
+    handleApplyFilters({ genres: [], sort: 'update', status: 'all', nsfw: false });
+  }, [handleApplyFilters]);
+
   // Reader view (fullscreen, no bottom nav)
   if (view === 'reader') {
     return <Reader chapterUrl={selectedChapterUrl} onBack={handleBack} />;
@@ -183,7 +199,6 @@ export function App() {
   return (
     <view className={darkMode ? "Main dark-mode" : "Main"}>
       <view className="Content">
-        {/* Details view */}
         {/* Details view */}
         {view === 'details' && selectedManga && mangaDetails && (
            <MangaDetailsUi 
@@ -241,17 +256,17 @@ export function App() {
                       {/* Category Scroll */}
                       <view className="CategoryScrollContainer">
                         <scroll-view className="CategoryScroll" scroll-x>
-                          <view className="CatPill active"><text className="CatText">For You</text></view>
-                          <view className="CatPill"><text className="CatText">Romance</text></view>
-                          <view className="CatPill"><text className="CatText">Action</text></view>
-                          <view className="CatPill"><text className="CatText">Fantasy</text></view>
-                          <view className="CatPill"><text className="CatText">Comedy</text></view>
+                          {['For You', 'Romance', 'Action', 'Fantasy', 'Comedy', 'Isekai', 'Drama'].map(genre => (
+                              <view key={genre} className="CatPill" bindtap={() => handleGenreClick(genre)}>
+                                  <text className="CatText">{genre}</text>
+                              </view>
+                          ))}
                         </scroll-view>
                       </view>
 
                       <view className="SectionHeader">
                         <text className="SectionTitle">New Releases</text>
-                        <text className="ViewAll">See All</text>
+                        <text className="ViewAll" bindtap={handleSeeAllNew}>See All</text>
                       </view>
 
                       {/* Latest Updates Grid */}

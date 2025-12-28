@@ -68,7 +68,7 @@ export class BatotoClient {
   public async initialize(): Promise<void> {
     if (this.activeMirror) return;
 
-    console.log("[BatotoClient] resolving mirrors...");
+    console.log("[SmutHub] resolving mirrors...");
     
             // Simple race to find first working mirror
     const checks = BATO_MIRRORS.map(async (url) => {
@@ -90,7 +90,7 @@ export class BatotoClient {
     // Safer updated logic:
     for (const mirror of BATO_MIRRORS) {
         try {
-            console.log(`[BatotoClient] Checking mirror: ${mirror}`);
+            console.log(`[SmutHub] Checking mirror: ${mirror}`);
             const res = await fetch(mirror, { 
                 method: 'GET',
                 headers: {
@@ -103,17 +103,17 @@ export class BatotoClient {
                 this.activeMirror = mirror;
                 const setCookie = res.headers.get('set-cookie');
                 this.saveCookies(setCookie);
-                console.log(`[BatotoClient] Active mirror set to: ${this.activeMirror}. Cookies captured: ${!!setCookie}`);
+                console.log(`[SmutHub] Active mirror set to: ${this.activeMirror}. Cookies captured: ${!!setCookie}`);
                 return;
             }
         } catch (e) {
-            console.error(`[BatotoClient] Mirror check failed for ${mirror}`, e);
+            console.error(`[SmutHub] Mirror check failed for ${mirror}`, e);
         }
     }
 
     // Fallback
     this.activeMirror = BATO_MIRRORS[0]; 
-    console.warn(`[BatotoClient] Could not verify any mirror, defaulting to ${this.activeMirror}`);
+    console.warn(`[SmutHub] Could not verify any mirror, defaulting to ${this.activeMirror}`);
   }
 
   public getBaseUrl(): string {
@@ -151,33 +151,33 @@ export class BatotoClient {
           }
       };
 
-      console.log(`[BatotoClient] Fetching ${url} with ${this.cookies.size} cookies`);
+      console.log(`[SmutHub] Fetching ${url} with ${this.cookies.size} cookies`);
 
       try {
           const response = await fetch(url, mergedOptions);
           
           // Debugging headers
-          console.log(`[BatotoClient] Response Status: ${response.status}`);
+          console.log(`[SmutHub] Response Status: ${response.status}`);
           response.headers.forEach((value, key) => {
-              console.log(`[BatotoClient] Header: ${key} = ${value}`);
+              console.log(`[SmutHub] Header: ${key} = ${value}`);
           });
 
           // Capture new cookies
           this.saveCookies(response.headers.get('set-cookie'));
           if (response.headers.get('set-cookie')) {
-              console.log(`[BatotoClient] Received new cookies, total: ${this.cookies.size}`);
+              console.log(`[SmutHub] Received new cookies, total: ${this.cookies.size}`);
           }
           
           if (!response.ok) {
                // Handle specific error codes relevant to blocking?
                if (response.status === 403 || response.status === 503) {
-                   console.warn(`[BatotoClient] Encountered ${response.status} at ${url}`);
+                   console.warn(`[SmutHub] Encountered ${response.status} at ${url}`);
                    // Might implement aggressive rotation here later
                }
           }
           return response;
       } catch (error) {
-          console.error(`[BatotoClient] Network error for ${url}`, error);
+          console.error(`[SmutHub] Network error for ${url}`, error);
           throw error;
       }
   }

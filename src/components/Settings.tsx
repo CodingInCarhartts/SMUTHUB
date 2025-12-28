@@ -161,8 +161,9 @@ export function Settings({ onBack, onNavigate }: Props) {
             <view className="Settings-item-left">
               <text className="Settings-item-icon">💜</text>
               <view className="Settings-item-text">
-                <text className="Settings-item-label">Batoto UwU</text>
+                <text className="Settings-item-label">SMUTHUB</text>
                 <text className="Settings-item-description">Version 1.0.0</text>
+                <text className="Settings-item-description">🖤 Daddy.</text>
               </view>
             </view>
           </view>
