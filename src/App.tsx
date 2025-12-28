@@ -53,6 +53,17 @@ export function App() {
 
   // Fetch popular/latest manga on mount
   useEffect(() => {
+    // Debug Runtime Environment
+    console.log('[Env Debug] globalThis keys:', Object.keys(globalThis));
+    try {
+      // @ts-ignore
+      if (typeof NativeModules !== 'undefined') console.log('[Env Debug] NativeModules:', Object.keys(NativeModules));
+      // @ts-ignore
+      if (typeof lynx !== 'undefined') console.log('[Env Debug] lynx keys:', Object.keys(lynx));
+    } catch (e) {
+      console.log('[Env Debug] Error inspecting env:', e);
+    }
+
     fetchHomeFeed();
     
     // Load saved filters
