@@ -9,10 +9,10 @@ export const BatotoService = {
       const client = BatotoClient.getInstance();
       console.log(`[Service] search() called with query: "${query}"`);
       try {
-          // New Batoto uses GraphQL for search results
+          // Use get_comic_browse which supports word search + language filtering
           const gqlQuery = `
-            query get_search_comic($select: Search_Comic_Select) {
-              get_search_comic(select: $select) {
+            query get_comic_browse($select: Comic_Browse_Select) {
+              get_comic_browse(select: $select) {
                 items {
                   id
                   data {
@@ -20,6 +20,7 @@ export const BatotoService = {
                     urlPath
                     urlCover600
                     authors
+                    tranLang
                     chapterNode_up_to {
                       data {
                         dname
@@ -40,7 +41,8 @@ export const BatotoService = {
               query: gqlQuery,
               variables: {
                 select: {
-                  word: query
+                  word: query,
+                  incTLangs: ["en"]
                 }
               }
             })
@@ -60,7 +62,7 @@ export const BatotoService = {
           }
 
           const json = await response.json();
-          const items = json?.data?.get_search_comic?.items || [];
+          const items = json?.data?.get_comic_browse?.items || [];
           console.log(`[Service] GraphQL returned ${items.length} items`);
 
           const results = items.map((item: any) => {
@@ -87,11 +89,104 @@ export const BatotoService = {
       const client = BatotoClient.getInstance();
       try {
           const path = mangaPath.replace(/^https?:\/\/[^\/]+/, "");
-          const response = await client.fetch(path);
-          const html = await response.text();
-          return BatotoParsers.parseMangaDetails(html, client.getBaseUrl());
+          const idMatch = path.match(/\/title\/(\d+)/);
+          const id = idMatch ? idMatch[1] : "";
+          
+          if (!id) {
+              console.warn(`[Service] Could not extract ID from path: ${path}`);
+              return null;
+          }
+
+          console.log(`[Service] Fetching details for comic ID: ${id}`);
+
+          // Fetch comic info and chapters in parallel
+          const [detailsResponse, chaptersResponse] = await Promise.all([
+            client.fetch('/ap2/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                        query get_comicNode($id: ID!) {
+                            get_comicNode(id: $id) {
+                                id
+                                data {
+                                    name
+                                    urlPath
+                                    urlCover600
+                                    authors
+                                    genres
+                                    summary
+                                    score_avg
+                                    chaps_normal
+                                    views { field count }
+                                }
+                            }
+                        }
+                    `,
+                    variables: { id }
+                })
+            }),
+            client.fetch('/ap2/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                        query get_comic_chapterList($comicId: ID!) {
+                            get_comic_chapterList(comicId: $comicId) {
+                                id
+                                data {
+                                    dname
+                                    urlPath
+                                    dateCreate
+                                    userNode { data { name } }
+                                }
+                            }
+                        }
+                    `,
+                    variables: { comicId: id }
+                })
+            })
+          ]);
+
+          const [detailsJson, chaptersJson] = await Promise.all([
+              detailsResponse.json(),
+              chaptersResponse.json()
+          ]);
+
+          const comic = detailsJson?.data?.get_comicNode;
+          if (!comic) {
+              console.error("[Service] Comic not found in GraphQL response. Headers:", detailsJson?.errors);
+              return null;
+          }
+
+          const data = comic.data;
+          const baseUrl = client.getBaseUrl();
+          const chapters = (chaptersJson?.data?.get_comic_chapterList || []).map((c: any) => ({
+              id: c.id,
+              title: c.data?.dname || "Unknown Chapter",
+              url: c.data?.urlPath.startsWith("http") ? c.data.urlPath : `${baseUrl}${c.data.urlPath}`,
+              uploadDate: c.data?.dateCreate ? new Date(c.data.dateCreate).toLocaleDateString() : "",
+              group: c.data?.userNode?.data?.name || "Scanlator"
+          })).reverse(); 
+
+          // Extract total views (usually field 'd000')
+          const totalViews = data.views?.find((v: any) => v.field === 'd000')?.count || 
+                             data.views?.[0]?.count || 0;
+
+          return {
+              id: comic.id,
+              title: data.name || "Unknown Title",
+              url: data.urlPath.startsWith("http") ? data.urlPath : `${baseUrl}${data.urlPath}`,
+              cover: data.urlCover600.startsWith("http") ? data.urlCover600 : `${baseUrl}${data.urlCover600}`,
+              description: data.summary || "",
+              authors: data.authors || [],
+              genres: data.genres || [],
+              rating: data.score_avg?.toFixed(1) || "N/A",
+              views: totalViews.toLocaleString(),
+              chapters
+          };
       } catch (e) {
-          console.error("Details failed", e);
+          console.error("[Service] getMangaDetails failed", e);
           return null;
       }
   },

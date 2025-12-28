@@ -76,7 +76,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
                  <view key={ch.id} className="DetailChapterItem" bindtap={() => onRead(ch.url)}>
                      <view>
                         <text className="ChTitle">{ch.title}</text>
-                        <text className="ChMeta">{ch.language} • {ch.group || "Unknown"} • {ch.uploadDate}</text>
+                        <text className="ChMeta">{ch.group} • {ch.uploadDate}</text>
                      </view>
                  </view>
              ))}
