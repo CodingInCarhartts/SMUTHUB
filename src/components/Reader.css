@@ -110,3 +110,79 @@
   text-align: center;
   padding: 20px;
 }
+
+/* Reading mode indicator in header */
+.Reader-mode-indicator {
+  font-size: 18px;
+}
+
+/* Horizontal reading mode */
+.Reader-horizontal-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 90px;
+  padding-bottom: 80px;
+}
+
+.Reader-horizontal-panel {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.Reader-horizontal-image {
+  width: 100%;
+  height: 100%;
+}
+
+.Reader-page-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  background-color: rgba(0,0,0,0.6);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.Reader-page-number {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Navigation buttons for horizontal mode */
+.Reader-nav-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  background-color: rgba(26, 26, 26, 0.95);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.Reader-nav-btn {
+  padding: 12px 24px;
+  background-color: #007aff;
+  border-radius: 12px;
+}
+
+.Reader-nav-btn.disabled {
+  background-color: #333;
+  opacity: 0.5;
+}
+
+.Reader-nav-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}

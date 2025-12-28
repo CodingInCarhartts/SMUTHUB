@@ -1,3 +1,5 @@
+import { useState, useEffect } from '@lynx-js/react';
+import { SettingsStore, type ReadingMode } from '../services/settings';
 import './Settings.css';
 
 interface Props {
@@ -5,6 +7,21 @@ interface Props {
 }
 
 export function Settings({ onBack }: Props) {
+  const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
+
+  useEffect(() => {
+    // Subscribe to settings changes
+    const unsubscribe = SettingsStore.subscribe(() => {
+      setReadingMode(SettingsStore.getReadingMode());
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleReadingModeToggle = () => {
+    const newMode: ReadingMode = readingMode === 'vertical' ? 'horizontal' : 'vertical';
+    SettingsStore.setReadingMode(newMode);
+  };
+
   const handleClearCache = () => {
     console.log('[Settings] Clear cache requested');
     // Future: Implement cache clearing
@@ -18,7 +35,24 @@ export function Settings({ onBack }: Props) {
       
       <scroll-view className="Settings-content" scroll-y>
         <view className="Settings-section">
-          <text className="Settings-section-title">General</text>
+          <text className="Settings-section-title">READING</text>
+          
+          <view className="Settings-item" bindtap={handleReadingModeToggle}>
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">{readingMode === 'vertical' ? '📜' : '📖'}</text>
+              <view className="Settings-item-text">
+                <text className="Settings-item-label">Reading Mode</text>
+                <text className="Settings-item-description">
+                  {readingMode === 'vertical' ? 'Webtoon (Vertical Scroll)' : 'Manga (Horizontal Swipe)'}
+                </text>
+              </view>
+            </view>
+            <text className="Settings-item-chevron">›</text>
+          </view>
+        </view>
+
+        <view className="Settings-section">
+          <text className="Settings-section-title">DATA</text>
           
           <view className="Settings-item" bindtap={handleClearCache}>
             <view className="Settings-item-left">
@@ -33,22 +67,7 @@ export function Settings({ onBack }: Props) {
         </view>
 
         <view className="Settings-section">
-          <text className="Settings-section-title">Reading</text>
-          
-          <view className="Settings-item">
-            <view className="Settings-item-left">
-              <text className="Settings-item-icon">📖</text>
-              <view className="Settings-item-text">
-                <text className="Settings-item-label">Reading Mode</text>
-                <text className="Settings-item-description">Webtoon (vertical scroll)</text>
-              </view>
-            </view>
-            <text className="Settings-item-chevron">›</text>
-          </view>
-        </view>
-
-        <view className="Settings-section">
-          <text className="Settings-section-title">About</text>
+          <text className="Settings-section-title">ABOUT</text>
           
           <view className="Settings-item">
             <view className="Settings-item-left">
