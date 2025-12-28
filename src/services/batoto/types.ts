@@ -37,6 +37,6 @@ export interface Page {
 export interface SearchFilters {
   genres: string[];
   status: 'all' | 'ongoing' | 'completed' | 'hiatus';
-  sort: 'views' | 'rating' | 'new' | 'update';
+  sort: 'views_d030' | 'views_d007' | 'update' | 'create';
   nsfw: boolean;
 }

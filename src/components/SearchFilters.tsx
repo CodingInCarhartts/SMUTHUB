@@ -17,7 +17,7 @@ export function SearchFiltersModal({ onApply, onClose }: Props) {
     const [filters, setFilters] = useState<SearchFilters>({
         genres: [],
         status: 'all',
-        sort: 'views',
+        sort: 'views_d030',
         nsfw: false
     });
 
@@ -34,20 +34,42 @@ export function SearchFiltersModal({ onApply, onClose }: Props) {
         setFilters({
             genres: [],
             status: 'all',
-            sort: 'views',
+            sort: 'views_d030',
             nsfw: false
         });
     };
 
+    const SORT_OPTIONS = [
+        { value: 'views_d030', label: 'Popular (30 days)' },
+        { value: 'views_d007', label: 'Popular (7 days)' },
+        { value: 'update', label: 'Recently Updated' },
+        { value: 'create', label: 'Newest' }
+    ];
+
     return (
         <view className="FiltersOverlay" bindtap={onClose}>
-            <view className="FiltersSheet" catchtap={(e: any) => e.stopPropagation()}>
+            <view className="FiltersSheet" catchtap={() => {}}>
                 <view className="FiltersHeader">
                     <text className="FiltersTitle">Search Filters</text>
                     <text className="ResetButton" bindtap={handleReset}>Reset</text>
                 </view>
                 
                 <scroll-view className="FiltersContent" scroll-y>
+                    <text className="SectionLabel">Sort By</text>
+                    <view className="ChipRow">
+                        {SORT_OPTIONS.map(s => (
+                            <view 
+                                key={s.value} 
+                                className={filters.sort === s.value ? "Chip Chip-active" : "Chip"}
+                                bindtap={() => setFilters(prev => ({...prev, sort: s.value as any}))}
+                            >
+                                <text className={filters.sort === s.value ? "ChipText ChipText-active" : "ChipText"}>
+                                    {s.label}
+                                </text>
+                            </view>
+                        ))}
+                    </view>
+
                     <text className="SectionLabel">Status</text>
                     <view className="ChipRow">
                         {['all', 'ongoing', 'completed', 'hiatus'].map(s => (

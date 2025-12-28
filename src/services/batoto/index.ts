@@ -313,5 +313,130 @@ export const BatotoService = {
 
   getMirror(): string {
       return BatotoClient.getInstance().getBaseUrl();
+  },
+
+  /**
+   * Browse manga with filters
+   * Base URL pattern: https://bato.si/comics?lang=en&chapters=1&sortby=views_d030&page=1
+   */
+  async browse(filters?: {
+      page?: number;
+      sort?: 'views_d030' | 'views_d007' | 'update' | 'create';
+      genres?: string[];
+      status?: 'all' | 'ongoing' | 'completed' | 'hiatus';
+      word?: string;  // Search query
+  }): Promise<Manga[]> {
+      const client = BatotoClient.getInstance();
+      const page = filters?.page || 1;
+      const sort = filters?.sort || 'views_d030';
+      
+      console.log(`[Service] browse() called with page=${page}, sort=${sort}, word=${filters?.word || ''}`);
+
+      
+      try {
+          // Map sort options to GraphQL format
+          const sortMap: Record<string, string> = {
+              'views_d030': 'views_d030',
+              'views_d007': 'views_d007',
+              'update': 'update',
+              'create': 'create'
+          };
+
+          // Map status to GraphQL format
+          const statusMap: Record<string, string | undefined> = {
+              'all': undefined,
+              'ongoing': 'ongoing',
+              'completed': 'completed',
+              'hiatus': 'hiatus'
+          };
+
+          const gqlQuery = `
+            query get_comic_browse($select: Comic_Browse_Select) {
+              get_comic_browse(select: $select) {
+                items {
+                  id
+                  data {
+                    name
+                    urlPath
+                    urlCover600
+                    authors
+                    tranLang
+                    summary
+                    score_avg
+                    chapterNode_up_to {
+                      data {
+                        dname
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `;
+
+          const selectParams: any = {
+              incTLangs: ["en"],
+              size: 30
+          };
+
+          // Add sort if specified
+          if (sort) {
+              selectParams.sortby = sortMap[sort] || 'views_d030';
+          }
+
+          // Add genres if specified
+          if (filters?.genres && filters.genres.length > 0) {
+              selectParams.incGenres = filters.genres;
+          }
+
+          // Add status if not 'all'
+          if (filters?.status && filters.status !== 'all') {
+              selectParams.origStatus = statusMap[filters.status];
+          }
+
+          // Add search word if specified
+          if (filters?.word && filters.word.trim()) {
+              selectParams.word = filters.word.trim();
+          }
+
+          console.log('[Service] Browse selectParams:', JSON.stringify(selectParams));
+
+          const response = await client.fetch('/ap2/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  query: gqlQuery,
+                  variables: { select: selectParams }
+              })
+          });
+
+          if (!response.ok) {
+              console.error(`[Service] Browse request failed: ${response.status}`);
+              return [];
+          }
+
+          const json = await response.json();
+          console.log('[Service] Browse response:', JSON.stringify(json).substring(0, 500));
+          const items = json?.data?.get_comic_browse?.items || [];
+          console.log(`[Service] Browse returned ${items.length} items`);
+
+          const baseUrl = client.getBaseUrl();
+          return items.map((item: any) => {
+              const data = item.data;
+              return {
+                  id: item.id || "",
+                  title: data.name || "Unknown",
+                  url: data.urlPath?.startsWith("http") ? data.urlPath : `${baseUrl}${data.urlPath}`,
+                  cover: data.urlCover600?.startsWith("http") ? data.urlCover600 : `${baseUrl}${data.urlCover600}`,
+                  authors: data.authors || [],
+                  rating: data.score_avg?.toFixed(1) || "N/A",
+                  latestChapter: data.chapterNode_up_to?.data?.dname || "",
+                  description: data.summary?.substring(0, 150) || ""
+              };
+          });
+      } catch (e) {
+          console.error("[Service] Browse failed", e);
+          return [];
+      }
   }
 };

@@ -6,9 +6,10 @@ import { Search } from './components/Search';
 import { SearchFiltersModal } from './components/SearchFilters';
 import { MangaDetailsUi } from './components/MangaDetailsUi';
 import { BottomNav } from './components/BottomNav';
+import { Settings } from './components/Settings';
 import './App.css';
 
-type Tab = 'home' | 'search';
+type Tab = 'home' | 'search' | 'settings';
 type ViewState = 'browse' | 'details' | 'reader';
 
 export function App() {
@@ -33,6 +34,34 @@ export function App() {
     fetchHomeFeed();
   }, []);
 
+  const loadBrowse = useCallback(async (filters?: SearchFilters) => {
+    console.log('[App] Loading browse with filters:', JSON.stringify(filters));
+    setLoading(true);
+    try {
+      const browseParams = {
+        sort: filters?.sort || 'views_d030',
+        genres: filters?.genres,
+        status: filters?.status
+      };
+      console.log('[App] Browse params:', JSON.stringify(browseParams));
+      const results = await BatotoService.browse(browseParams);
+      console.log(`[App] Browse loaded: ${results.length} items`);
+      setMangas(results);
+    } catch (error) {
+      console.error('[App] Browse error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Preload browse when search tab is selected
+  useEffect(() => {
+    if (tab === 'search' && mangas.length === 0 && !loading) {
+      console.log('[App] Search tab selected, preloading browse...');
+      loadBrowse();
+    }
+  }, [tab, loadBrowse]);
+
   const fetchHomeFeed = useCallback(async () => {
     setHomeLoading(true);
     const feed = await BatotoService.getHomeFeed();
@@ -50,32 +79,22 @@ export function App() {
   const handleSearch = useCallback(async (q: string) => {
     console.log(`[App] handleSearch called with: "${q}"`);
     setSearchQuery(q);
-    setLoading(true);
-    try {
-      // Pass current filters if they exist
-      const results = await BatotoService.search(q, currentFilters);
-      console.log(`[App] Search results received: ${results.length} items`);
-      setMangas(results);
-    } catch (error) {
-      console.error(`[App] Search error:`, error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentFilters]);
+    
+    // Use browse API with search word + current filters
+    await loadBrowse({
+      ...currentFilters,
+      word: q
+    } as any);
+  }, [currentFilters, loadBrowse]);
 
-  const handleApplyFilters = useCallback((filters: SearchFilters) => {
+  const handleApplyFilters = useCallback(async (filters: SearchFilters) => {
       console.log("[App] Applying filters:", filters);
       setCurrentFilters(filters);
       setShowFilters(false);
       
-      // Immediately search with updated filters if we have a query
-      if (searchQuery) {
-          console.log(`[App] Re-searching with query "${searchQuery}" and new filters.`);
-          handleSearch(searchQuery);
-      } else {
-          console.log("[App] Filters applied, but no active search query.");
-      }
-  }, [searchQuery, handleSearch]);
+      // Reload browse with new filters
+      await loadBrowse(filters);
+  }, [loadBrowse]);
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
     console.log(`[App] Selected manga: ${manga.title}`);
@@ -233,6 +252,10 @@ export function App() {
                   )}
                 </scroll-view>
               </view>
+            )}
+
+            {tab === 'settings' && (
+              <Settings />
             )}
           </>
         )}
