@@ -1,5 +1,11 @@
 import { SupabaseService } from './supabase';
 import type { Manga, SearchFilters } from './batoto/types';
+import { logCapture } from './debugLog';
+
+// Helper to log with capture (console override doesn't work in Lynx)
+const log = (...args: any[]) => logCapture('log', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
+const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
 // Types
 export interface ViewedManga {
@@ -36,17 +42,17 @@ const HISTORY_LIMIT_CLOUD = 999;
 const memoryStorage = new Map<string, string>();
 
 // Immediate startup log
-console.log('[Storage] Module loading, checking native storage...');
+log('[Storage] Module loading, checking native storage...');
 
 // Check if native module is available
 function hasNativeStorage(): boolean {
   try {
     const hasMods = typeof NativeModules !== 'undefined';
     const hasStorageMod = hasMods && NativeModules.NativeLocalStorageModule !== undefined;
-    console.log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
+    log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
     return hasStorageMod;
   } catch (e) {
-    console.error('[Storage] hasNativeStorage error:', e);
+    logError('[Storage] hasNativeStorage error:', e);
     return false;
   }
 }
@@ -57,14 +63,14 @@ function getNativeItem(key: string): Promise<string | null> {
     try {
       if (hasNativeStorage()) {
         NativeModules.NativeLocalStorageModule.getStorageItem(key, (value) => {
-          console.log('[getNativeItem] Got value:', { key, value: value?.substring?.(0, 50) });
+          log('[getNativeItem] Got value:', { key, value: value?.substring?.(0, 50) });
           resolve(value);
         });
       } else {
         resolve(null);
       }
     } catch (e) {
-      console.error('[getNativeItem] Error:', e);
+      logError('[getNativeItem] Error:', e);
       resolve(null);
     }
   });
@@ -75,10 +81,10 @@ function setNativeItem(key: string, value: string): void {
   try {
     if (hasNativeStorage()) {
       NativeModules.NativeLocalStorageModule.setStorageItem(key, value);
-      console.log('[setNativeItem] Saved:', { key, valueLen: value.length });
+      log('[setNativeItem] Saved:', { key, valueLen: value.length });
     }
   } catch (e) {
-    console.error('[setNativeItem] Error:', e);
+    logError('[setNativeItem] Error:', e);
   }
 }
 
@@ -130,14 +136,14 @@ function setLocal<T>(key: string, value: T): void {
 
 // Initialize device ID from native storage on startup
 async function initializeFromNativeStorage(): Promise<void> {
-  console.log('[Storage] initializeFromNativeStorage starting...');
+  log('[Storage] initializeFromNativeStorage starting...');
   
   if (!hasNativeStorage()) {
-    console.log('[Storage] Native storage not available, skipping init');
+    log('[Storage] Native storage not available, skipping init');
     return;
   }
   
-  console.log('[Storage] Loading from native storage...');
+  log('[Storage] Loading from native storage...');
   
   // Load all keys from native storage into memory cache
   const keys = [
@@ -153,21 +159,21 @@ async function initializeFromNativeStorage(): Promise<void> {
       const value = await getNativeItem(key);
       if (value) {
         memoryStorage.set(key, value);
-        console.log('[Storage] Loaded from native:', { key, hasValue: true, preview: value.substring(0, 30) });
+        log('[Storage] Loaded from native:', { key, hasValue: true, preview: value.substring(0, 30) });
       } else {
-        console.log('[Storage] No value in native for:', key);
+        log('[Storage] No value in native for:', key);
       }
     } catch (e) {
-      console.error('[Storage] Failed to load key:', key, e);
+      logError('[Storage] Failed to load key:', key, e);
     }
   }
   
-  console.log('[Storage] Native storage initialization complete');
+  log('[Storage] Native storage initialization complete');
 }
 
 // Export initialization promise so other modules can wait
 export const storageReady = initializeFromNativeStorage().catch(e => {
-  console.error('[Storage] Initialization failed:', e);
+  logError('[Storage] Initialization failed:', e);
 });
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
@@ -177,10 +183,10 @@ export const StorageService = {
   getDeviceId(): string {
     // 1. Check LocalStorage first for a persistent ID
     let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
-    console.log('[Storage] getDeviceId - LocalStorage check:', { key: STORAGE_KEYS.DEVICE_ID, found: id, type: typeof id });
+    log('[Storage] getDeviceId - LocalStorage check:', { key: STORAGE_KEYS.DEVICE_ID, found: id, type: typeof id });
     
     if (id && typeof id === 'string' && id.length > 5) {
-      console.log('[Storage] getDeviceId - Using stored ID:', id);
+      log('[Storage] getDeviceId - Using stored ID:', id);
       return id;
     }
 
@@ -188,14 +194,14 @@ export const StorageService = {
     try {
       // @ts-ignore - SystemInfo is provided by Lynx runtime
       const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
-      console.log('[Storage] getDeviceId - SystemInfo check:', { available: !!si, deviceId: si?.deviceId });
+      log('[Storage] getDeviceId - SystemInfo check:', { available: !!si, deviceId: si?.deviceId });
       if (si && si.deviceId && si.deviceId.length > 5 && si.deviceId !== 'undefined' && si.deviceId !== 'android') {
         setLocal(STORAGE_KEYS.DEVICE_ID, si.deviceId);
-        console.log('[Storage] getDeviceId - Using SystemInfo ID:', si.deviceId);
+        log('[Storage] getDeviceId - Using SystemInfo ID:', si.deviceId);
         return si.deviceId;
       }
     } catch (e) {
-      console.warn('[Storage] SystemInfo check failed:', e);
+      logWarn('[Storage] SystemInfo check failed:', e);
     }
 
     // 3. Generate a fresh UUID if nothing else is found
@@ -209,7 +215,7 @@ export const StorageService = {
         });
 
     setLocal(STORAGE_KEYS.DEVICE_ID, newId);
-    console.log('[Storage] ⚠️ Generated NEW Device ID (nothing found):', newId);
+    log('[Storage] ⚠️ Generated NEW Device ID (nothing found):', newId);
     return newId;
   },
 
@@ -245,7 +251,7 @@ export const StorageService = {
       manga_id: manga.id,
       manga_data: manga
     }, 'device_id,manga_id');
-    console.log('[Storage] Synced favorite to cloud:', manga.title);
+    log('[Storage] Synced favorite to cloud:', manga.title);
   },
 
   async removeFavorite(mangaId: string): Promise<void> {
@@ -258,7 +264,7 @@ export const StorageService = {
     await SupabaseService.request(`/favorites?device_id=eq.${deviceId}&manga_id=eq.${mangaId}`, {
       method: 'DELETE'
     });
-    console.log('[Storage] Removed favorite from cloud:', mangaId);
+    log('[Storage] Removed favorite from cloud:', mangaId);
   },
 
   isFavoriteSync(mangaId: string): boolean {
@@ -373,7 +379,7 @@ export const StorageService = {
       dark_mode: updated.darkMode,
       dev_mode: updated.devMode,
     }, 'device_id');
-    console.log('[Storage] Saved device-specific settings');
+    log('[Storage] Saved device-specific settings');
   },
 
   getSettingsSync(): AppSettings {
@@ -413,7 +419,7 @@ export const StorageService = {
       await this.clearHistory();
       await SupabaseService.delete('favorites', 'device_id', `eq.${deviceId}`);
     } catch (e) {
-      console.warn('[Storage] clearAllData failed:', e);
+      logWarn('[Storage] clearAllData failed:', e);
     }
   },
 };
