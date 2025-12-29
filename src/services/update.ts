@@ -48,13 +48,19 @@ export interface AppUpdate {
   version: string;
   isMandatory: boolean;
   releaseNotes: string;
+  forceImmediate: boolean;
 }
+
+// Cooldown state for navigation-based checks
+let lastCheckTimestamp = 0;
+const CHECK_COOLDOWN_MS = 30 * 1000; // 30 seconds
 
 export interface NativeAppUpdate {
   version: string;
   url: string;
   isMandatory: boolean;
   releaseNotes: string;
+  forceImmediate: boolean;
 }
 
 export const APP_VERSION = '1.0.6';
@@ -67,15 +73,16 @@ export const UpdateService = {
     try {
       const data = await SupabaseService.getAll<any>(
         'app_updates',
-        '?select=version,is_mandatory,release_notes&order=created_at.desc&limit=1',
+        '?select=version,is_mandatory,force_immediate,release_notes&order=created_at.desc&limit=1',
       );
 
       if (data && data.length > 0) {
         const row = data[0];
         return {
           version: row.version,
-          isMandatory: !!row.is_mandatory,
+          isMandatory: !!row.is_mandatory || !!row.force_immediate,
           releaseNotes: row.release_notes || '',
+          forceImmediate: !!row.force_immediate,
         };
       }
     } catch (e) {
@@ -106,9 +113,17 @@ export const UpdateService = {
   },
 
   /**
-   * Check if a newer version exists and hasn't been skipped
+   * Check if a newer version exists and hasn't been skipped.
+   * Includes a cooldown to prevent spamming server during rapid navigation.
    */
   async checkUpdate(): Promise<AppUpdate | null> {
+    const now = Date.now();
+    if (now - lastCheckTimestamp < CHECK_COOLDOWN_MS) {
+      log('[UpdateService] Skipping check (cooldown active).');
+      return null;
+    }
+    lastCheckTimestamp = now;
+
     const latest = await this.getLatestUpdate();
     if (!latest) return null;
 
@@ -128,6 +143,7 @@ export const UpdateService = {
 
     return null;
   },
+
 
   /**
    * Mark a version as skipped
@@ -152,7 +168,7 @@ export const UpdateService = {
 
       const data = await SupabaseService.getAll<any>(
         'app_native_updates',
-        '?select=version,download_url,is_mandatory,release_notes&order=created_at.desc&limit=1',
+        '?select=version,download_url,is_mandatory,force_immediate,release_notes&order=created_at.desc&limit=1',
       );
 
       if (data && data.length > 0) {
@@ -164,13 +180,15 @@ export const UpdateService = {
           return {
             version: latest.version,
             url: latest.download_url,
-            isMandatory: !!latest.is_mandatory,
+            isMandatory: !!latest.is_mandatory || !!latest.force_immediate,
             releaseNotes:
               latest.release_notes ||
               'New native features and performance improvements.',
+            forceImmediate: !!latest.force_immediate,
           };
         }
       }
+
     } catch (e) {
       logWarn('[UpdateService] Native update check failed:', e);
     }

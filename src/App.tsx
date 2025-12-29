@@ -88,41 +88,33 @@ export function App() {
     }
   }, []);
 
-  // Check for updates on mount and periodically
+  // Check for updates on mount, app resume, and navigation events
+  // Cooldown is handled by UpdateService internally
+  const triggerUpdateCheck = useCallback(async () => {
+    console.log('[App] Checking for OTA updates...');
+    const update = await UpdateService.checkUpdate();
+    if (update) {
+      console.log('[App] OTA Update found:', update.version);
+      setPendingUpdate(update);
+    }
+    console.log('[App] Checking for Native updates...');
+    const nativeUpdate = await UpdateService.checkNativeUpdate();
+    if (nativeUpdate) {
+      console.log('[App] Native Update found:', nativeUpdate.version);
+      setPendingNativeUpdate(nativeUpdate);
+    }
+  }, []);
+
   useEffect(() => {
-    const checkUpdate = async () => {
-      console.log('[App] Checking for OTA updates...');
-      const update = await UpdateService.checkUpdate();
-      if (update) {
-        console.log('[App] OTA Update found:', update.version);
-        setPendingUpdate(update);
-      }
-    };
-
-    const checkNativeUpdate = async () => {
-      console.log('[App] Checking for Native updates...');
-      const update = await UpdateService.checkNativeUpdate();
-      if (update) {
-        console.log('[App] Native Update found:', update.version);
-        setPendingNativeUpdate(update);
-      }
-    };
-
     // 1. Check on mount (with small delay)
     const initialTimeout = setTimeout(() => {
-      checkUpdate();
-      checkNativeUpdate();
+      triggerUpdateCheck();
     }, 3000);
 
-    // 2. Check periodically
-    const otaInterval = setInterval(checkUpdate, 5 * 60 * 1000); // 5 minutes
-    const nativeInterval = setInterval(checkNativeUpdate, 60 * 60 * 1000); // 1 hour
-
-    // 3. Check on app resume/foreground
+    // 2. Check on app resume/foreground
     const handleAppShow = () => {
       console.log('[App] App resumed, checking for updates...');
-      checkUpdate();
-      checkNativeUpdate();
+      triggerUpdateCheck();
     };
 
     const runtime =
@@ -133,13 +125,11 @@ export function App() {
 
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(otaInterval);
-      clearInterval(nativeInterval);
       if (runtime && runtime.off) {
         runtime.off('appshow', handleAppShow);
       }
     };
-  }, []);
+  }, [triggerUpdateCheck]);
 
   const loadBrowse = useCallback(async (filters?: SearchFilters) => {
     console.log('[App] Loading browse with filters:', JSON.stringify(filters));
@@ -257,10 +247,12 @@ export function App() {
   const handleBack = useCallback(() => {
     if (view === 'reader') {
       setView('details');
+      // Check for updates when exiting reader (natural break point)
+      triggerUpdateCheck();
     } else if (view === 'details') {
       setView('browse');
     }
-  }, [view]);
+  }, [view, triggerUpdateCheck]);
 
   const handleNextChapter = useCallback(() => {
     if (!mangaDetails || !selectedChapterUrl) return;
@@ -290,7 +282,11 @@ export function App() {
   const handleTabChange = useCallback((newTab: Tab) => {
     setTab(newTab);
     setView('browse');
-  }, []);
+    // Check for updates when navigating to home tab
+    if (newTab === 'home') {
+      triggerUpdateCheck();
+    }
+  }, [triggerUpdateCheck]);
 
   const handleGenreClick = useCallback(
     (genre: string) => {
