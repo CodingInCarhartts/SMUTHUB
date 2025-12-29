@@ -67,43 +67,44 @@ export const StorageService = {
   // ============ DEVICE ID ============
   
   getDeviceId(): string {
-    // derivations from SystemInfo for stable ID without local storage
+    // 1. Check LocalStorage first for a persistent ID
+    let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
+    if (id && id.length > 5) return id;
+
+    // 2. Check SystemInfo, but only use it if it's not a generic/malformed ID
     try {
       // @ts-ignore - SystemInfo is provided by Lynx runtime
       const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
-      if (si) {
-        // Use a combination of stable properties to form an ID if a direct deviceId isn't found
-        // Most Lynx environments have deviceId, but we fallback to a hash of platform/model/etc
-        const stableId = si.deviceId || 
-                         `${si.platform}-${si.model}-${si.pixelRatio}`.replace(/\s+/g, '');
-        return stableId;
+      if (si && si.deviceId && si.deviceId.length > 5 && si.deviceId !== 'undefined' && si.deviceId !== 'android') {
+        setLocal(STORAGE_KEYS.DEVICE_ID, si.deviceId);
+        return si.deviceId;
       }
     } catch (e) {
-      console.warn('[Storage] SystemInfo not available, falling back to legacy ID');
+      console.warn('[Storage] SystemInfo check failed:', e);
     }
 
-    let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
-    if (!id) {
-      id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      setLocal(STORAGE_KEYS.DEVICE_ID, id);
-      console.log('[Storage] Generated new fallback Device ID:', id);
-    }
-    return id;
-  },
+    // 3. Generate a fresh UUID if nothing else is found
+    // crypto.randomUUID fallback for environments without it
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'xxxx-xxxx-xxxx-xxxx'.replace(/[xy]/g, (c) => {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
 
-  // Helpers for device-specific keys
-  getPrefixedId(mangaId: string): string {
-    return `${this.getDeviceId()}:${mangaId}`;
+    setLocal(STORAGE_KEYS.DEVICE_ID, newId);
+    console.log('[Storage] Generated robust persistent Device ID:', newId);
+    return newId;
   },
 
   // ============ FAVORITES ============
   
   async getFavorites(): Promise<Manga[]> {
     const deviceId = this.getDeviceId();
-    // Filter by manga_id starting with deviceId
     const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>(
       'favorites', 
-      `?select=manga_data&manga_id=like.${deviceId}:*&order=created_at.desc`
+      `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`
     );
     
     if (cloudData.length > 0) {
@@ -112,7 +113,6 @@ export const StorageService = {
       return favorites;
     }
     
-    // Fallback to local
     return getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
   },
 
@@ -124,12 +124,13 @@ export const StorageService = {
       setLocal(STORAGE_KEYS.FAVORITES, favorites);
     }
     
-    // Sync to Cloud with prefixed ID
+    // Sync to Cloud
     await SupabaseService.upsert('favorites', {
-      manga_id: this.getPrefixedId(manga.id),
+      device_id: this.getDeviceId(),
+      manga_id: manga.id,
       manga_data: manga
-    }, 'manga_id');
-    console.log('[Storage] Synced device-specific favorite to cloud:', manga.title);
+    }, 'device_id,manga_id');
+    console.log('[Storage] Synced favorite to cloud:', manga.title);
   },
 
   async removeFavorite(mangaId: string): Promise<void> {
@@ -138,8 +139,11 @@ export const StorageService = {
     setLocal(STORAGE_KEYS.FAVORITES, favorites.filter(m => m.id !== mangaId));
     
     // Sync to Cloud
-    await SupabaseService.delete('favorites', 'manga_id', this.getPrefixedId(mangaId));
-    console.log('[Storage] Removed device-specific favorite from cloud:', mangaId);
+    const deviceId = this.getDeviceId();
+    await SupabaseService.request(`/favorites?device_id=eq.${deviceId}&manga_id=eq.${mangaId}`, {
+      method: 'DELETE'
+    });
+    console.log('[Storage] Removed favorite from cloud:', mangaId);
   },
 
   isFavoriteSync(mangaId: string): boolean {
@@ -161,7 +165,7 @@ export const StorageService = {
       last_chapter_id: string,
       last_chapter_title: string,
       viewed_at: string
-    }>('history', `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&manga_id=like.${deviceId}:*&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`);
+    }>('history', `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&device_id=eq.${deviceId}&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`);
     
     if (cloudData.length > 0) {
       const history = cloudData.map(row => ({
@@ -194,19 +198,20 @@ export const StorageService = {
     
     // Sync to Cloud
     await SupabaseService.upsert('history', {
-      manga_id: this.getPrefixedId(manga.id),
+      device_id: this.getDeviceId(),
+      manga_id: manga.id,
       manga_data: manga,
       last_chapter_id: chapterId,
       last_chapter_title: chapterTitle,
       viewed_at: new Date().toISOString(),
-    }, 'manga_id');
+    }, 'device_id,manga_id');
   },
 
   async clearHistory(): Promise<void> {
     const deviceId = this.getDeviceId();
     setLocal(STORAGE_KEYS.HISTORY, []);
     // Delete only this device's history
-    await SupabaseService.delete('history', 'manga_id', `like.${deviceId}:*`);
+    await SupabaseService.delete('history', 'device_id', `eq.${deviceId}`);
   },
 
   // ============ SETTINGS ============
@@ -291,7 +296,7 @@ export const StorageService = {
       memoryStorage.clear();
       
       await this.clearHistory();
-      await SupabaseService.delete('favorites', 'manga_id', `like.${deviceId}:*`);
+      await SupabaseService.delete('favorites', 'device_id', `eq.${deviceId}`);
     } catch (e) {
       console.warn('[Storage] clearAllData failed:', e);
     }

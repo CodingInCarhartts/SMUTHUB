@@ -1,0 +1,142 @@
+.UpdateOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  z-index: 2000;
+}
+
+.UpdateCard {
+  width: 320px;
+  background-color: var(--surface);
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.UpdateHeader {
+  padding: 32px 24px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.UpdateIconContainer {
+  width: 64px;
+  height: 64px;
+  background-color: var(--accent-soft);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.UpdateIcon {
+  font-size: 32px;
+}
+
+.UpdateTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.UpdateVersion {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.UpdateBody {
+  padding: 0 24px 24px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.UpdateBodyTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.UpdateNotes {
+  height: 140px;
+  background-color: var(--bg-main);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.NotesText {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.UpdateHint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.UpdateActions {
+  padding: 0 24px 32px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.UpdateButton {
+  background-color: var(--text-accent);
+  padding: 16px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(212, 122, 148, 0.3);
+  margin-bottom: 12px;
+}
+
+.UpdateButtonText {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.LaterButton {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.LaterButtonText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Dark mode adjustments if needed */
+.Main.dark-mode .UpdateCard {
+  background-color: #2d2d2d;
+}
+
+.Main.dark-mode .UpdateNotes {
+  background-color: #1a1a1a;
+}

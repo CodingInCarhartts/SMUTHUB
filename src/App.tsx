@@ -11,6 +11,8 @@ import { BottomNav } from './components/BottomNav';
 import { Settings } from './components/Settings';
 import { FavoritesView } from './components/FavoritesView';
 import { HistoryView } from './components/HistoryView';
+import { UpdateService, type AppUpdate } from './services/update';
+import { UpdateModal } from './components/UpdateModal';
 import './App.css';
 
 type Tab = 'home' | 'search' | 'settings';
@@ -42,6 +44,9 @@ export function App() {
   // Dark mode
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
 
+  // OTA Update state
+  const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
+
   // Subscribe to settings changes
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -62,6 +67,20 @@ export function App() {
       setCurrentFilters(savedFilters);
       console.log('[App] Loaded saved filters:', savedFilters);
     }
+  }, []);
+
+  // Check for updates on mount
+  useEffect(() => {
+    const checkUpdate = async () => {
+      // Small delay to let initial load finish
+      setTimeout(async () => {
+        const update = await UpdateService.checkUpdate();
+        if (update) {
+          setPendingUpdate(update);
+        }
+      }, 2000);
+    };
+    checkUpdate();
   }, []);
 
   const loadBrowse = useCallback(async (filters?: SearchFilters) => {
@@ -407,6 +426,17 @@ export function App() {
       {/* Bottom Navigation */}
       {view === 'browse' && (
         <BottomNav activeTab={tab} onTabChange={handleTabChange} />
+      )}
+
+      {/* Update Notification */}
+      {pendingUpdate && (
+        <UpdateModal 
+          update={pendingUpdate} 
+          onDismiss={() => {
+            UpdateService.skipVersion(pendingUpdate.version);
+            setPendingUpdate(null);
+          }} 
+        />
       )}
     </view>
   );

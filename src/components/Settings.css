@@ -186,15 +186,16 @@
 .ConfirmActions {
   display: flex;
   flex-direction: row;
-  gap: 12px;
 }
 
 .ConfirmButton {
   flex: 1;
   padding: 14px 20px;
   border-radius: 12px;
+  display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 6px;
 }
 
 .ConfirmButton.cancel {
