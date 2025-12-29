@@ -217,14 +217,14 @@
   color: white;
 }
 
-/* Debug Console Modal */
+/* Debug Console Modal - Lumina Redesign */
 .DebugConsole-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.85);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,15 +233,16 @@
 }
 
 .DebugConsole-modal {
-  background-color: #1a1a2e;
-  border-radius: 16px;
+  background-color: var(--surface);
+  border-radius: 24px;
   width: 100%;
-  height: 90%;
+  height: 85%;
   max-width: 600px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-  border: 1px solid rgba(138, 43, 226, 0.3);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--accent-border);
+  overflow: hidden;
 }
 
 .DebugConsole-header {
@@ -249,86 +250,98 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 20px 24px;
+  background-color: var(--glass);
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .DebugConsole-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-accent);
+  letter-spacing: -0.5px;
 }
 
 .DebugConsole-actions {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 12px;
 }
 
 .DebugConsole-button {
-  padding: 8px 12px;
-  background-color: rgba(255,255,255,0.1);
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-soft);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .DebugConsole-button.primary {
-  background-color: rgba(138, 43, 226, 0.6);
+  width: auto;
+  padding: 0 16px;
+  background-color: var(--text-accent);
 }
 
 .DebugConsole-button-text {
   font-size: 14px;
-  color: #fff;
-  font-weight: 600;
+  color: var(--text-accent);
+  font-weight: 700;
+}
+
+.DebugConsole-button.primary .DebugConsole-button-text {
+  color: #ffffff;
 }
 
 .DebugConsole-status {
-  padding: 8px 16px;
-  background-color: rgba(138, 43, 226, 0.2);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 24px;
+  background-color: var(--accent-soft);
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .DebugConsole-status-text {
   font-size: 13px;
-  color: #a0e7a0;
-  font-weight: 500;
+  color: var(--text-accent);
+  font-weight: 600;
+  text-align: center;
 }
 
 .DebugConsole-content {
   flex: 1;
-  padding: 16px;
-  overflow-y: auto;
+  background-color: var(--bg-main);
+  padding: 20px;
 }
 
 .DebugConsole-text {
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  color: #8fbc8f;
-  line-height: 1.5;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
+  opacity: 0.9;
 }
 
 .RestoreInput {
   flex: 1;
   background-color: var(--bg-main);
   border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 12px 16px;
   color: var(--text-primary);
-  font-size: 14px;
-  margin-right: 8px;
+  font-size: 15px;
+  margin-right: 12px;
 }
 
 .RestoreButton {
-  padding: 10px 16px;
+  padding: 12px 24px;
   background-color: var(--text-accent);
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-soft);
 }
 
 .RestoreButtonText {
