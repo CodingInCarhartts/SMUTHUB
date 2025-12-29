@@ -4,15 +4,20 @@ import './UpdateModal.css';
 
 interface Props {
   update: AppUpdate;
+  nativeUrl?: string; // If provided, this is a native APK update
   onDismiss: () => void;
 }
 
-export function UpdateModal({ update, onDismiss }: Props) {
+export function UpdateModal({ update, nativeUrl, onDismiss }: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdate = () => {
     setIsUpdating(true);
-    UpdateService.applyUpdate();
+    if (nativeUrl) {
+      UpdateService.installNativeUpdate(nativeUrl);
+    } else {
+      UpdateService.applyUpdate();
+    }
   };
 
   const formattedNotes = update.releaseNotes
@@ -24,9 +29,9 @@ export function UpdateModal({ update, onDismiss }: Props) {
       <view className="UpdateCard">
         <view className="UpdateHeader">
           <view className="UpdateIconContainer">
-             <text className="UpdateIcon">🚀</text>
+             <text className="UpdateIcon">{nativeUrl ? '📦' : '🚀'}</text>
           </view>
-          <text className="UpdateTitle">New Update Available</text>
+          <text className="UpdateTitle">{nativeUrl ? 'Native Update Available' : 'New Update Available'}</text>
           <text className="UpdateVersion">Version {update.version}</text>
         </view>
 
@@ -37,14 +42,16 @@ export function UpdateModal({ update, onDismiss }: Props) {
           </scroll-view>
           
           <text className="UpdateHint">
-            The app will reload to apply the latest changes.
+            {nativeUrl 
+              ? 'This is a native app update. Tapping below will download and install the new APK.' 
+              : 'The app will reload to apply the latest changes.'}
           </text>
         </view>
 
         <view className="UpdateActions">
           <view className="UpdateButton" bindtap={handleUpdate}>
              <text className="UpdateButtonText">
-               {isUpdating ? 'Updating...' : 'Update Now'}
+               {isUpdating ? 'Updating...' : (nativeUrl ? 'Install Update' : 'Update Now')}
              </text>
           </view>
           

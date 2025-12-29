@@ -1,12 +1,51 @@
 import { SupabaseService } from './supabase';
 import { logCapture } from './debugLog';
 
+// Storage helper for skip version (using native storage via StorageService pattern)
+const SKIP_KEY = 'batoto:skipped_version';
+let skippedVersionCache: string | null = null;
+
+function getSkippedVersion(): string | null {
+  return skippedVersionCache;
+}
+
+function setSkippedVersion(version: string): void {
+  skippedVersionCache = version;
+  try {
+    // @ts-ignore
+    if (typeof NativeModules !== 'undefined' && NativeModules.NativeLocalStorageModule) {
+      NativeModules.NativeLocalStorageModule.setStorageItem(SKIP_KEY, version);
+    }
+  } catch (e) {
+    // Ignore
+  }
+}
+
+// Initialize from native storage on load
+try {
+  // @ts-ignore
+  if (typeof NativeModules !== 'undefined' && NativeModules.NativeLocalStorageModule) {
+    NativeModules.NativeLocalStorageModule.getStorageItem(SKIP_KEY, (value: string | null) => {
+      skippedVersionCache = value;
+    });
+  }
+} catch (e) {
+  // Ignore
+}
+
 const log = (...args: any[]) => logCapture('log', ...args);
 const logWarn = (...args: any[]) => logCapture('warn', ...args);
 const logError = (...args: any[]) => logCapture('error', ...args);
 
 export interface AppUpdate {
   version: string;
+  isMandatory: boolean;
+  releaseNotes: string;
+}
+
+export interface NativeAppUpdate {
+  version: string;
+  url: string;
   isMandatory: boolean;
   releaseNotes: string;
 }
@@ -67,7 +106,7 @@ export const UpdateService = {
     if (!latest) return null;
 
     // Check if version is skipped
-    const skipped = typeof localStorage !== 'undefined' ? localStorage.getItem('batoto:skipped_version') : null;
+    const skipped = getSkippedVersion();
     if (skipped === latest.version && !latest.isMandatory) {
       log(`[UpdateService] Version ${latest.version} is skipped by user.`);
       return null;
@@ -85,16 +124,14 @@ export const UpdateService = {
    * Mark a version as skipped
    */
   skipVersion(version: string): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('batoto:skipped_version', version);
-      log(`[UpdateService] Skipping version ${version}`);
-    }
+    setSkippedVersion(version);
+    log(`[UpdateService] Skipping version ${version}`);
   },
 
   /**
    * Check if a newer native APK version exists in Supabase
    */
-  async checkNativeUpdate(): Promise<{ version: string, url: string, isMandatory: boolean } | null> {
+  async checkNativeUpdate(): Promise<NativeAppUpdate | null> {
     try {
       // @ts-ignore
       const nativeUpdater = typeof NativeModules !== 'undefined' ? NativeModules.NativeUpdaterModule : null;
@@ -104,7 +141,7 @@ export const UpdateService = {
       
       const data = await SupabaseService.getAll<any>(
         'app_native_updates', 
-        '?select=version,download_url,is_mandatory&order=created_at.desc&limit=1'
+        '?select=version,download_url,is_mandatory,release_notes&order=created_at.desc&limit=1'
       );
       
       if (data && data.length > 0) {
@@ -114,7 +151,8 @@ export const UpdateService = {
           return {
             version: latest.version,
             url: latest.download_url,
-            isMandatory: !!latest.is_mandatory
+            isMandatory: !!latest.is_mandatory,
+            releaseNotes: latest.release_notes || 'New native features and performance improvements.'
           };
         }
       }

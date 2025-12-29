@@ -1,9 +1,10 @@
 // Initialize debug log capture FIRST so all logs are captured
 import './services/debugLog';
-import { useCallback, useState, useEffect, useMemo } from '@lynx-js/react';
+import { useCallback, useEffect, useState, useMemo } from '@lynx-js/react';
 import { BatotoService, type Manga, type Chapter, type MangaDetails, type SearchFilters } from './services/batoto';
-import { SettingsStore } from './services/settings';
 import { StorageService } from './services/storage';
+import { SettingsStore } from './services/settings';
+import { UpdateService, type AppUpdate, type NativeAppUpdate } from './services/update';
 import { MangaCard } from './components/MangaCard';
 import { Reader } from './components/Reader';
 import { Search } from './components/Search';
@@ -13,7 +14,6 @@ import { BottomNav } from './components/BottomNav';
 import { Settings } from './components/Settings';
 import { FavoritesView } from './components/FavoritesView';
 import { HistoryView } from './components/HistoryView';
-import { UpdateService, type AppUpdate } from './services/update';
 import { UpdateModal } from './components/UpdateModal';
 import './App.css';
 
@@ -48,6 +48,9 @@ export function App() {
 
   // OTA Update state
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
+  
+  // Native APK Update state
+  const [pendingNativeUpdate, setPendingNativeUpdate] = useState<NativeAppUpdate | null>(null);
 
   // Subscribe to settings changes
   useEffect(() => {
@@ -74,25 +77,38 @@ export function App() {
   // Check for updates on mount and periodically
   useEffect(() => {
     const checkUpdate = async () => {
-      console.log('[App] Checking for updates...');
+      console.log('[App] Checking for OTA updates...');
       const update = await UpdateService.checkUpdate();
       if (update) {
-        console.log('[App] Update found:', update.version);
+        console.log('[App] OTA Update found:', update.version);
         setPendingUpdate(update);
       }
     };
 
-    // 1. Check on mount (with small delay)
-    const initialTimeout = setTimeout(checkUpdate, 3000);
+    const checkNativeUpdate = async () => {
+      console.log('[App] Checking for Native updates...');
+      const update = await UpdateService.checkNativeUpdate();
+      if (update) {
+        console.log('[App] Native Update found:', update.version);
+        setPendingNativeUpdate(update);
+      }
+    };
 
-    // 2. Check periodically (every 5 minutes)
-    const interval = setInterval(checkUpdate, 5 * 60 * 1000);
+    // 1. Check on mount (with small delay)
+    const initialTimeout = setTimeout(() => {
+      checkUpdate();
+      checkNativeUpdate();
+    }, 3000);
+
+    // 2. Check periodically
+    const otaInterval = setInterval(checkUpdate, 5 * 60 * 1000); // 5 minutes
+    const nativeInterval = setInterval(checkNativeUpdate, 60 * 60 * 1000); // 1 hour
 
     // 3. Check on app resume/foreground
-    // Lynx provides 'appshow' and 'apphide' events on the global lynx object
     const handleAppShow = () => {
       console.log('[App] App resumed, checking for updates...');
       checkUpdate();
+      checkNativeUpdate();
     };
 
     // @ts-ignore
@@ -103,7 +119,8 @@ export function App() {
 
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(interval);
+      clearInterval(otaInterval);
+      clearInterval(nativeInterval);
       if (runtime && runtime.off) {
         runtime.off('appshow', handleAppShow);
       }
@@ -457,7 +474,18 @@ export function App() {
       )}
 
       {/* Update Notification */}
-      {pendingUpdate && (
+      {pendingNativeUpdate && (
+        <UpdateModal 
+          update={pendingNativeUpdate} 
+          nativeUrl={pendingNativeUpdate.url}
+          onDismiss={() => {
+            UpdateService.skipVersion(pendingNativeUpdate.version);
+            setPendingNativeUpdate(null);
+          }} 
+        />
+      )}
+
+      {!pendingNativeUpdate && pendingUpdate && (
         <UpdateModal 
           update={pendingUpdate} 
           onDismiss={() => {
