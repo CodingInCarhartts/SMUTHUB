@@ -10,7 +10,7 @@ export default defineConfig({
    * https://codingincarhartts.github.io/SMUTHUB/main.lynx.bundle
    */
   server: {
-    host: '10.0.0.55', // Your LAN IP - ensure phone is on same network
+    host: '0.0.0.0', // Listen on all interfaces
     port: 3002,
   },
   plugins: [
