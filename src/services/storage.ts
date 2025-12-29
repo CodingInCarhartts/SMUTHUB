@@ -21,12 +21,21 @@ export interface AppSettings {
   devMode: boolean;
 }
 
+export interface ReaderPosition {
+  mangaId: string;
+  chapterUrl: string;
+  panelIndex: number;
+  scrollPosition?: number;
+  timestamp: string;
+}
+
 const STORAGE_KEYS = {
   FAVORITES: 'batoto:favorites',
   HISTORY: 'batoto:history',
   SETTINGS: 'batoto:settings',
   FILTERS: 'batoto:filters',
   DEVICE_ID: 'batoto:device_id',
+  READER_POSITION: 'batoto:reader_position',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -145,13 +154,13 @@ async function initializeFromNativeStorage(): Promise<void> {
   
   log('[Storage] Loading from native storage...');
   
-  // Load all keys from native storage into memory cache
   const keys = [
     STORAGE_KEYS.DEVICE_ID,
     STORAGE_KEYS.SETTINGS,
     STORAGE_KEYS.FAVORITES,
     STORAGE_KEYS.HISTORY,
     STORAGE_KEYS.FILTERS,
+    STORAGE_KEYS.READER_POSITION,
   ];
   
   for (const key of keys) {
@@ -407,6 +416,33 @@ export const StorageService = {
     try {
       if (typeof localStorage !== 'undefined') localStorage.removeItem(STORAGE_KEYS.FILTERS);
       memoryStorage.delete(STORAGE_KEYS.FILTERS);
+    } catch (e) {}
+  },
+
+  // ============ READER POSITION ============
+
+  saveReaderPosition(mangaId: string, chapterUrl: string, panelIndex: number, scrollPosition?: number): void {
+    const position: ReaderPosition = {
+      mangaId,
+      chapterUrl,
+      panelIndex,
+      scrollPosition,
+      timestamp: new Date().toISOString(),
+    };
+    setLocal(STORAGE_KEYS.READER_POSITION, position);
+    log('[Storage] Saved reader position:', { mangaId, panelIndex });
+  },
+
+  getReaderPosition(): ReaderPosition | null {
+    return getLocal<ReaderPosition | null>(STORAGE_KEYS.READER_POSITION, null);
+  },
+
+  clearReaderPosition(): void {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(STORAGE_KEYS.READER_POSITION);
+      memoryStorage.delete(STORAGE_KEYS.READER_POSITION);
+      setNativeItem(STORAGE_KEYS.READER_POSITION, '');
+      log('[Storage] Cleared reader position');
     } catch (e) {}
   },
 

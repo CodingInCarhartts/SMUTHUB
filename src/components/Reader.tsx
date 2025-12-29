@@ -159,9 +159,16 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
       console.log('[Reader] Received panels:', urls.length, 'First:', urls[0]);
       setPanels(urls);
       setLoading(false);
+      
+      // Restore saved position if returning to same chapter
+      const savedPosition = StorageService.getReaderPosition();
+      if (savedPosition && savedPosition.chapterUrl === chapterUrl && manga?.id === savedPosition.mangaId) {
+        console.log('[Reader] Restoring position:', savedPosition.panelIndex);
+        setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
+      }
     };
     loadPanels();
-  }, [chapterUrl]);
+  }, [chapterUrl, manga?.id]);
 
   const handleSwipeEnd = (e: any) => {
     // Handle horizontal swipe navigation
@@ -179,6 +186,17 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
       setCurrentPage(newPage);
     }
   };
+
+  // Save position when page changes (debounced)
+  useEffect(() => {
+    if (!manga || loading || panels.length === 0) return;
+    
+    const timeoutId = setTimeout(() => {
+      StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
+    }, 500); // Debounce 500ms to avoid excessive writes
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentPage, manga, chapterUrl, loading, panels.length]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
