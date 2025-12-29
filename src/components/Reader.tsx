@@ -166,6 +166,7 @@ export function Reader({
     SettingsStore.getReadingMode(),
   );
   const [currentPage, setCurrentPage] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
@@ -201,13 +202,23 @@ export function Reader({
     loadPanels();
   }, [chapterUrl, manga?.id]);
 
-  const handleSwipeEnd = (e: any) => {
-    // Handle horizontal swipe navigation
-    const direction = e.detail?.direction;
-    if (direction === 'left' && currentPage < panels.length - 1) {
-      setCurrentPage((prev) => prev + 1);
-    } else if (direction === 'right' && currentPage > 0) {
-      setCurrentPage((prev) => prev - 1);
+  const handleTouchStart = (e: any) => {
+    setTouchStartX(e.detail.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: any) => {
+    const touchEndX = e.detail.changedTouches[0].clientX;
+    const deltaX = touchEndX - touchStartX;
+    const threshold = 50; // pixels
+
+    if (Math.abs(deltaX) > threshold) {
+      if (deltaX < 0 && currentPage < panels.length - 1) {
+        console.log('[Reader] Swipe Left detected');
+        setCurrentPage((prev) => prev + 1);
+      } else if (deltaX > 0 && currentPage > 0) {
+        console.log('[Reader] Swipe Right detected');
+        setCurrentPage((prev) => prev - 1);
+      }
     }
   };
 
@@ -223,8 +234,9 @@ export function Reader({
     if (!positionRestored || !manga || loading || panels.length === 0) return;
 
     const timeoutId = setTimeout(() => {
+      console.log('[Reader] Saving position to cloud:', { mangaId: manga.id, page: currentPage });
       StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
-    }, 500); // Debounce 500ms to avoid excessive writes
+    }, 1000); // Increase debounce to 1s to be safer
 
     return () => clearTimeout(timeoutId);
   }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored]);
@@ -285,6 +297,12 @@ export function Reader({
                   key={`panel-${index}`}
                   item-key={`panel-${index}`}
                   full-span
+                  binduiappear={() => {
+                    if (!loading && positionRestored) {
+                      console.log('[Reader] Panel appeared:', index);
+                      setCurrentPage(index);
+                    }
+                  }}
                 >
                   <ReaderPanel url={url} index={index} />
                 </list-item>
@@ -314,7 +332,11 @@ export function Reader({
         </list>
       ) : (
         // Horizontal swipe mode (Manga)
-        <view className="Reader-horizontal-container">
+        <view 
+          className="Reader-horizontal-container"
+          bindtouchstart={handleTouchStart}
+          bindtouchend={handleTouchEnd}
+        >
           {loading ? (
             <view className="Reader-loading-container">
               <text className="Reader-loading">Loading panels...</text>
