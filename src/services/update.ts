@@ -63,7 +63,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.19';
+export const APP_VERSION = '1.0.20';
 
 export const UpdateService = {
   /**
