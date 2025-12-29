@@ -63,7 +63,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.24';
+export const APP_VERSION = '1.0.25';
 
 export const UpdateService = {
   /**
@@ -144,7 +144,6 @@ export const UpdateService = {
     return null;
   },
 
-
   /**
    * Mark a version as skipped
    */
@@ -188,7 +187,6 @@ export const UpdateService = {
           };
         }
       }
-
     } catch (e) {
       logWarn('[UpdateService] Native update check failed:', e);
     }
