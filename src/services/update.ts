@@ -188,8 +188,32 @@ export const UpdateService = {
         : null;
     if (nativeUpdater && nativeUpdater.installUpdate) {
       nativeUpdater.installUpdate(url);
+      // Wait a moment then exit to ensure the installer starts and doesn't get interrupted by Lynx activity
+      setTimeout(() => {
+        this.exitApp();
+      }, 500);
     } else {
       logError('[UpdateService] NativeUpdaterModule not available');
+    }
+  },
+
+  /**
+   * Exit the app immediately
+   */
+  exitApp(): void {
+    log('[UpdateService] Exiting app...');
+    try {
+      const utils =
+        typeof NativeModules !== 'undefined'
+          ? NativeModules.NativeUtilsModule
+          : null;
+      if (utils && utils.exitApp) {
+        utils.exitApp();
+      } else {
+        logWarn('[UpdateService] exitApp not available');
+      }
+    } catch (e) {
+      logError('[UpdateService] Failed to exit app:', e);
     }
   },
 
@@ -205,10 +229,9 @@ export const UpdateService = {
         runtime.reload();
       } else {
         logWarn(
-          '[UpdateService] lynx.reload is not available in this environment',
+          '[UpdateService] lynx.reload is not available, falling back to exitApp',
         );
-        // If we can't reload, the user will have to restart the app manually.
-        // We notify them via the UI (handled in the Modal).
+        this.exitApp();
       }
     } catch (e) {
       logError('[UpdateService] Reload failed:', e);

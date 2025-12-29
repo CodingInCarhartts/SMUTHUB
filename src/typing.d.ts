@@ -45,6 +45,7 @@ declare let NativeModules: {
   NativeUtilsModule: {
     copyToClipboard(text: string): void;
     shareText(text: string, title: string): void;
+    exitApp(): void;
   };
 
   /**
