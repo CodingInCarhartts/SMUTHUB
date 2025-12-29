@@ -53,7 +53,7 @@ export function DeveloperOptions() {
             <text className="Settings-item-icon">🆔</text>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Stable Device ID</text>
-              <text className="Settings-item-description select-all">{deviceId}</text>
+              <text className="Settings-item-description">{deviceId}</text>
             </view>
           </view>
         </view>
@@ -108,7 +108,7 @@ export function DeveloperOptions() {
             )}
             
             <scroll-view className="DebugConsole-content" scroll-y>
-              <text className="DebugConsole-text select-all">{debugReport}</text>
+              <text className="DebugConsole-text">{debugReport}</text>
             </scroll-view>
           </view>
         </view>

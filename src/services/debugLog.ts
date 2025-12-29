@@ -112,6 +112,20 @@ export const DebugLogService = {
     } catch (e) {
       report.push(`SystemInfo error: ${e}`);
     }
+    
+    // NativeModules check
+    try {
+      // @ts-ignore
+      const hasNative = typeof NativeModules !== 'undefined';
+      report.push(`NativeModules available: ${hasNative}`);
+      if (hasNative) {
+        // @ts-ignore
+        const hasStorage = NativeModules.NativeLocalStorageModule !== undefined;
+        report.push(`NativeLocalStorageModule available: ${hasStorage}`);
+      }
+    } catch (e) {
+      report.push(`NativeModules error: ${e}`);
+    }
     report.push('');
     
     // LocalStorage dump

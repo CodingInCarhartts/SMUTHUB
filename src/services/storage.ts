@@ -32,51 +32,125 @@ const DEFAULT_SETTINGS: AppSettings = {
 const HISTORY_LIMIT_LOCAL = 50;
 const HISTORY_LIMIT_CLOUD = 999;
 
-// In-memory fallback
+// In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
 
-// Helper for storage
+// Check if native module is available
+function hasNativeStorage(): boolean {
+  try {
+    return typeof NativeModules !== 'undefined' && 
+           NativeModules.NativeLocalStorageModule !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+// Async getter using native module
+function getNativeItem(key: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      if (hasNativeStorage()) {
+        NativeModules.NativeLocalStorageModule.getStorageItem(key, (value) => {
+          console.log('[getNativeItem] Got value:', { key, value: value?.substring?.(0, 50) });
+          resolve(value);
+        });
+      } else {
+        resolve(null);
+      }
+    } catch (e) {
+      console.error('[getNativeItem] Error:', e);
+      resolve(null);
+    }
+  });
+}
+
+// Sync setter using native module (fire and forget)
+function setNativeItem(key: string, value: string): void {
+  try {
+    if (hasNativeStorage()) {
+      NativeModules.NativeLocalStorageModule.setStorageItem(key, value);
+      console.log('[setNativeItem] Saved:', { key, valueLen: value.length });
+    }
+  } catch (e) {
+    console.error('[setNativeItem] Error:', e);
+  }
+}
+
+// Helper for storage - tries localStorage first, then memory cache
 function getLocal<T>(key: string, defaultValue: T): T {
+  // First check memory cache (populated by async native loads)
+  const cached = memoryStorage.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return defaultValue;
+    }
+  }
+  
+  // Try localStorage (won't work in Lynx but kept for web dev)
   try {
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem(key);
-      const parsed = stored ? JSON.parse(stored) : defaultValue;
-      if (key === STORAGE_KEYS.DEVICE_ID) {
-        console.log('[getLocal] localStorage read:', { key, raw: stored, parsed, hasLocalStorage: true });
+      if (stored) {
+        return JSON.parse(stored);
       }
-      return parsed;
     }
   } catch (e) {
-    console.error('[getLocal] localStorage error:', e);
+    // Ignore
   }
   
-  const stored = memoryStorage.get(key);
-  const parsed = stored ? JSON.parse(stored) : defaultValue;
-  if (key === STORAGE_KEYS.DEVICE_ID) {
-    console.log('[getLocal] memoryStorage fallback:', { key, raw: stored, parsed });
-  }
-  return parsed;
+  return defaultValue;
 }
 
 function setLocal<T>(key: string, value: T): void {
   const strValue = JSON.stringify(value);
-  if (key === STORAGE_KEYS.DEVICE_ID) {
-    console.log('[setLocal] Writing deviceId:', { key, value: strValue });
-  }
+  
+  // Always update memory cache
+  memoryStorage.set(key, strValue);
+  
+  // Try localStorage
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(key, strValue);
-      if (key === STORAGE_KEYS.DEVICE_ID) {
-        // Verify write
-        const verify = localStorage.getItem(key);
-        console.log('[setLocal] Verified localStorage write:', { key, wrote: strValue, read: verify, match: verify === strValue });
-      }
     }
   } catch (e) {
-    console.error('[Storage] localStorage error:', e);
+    // Ignore
   }
-  memoryStorage.set(key, strValue);
+  
+  // Also save to native storage
+  setNativeItem(key, strValue);
 }
+
+// Initialize device ID from native storage on startup
+async function initializeFromNativeStorage(): Promise<void> {
+  if (!hasNativeStorage()) {
+    console.log('[Storage] Native storage not available');
+    return;
+  }
+  
+  console.log('[Storage] Loading from native storage...');
+  
+  // Load all keys from native storage into memory cache
+  const keys = [
+    STORAGE_KEYS.DEVICE_ID,
+    STORAGE_KEYS.SETTINGS,
+    STORAGE_KEYS.FAVORITES,
+    STORAGE_KEYS.HISTORY,
+    STORAGE_KEYS.FILTERS,
+  ];
+  
+  for (const key of keys) {
+    const value = await getNativeItem(key);
+    if (value) {
+      memoryStorage.set(key, value);
+      console.log('[Storage] Loaded from native:', { key, hasValue: true });
+    }
+  }
+}
+
+// Run initialization
+initializeFromNativeStorage().catch(console.error);
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
