@@ -1,9 +1,9 @@
+// Initialize debug log capture FIRST so all logs are captured
+import './services/debugLog';
 import { useCallback, useState, useEffect, useMemo } from '@lynx-js/react';
 import { BatotoService, type Manga, type Chapter, type MangaDetails, type SearchFilters } from './services/batoto';
 import { SettingsStore } from './services/settings';
 import { StorageService } from './services/storage';
-// Initialize debug log capture early
-import './services/debugLog';
 import { MangaCard } from './components/MangaCard';
 import { Reader } from './components/Reader';
 import { Search } from './components/Search';

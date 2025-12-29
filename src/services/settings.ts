@@ -1,5 +1,5 @@
 // Settings store with Supabase sync
-import { StorageService, type AppSettings } from './storage';
+import { StorageService, storageReady, type AppSettings } from './storage';
 
 export type ReadingMode = 'vertical' | 'horizontal';
 
@@ -7,10 +7,21 @@ let settings: AppSettings = StorageService.getSettingsSync();
 
 const listeners: Set<() => void> = new Set();
 
-// Initialize from Supabase async
-StorageService.getSettings().then(cloudSettings => {
+// Initialize from native storage first, then Supabase
+storageReady.then(() => {
+  console.log('[SettingsStore] Storage ready, loading settings...');
+  // Re-read from storage now that native data is loaded
+  settings = StorageService.getSettingsSync();
+  listeners.forEach(fn => fn());
+  
+  // Then try cloud
+  return StorageService.getSettings();
+}).then(cloudSettings => {
+  console.log('[SettingsStore] Cloud settings loaded:', cloudSettings);
   settings = cloudSettings;
   listeners.forEach(fn => fn());
+}).catch(e => {
+  console.error('[SettingsStore] Failed to load settings:', e);
 });
 
 export const SettingsStore = {

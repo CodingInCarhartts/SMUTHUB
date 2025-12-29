@@ -35,12 +35,18 @@ const HISTORY_LIMIT_CLOUD = 999;
 // In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
 
+// Immediate startup log
+console.log('[Storage] Module loading, checking native storage...');
+
 // Check if native module is available
 function hasNativeStorage(): boolean {
   try {
-    return typeof NativeModules !== 'undefined' && 
-           NativeModules.NativeLocalStorageModule !== undefined;
-  } catch {
+    const hasMods = typeof NativeModules !== 'undefined';
+    const hasStorageMod = hasMods && NativeModules.NativeLocalStorageModule !== undefined;
+    console.log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
+    return hasStorageMod;
+  } catch (e) {
+    console.error('[Storage] hasNativeStorage error:', e);
     return false;
   }
 }
@@ -124,8 +130,10 @@ function setLocal<T>(key: string, value: T): void {
 
 // Initialize device ID from native storage on startup
 async function initializeFromNativeStorage(): Promise<void> {
+  console.log('[Storage] initializeFromNativeStorage starting...');
+  
   if (!hasNativeStorage()) {
-    console.log('[Storage] Native storage not available');
+    console.log('[Storage] Native storage not available, skipping init');
     return;
   }
   
@@ -141,16 +149,26 @@ async function initializeFromNativeStorage(): Promise<void> {
   ];
   
   for (const key of keys) {
-    const value = await getNativeItem(key);
-    if (value) {
-      memoryStorage.set(key, value);
-      console.log('[Storage] Loaded from native:', { key, hasValue: true });
+    try {
+      const value = await getNativeItem(key);
+      if (value) {
+        memoryStorage.set(key, value);
+        console.log('[Storage] Loaded from native:', { key, hasValue: true, preview: value.substring(0, 30) });
+      } else {
+        console.log('[Storage] No value in native for:', key);
+      }
+    } catch (e) {
+      console.error('[Storage] Failed to load key:', key, e);
     }
   }
+  
+  console.log('[Storage] Native storage initialization complete');
 }
 
-// Run initialization
-initializeFromNativeStorage().catch(console.error);
+// Export initialization promise so other modules can wait
+export const storageReady = initializeFromNativeStorage().catch(e => {
+  console.error('[Storage] Initialization failed:', e);
+});
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
