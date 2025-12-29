@@ -51,14 +51,14 @@ const HISTORY_LIMIT_CLOUD = 999;
 const memoryStorage = new Map<string, string>();
 
 // Immediate startup log
-log('[Storage] Module loading, checking native storage...');
+// log('[Storage] Module loading, checking native storage...');
 
 // Check if native module is available
 function hasNativeStorage(): boolean {
   try {
     const hasMods = typeof NativeModules !== 'undefined';
     const hasStorageMod =
-      hasMods && NativeModules.NativeLocalStorageModule !== undefined;
+      hasMods && !!NativeModules.NativeLocalStorageModule;
     log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
     return hasStorageMod;
   } catch (e) {
@@ -71,8 +71,9 @@ function hasNativeStorage(): boolean {
 function getNativeItem(key: string): Promise<string | null> {
   return new Promise((resolve) => {
     try {
-      if (hasNativeStorage()) {
-        NativeModules.NativeLocalStorageModule.getStorageItem(key, (value) => {
+      const nativeModule = NativeModules?.NativeLocalStorageModule;
+      if (nativeModule && typeof nativeModule.getStorageItem === 'function') {
+        nativeModule.getStorageItem(key, (value) => {
           log('[getNativeItem] Got value:', {
             key,
             value: value?.substring?.(0, 50),
@@ -90,10 +91,12 @@ function getNativeItem(key: string): Promise<string | null> {
 }
 
 // Sync setter using native module (fire and forget)
+// Sync setter using native module (fire and forget)
 function setNativeItem(key: string, value: string): void {
   try {
-    if (hasNativeStorage()) {
-      NativeModules.NativeLocalStorageModule.setStorageItem(key, value);
+    const nativeModule = NativeModules?.NativeLocalStorageModule;
+    if (nativeModule && typeof nativeModule.setStorageItem === 'function') {
+      nativeModule.setStorageItem(key, value);
       log('[setNativeItem] Saved:', { key, valueLen: value.length });
     }
   } catch (e) {
@@ -491,7 +494,48 @@ export const StorageService = {
       timestamp: new Date().toISOString(),
     };
     setLocal(STORAGE_KEYS.READER_POSITION, position);
+    
+    // Sync to Cloud
+    SupabaseService.upsert('reader_positions', {
+      device_id: this.getDeviceId(),
+      manga_id: mangaId,
+      chapter_url: chapterUrl,
+      panel_index: panelIndex,
+      updated_at: position.timestamp,
+    }, 'device_id,manga_id');
+    
     log('[Storage] Saved reader position:', { mangaId, panelIndex });
+  },
+
+  async getReaderPositionForManga(mangaId: string): Promise<ReaderPosition | null> {
+    // 1. Check local first
+    const local = this.getReaderPosition();
+    if (local && local.mangaId === mangaId) {
+      return local;
+    }
+
+    // 2. Fallback to Cloud
+    try {
+      const deviceId = this.getDeviceId();
+      const data = await SupabaseService.getAll<any>(
+        'reader_positions',
+        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`
+      );
+
+      if (data && data.length > 0) {
+        const row = data[0];
+        return {
+          mangaId,
+          chapterUrl: row.chapter_url,
+          panelIndex: Number(row.panel_index),
+          timestamp: row.updated_at,
+        };
+      }
+    } catch (e) {
+      logError('[Storage] Failed to fetch reader position from cloud:', e);
+    }
+
+    return null;
   },
 
   getReaderPosition(): ReaderPosition | null {

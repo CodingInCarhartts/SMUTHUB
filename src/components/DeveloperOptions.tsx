@@ -8,6 +8,7 @@ export function DeveloperOptions() {
   const [showDebugConsole, setShowDebugConsole] = useState(false);
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [restoreId, setRestoreId] = useState('');
 
   const handleOpenDebugConsole = () => {
     // Generate fresh report
@@ -89,36 +90,55 @@ export function DeveloperOptions() {
         </view>
 
         <view className="Settings-item">
-          <view className="Settings-item-text" style={{ padding: '12px 0' }}>
+          <view className="Settings-item-text" style={{ padding: '12px 0', width: '100%' }}>
             <text className="Settings-item-label">Restore Session</text>
-            <view
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginTop: '8px',
-              }}
-            >
+            <view className="RestoreRow">
               <input
                 className="RestoreInput"
                 placeholder="Enter previous Device ID"
-                bindinput={(e) => {
-                  const val = e.detail.value;
-                  if (val && val.length > 5) {
-                    StorageService.setDeviceId(val);
-                  }
-                }}
+                // @ts-expect-error - Lynx input supports value for programmatic updates
+                value={restoreId}
+                bindinput={(e) => setRestoreId(e.detail.value)}
               />
+              <view
+                className="RestoreButton secondary"
+                bindtap={async () => {
+                   try {
+                     const nativeModule = typeof NativeModules !== 'undefined' ? NativeModules.NativeUtilsModule : null;
+                     // @ts-expect-error - Custom native module method
+                     if (nativeModule && nativeModule.getClipboardData) {
+                       // @ts-expect-error - Custom native module method
+                       nativeModule.getClipboardData((data: string) => {
+                         if (data) setRestoreId(data);
+                       });
+                     } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                       const text = await navigator.clipboard.readText();
+                       if (text) setRestoreId(text);
+                     }
+                   } catch (e) {
+                     // ignore
+                   }
+                }}
+              >
+                <text className="RestoreButtonText" style={{ color: 'var(--text-primary)', fontSize: '20px' }}>📋</text>
+              </view>
               <view
                 className="RestoreButton"
                 bindtap={() => {
-                  // After setting ID in bindinput, we just need to reload
-                  const runtime =
-                    typeof lynx !== 'undefined'
-                      ? lynx
-                      : (globalThis as any).lynx;
-                  if (runtime && runtime.reload) {
-                    runtime.reload();
-                  }
+                  if (!restoreId || restoreId.length < 5) return;
+                  
+                  StorageService.setDeviceId(restoreId);
+                  setCopyStatus('✅ Restoring...');
+                  
+                  setTimeout(() => {
+                    const runtime =
+                      typeof lynx !== 'undefined'
+                        ? lynx
+                        : (globalThis as any).lynx;
+                    if (runtime && runtime.reload) {
+                      runtime.reload();
+                    }
+                  }, 500);
                 }}
               >
                 <text className="RestoreButtonText">Restore</text>
@@ -126,7 +146,7 @@ export function DeveloperOptions() {
             </view>
             <text
               className="Settings-item-description"
-              style={{ marginTop: '4px' }}
+              style={{ marginTop: '8px' }}
             >
               Paste your old ID to recover favorites and history.
             </text>

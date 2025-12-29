@@ -21,6 +21,11 @@ export const SupabaseService = {
     options: RequestInit = {},
   ): Promise<T | null> {
     try {
+      if (typeof fetch === 'undefined') {
+        // console.warn('[Supabase] fetch is not defined in this environment. Skipping request.');
+        return null;
+      }
+
       const response = await fetch(`${REST_URL}${endpoint}`, {
         ...options,
         headers: {

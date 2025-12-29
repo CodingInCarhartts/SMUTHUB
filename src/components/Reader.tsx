@@ -166,6 +166,7 @@ export function Reader({
     SettingsStore.getReadingMode(),
   );
   const [currentPage, setCurrentPage] = useState(0);
+  const [positionRestored, setPositionRestored] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
@@ -184,18 +185,18 @@ export function Reader({
       const urls = await BatotoService.getChapterPanels(chapterUrl);
       console.log('[Reader] Received panels:', urls.length, 'First:', urls[0]);
       setPanels(urls);
-      setLoading(false);
-
-      // Restore saved position if returning to same chapter
-      const savedPosition = StorageService.getReaderPosition();
-      if (
-        savedPosition &&
-        savedPosition.chapterUrl === chapterUrl &&
-        manga?.id === savedPosition.mangaId
-      ) {
-        console.log('[Reader] Restoring position:', savedPosition.panelIndex);
-        setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
+      
+      // Restore saved position if returning to same chapter or another chapter of same manga
+      if (manga) {
+        const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
+        if (savedPosition && savedPosition.chapterUrl === chapterUrl) {
+           console.log('[Reader] Restoring position:', savedPosition.panelIndex);
+           setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
+        }
       }
+
+      setPositionRestored(true);
+      setLoading(false);
     };
     loadPanels();
   }, [chapterUrl, manga?.id]);
@@ -219,14 +220,14 @@ export function Reader({
 
   // Save position when page changes (debounced)
   useEffect(() => {
-    if (!manga || loading || panels.length === 0) return;
+    if (!positionRestored || !manga || loading || panels.length === 0) return;
 
     const timeoutId = setTimeout(() => {
       StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
     }, 500); // Debounce 500ms to avoid excessive writes
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, manga, chapterUrl, loading, panels.length]);
+  }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
