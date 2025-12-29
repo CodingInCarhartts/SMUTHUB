@@ -62,7 +62,8 @@ async function publish() {
   // 2. Build APK
   console.log("\n🔨 Building APK... (this may take a while)");
   try {
-    run("./gradlew assembleDebug", { cwd: join(process.cwd(), "SMUTHUB") });
+    const env = { ...process.env, JAVA_HOME: "/opt/android-studio/jbr" };
+    run("./gradlew assembleDebug", { cwd: join(process.cwd(), "SMUTHUB"), env });
   } catch (e) {
     console.error("❌ Build Failed");
     process.exit(1);
@@ -75,7 +76,7 @@ async function publish() {
   // 4. Commit and Push
   console.log("\nrw Committing and pushing...");
   try {
-    run("git add SMUTHUB/app/build.gradle.kts src/services/update.ts SMUTHUB.apk");
+    run("git add -f SMUTHUB/app/build.gradle.kts src/services/update.ts SMUTHUB.apk");
     run(`git commit -m "🔖 native: release v${newVer} (code ${newCode})"`);
     run("git push origin main");
     console.log("✅ Pushed to repository");
@@ -86,7 +87,7 @@ async function publish() {
 
   // 5. Update Supabase
   console.log(`\n📡 Registering update in Supabase (v${newVer})...`);
-  const downloadUrl = `${REPO_URL}/raw/main/SMUTHUB.apk`;
+  const downloadUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/main/SMUTHUB.apk`;
 
   try {
     const response = await fetch(SUPABASE_URL, {
