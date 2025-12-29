@@ -63,7 +63,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.9';
+export const APP_VERSION = '1.0.10';
 
 export const UpdateService = {
   /**
@@ -206,10 +206,6 @@ export const UpdateService = {
         : null;
     if (nativeUpdater && nativeUpdater.installUpdate) {
       nativeUpdater.installUpdate(url);
-      // Wait a moment then exit to ensure the installer starts and doesn't get interrupted by Lynx activity
-      setTimeout(() => {
-        this.exitApp();
-      }, 500);
     } else {
       logError('[UpdateService] NativeUpdaterModule not available');
     }
