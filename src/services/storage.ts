@@ -19,6 +19,7 @@ export interface AppSettings {
   readingMode: 'vertical' | 'horizontal';
   darkMode: boolean;
   devMode: boolean;
+  remoteMode: boolean;
 }
 
 export interface ReaderPosition {
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   readingMode: 'vertical',
   darkMode: false,
   devMode: false,
+  remoteMode: false,
 };
 
 const HISTORY_LIMIT_LOCAL = 50;
@@ -457,7 +459,7 @@ export const StorageService = {
     // First, try fetching with dev_mode (the newer schema)
     let cloudData = await SupabaseService.getAll<any>(
       'settings',
-      `?select=reading_mode,dark_mode,dev_mode&device_id=eq.${deviceHash}`,
+      `?select=reading_mode,dark_mode,dev_mode,remote_mode&device_id=eq.${deviceHash}`,
     );
 
     // If that fails (likely 400 because dev_mode column missing), try basic fetch
@@ -477,6 +479,7 @@ export const StorageService = {
           row.dev_mode ??
           getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
             .devMode,
+        remoteMode: row.remote_mode ?? DEFAULT_SETTINGS.remoteMode,
       };
       setLocal(STORAGE_KEYS.SETTINGS, settings);
       return settings;
@@ -500,6 +503,7 @@ export const StorageService = {
         reading_mode: updated.readingMode,
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
+        remote_mode: updated.remoteMode,
       },
       'device_id',
     );

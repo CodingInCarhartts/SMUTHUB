@@ -44,6 +44,10 @@ export const SettingsStore = {
     return settings.devMode;
   },
 
+  getRemoteMode(): boolean {
+    return settings.remoteMode;
+  },
+
   setReadingMode(mode: ReadingMode): void {
     settings.readingMode = mode;
     console.log('[SettingsStore] Reading mode set to:', mode);
@@ -62,6 +66,13 @@ export const SettingsStore = {
     console.log('[SettingsStore] Developer mode set to:', enabled);
     settings.devMode = enabled;
     StorageService.saveSettings({ devMode: enabled });
+    listeners.forEach((fn) => fn());
+  },
+
+  setRemoteMode(enabled: boolean): void {
+    console.log('[SettingsStore] Remote mode set to:', enabled);
+    settings.remoteMode = enabled;
+    StorageService.saveSettings({ remoteMode: enabled });
     listeners.forEach((fn) => fn());
   },
 

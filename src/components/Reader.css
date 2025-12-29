@@ -23,6 +23,13 @@
   padding-left: 16px;
   padding-right: 16px;
   z-index: 100;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.Reader-header.hidden {
+  transform: translateY(-110px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .Reader-header-left {
@@ -245,9 +252,7 @@
   background-color: var(--text-accent);
   border-radius: 100px;
   box-shadow: var(--shadow-soft);
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .Reader-next-btn:active {
@@ -260,4 +265,34 @@
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.3px;
+}
+
+/* Tap Zones */
+.Reader-tap-zones {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: row;
+  z-index: 50;
+  pointer-events: none; /* Allow underlying content to be visible, but children will override */
+}
+
+.Reader-tap-zone {
+  height: 100%;
+  pointer-events: auto;
+}
+
+.Reader-tap-zone.prev {
+  width: 25%;
+}
+
+.Reader-tap-zone.center {
+  width: 50%;
+}
+
+.Reader-tap-zone.next {
+  width: 25%;
 }

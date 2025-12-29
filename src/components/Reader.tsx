@@ -173,10 +173,13 @@ export function Reader({
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
+  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
+  const [showControls, setShowControls] = useState(true);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       setReadingMode(SettingsStore.getReadingMode());
+      setRemoteMode(SettingsStore.getRemoteMode());
     });
     return unsubscribe;
   }, []);
@@ -245,6 +248,27 @@ export function Reader({
     }
   };
 
+  const toggleControls = () => {
+    setShowControls((prev) => !prev);
+  };
+
+  const scrollDown = () => {
+    // For vertical mode, we want to scroll down exactly one viewport height
+    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    if (runtime) {
+      runtime.createSelectorQuery()
+        .select('#reader-list')
+        .invoke({
+          method: 'scrollBy',
+          params: {
+            offset: 600, // Approximate viewport height, Lynx scrollBy is often pixels
+            animated: true
+          }
+        })
+        .exec();
+    }
+  };
+
   // Save position when page changes (debounced)
   useEffect(() => {
     // CRITICAL: Block all saves until we are 100% sure we are in "tracking" mode
@@ -270,8 +294,8 @@ export function Reader({
   };
 
   return (
-    <view className="Reader">
-      <view className="Reader-header">
+    <view className="Reader" bindtap={!remoteMode ? toggleControls : undefined}>
+      <view className={showControls ? "Reader-header" : "Reader-header hidden"}>
         <view className="Reader-header-left" bindtap={onBack}>
           <text className="Reader-back">{'‹ Back'}</text>
         </view>
@@ -295,6 +319,7 @@ export function Reader({
       {readingMode === 'vertical' ? (
         // Vertical scroll mode (Webtoon)
         <list 
+          id="reader-list"
           className="Reader-content" 
           scroll-y 
           initial-scroll-index={restoredPageIndex}
@@ -357,6 +382,7 @@ export function Reader({
           className="Reader-horizontal-container"
           bindtouchstart={handleTouchStart}
           bindtouchend={handleTouchEnd}
+          bindtap={!remoteMode ? toggleControls : undefined}
         >
           {loading ? (
             <view className="Reader-loading-container">
@@ -370,35 +396,46 @@ export function Reader({
             <>
               <HorizontalPanel url={panels[currentPage]} index={currentPage} />
 
-              {/* Navigation buttons */}
-              <view className="Reader-nav-buttons">
-                <view
-                  className={
-                    currentPage > 0
-                      ? 'Reader-nav-btn'
-                      : 'Reader-nav-btn disabled'
-                  }
-                  bindtap={() => goToPage(-1)}
-                >
-                  <text className="Reader-nav-text">‹ Prev</text>
-                </view>
+              {/* Navigation buttons: hidden in remoteMode unless controls are shown */}
+              {(!remoteMode || showControls) && (
+                <view className="Reader-nav-buttons">
+                  <view
+                    className={
+                      currentPage > 0
+                        ? 'Reader-nav-btn'
+                        : 'Reader-nav-btn disabled'
+                    }
+                    bindtap={() => goToPage(-1)}
+                  >
+                    <text className="Reader-nav-text">‹ Prev</text>
+                  </view>
 
-                {currentPage < panels.length - 1 ? (
-                  <view className="Reader-nav-btn" bindtap={() => goToPage(1)}>
-                    <text className="Reader-nav-text">Next ›</text>
-                  </view>
-                ) : hasNextChapter && onNextChapter ? (
-                  <view className="Reader-next-btn" bindtap={onNextChapter}>
-                    <text className="Reader-next-text">Next Chapter ›</text>
-                  </view>
-                ) : (
-                  <view className="Reader-nav-btn disabled">
-                    <text className="Reader-nav-text">Next ›</text>
-                  </view>
-                )}
-              </view>
+                  {currentPage < panels.length - 1 ? (
+                    <view className="Reader-nav-btn" bindtap={() => goToPage(1)}>
+                      <text className="Reader-nav-text">Next ›</text>
+                    </view>
+                  ) : hasNextChapter && onNextChapter ? (
+                    <view className="Reader-next-btn" bindtap={onNextChapter}>
+                      <text className="Reader-next-text">Next Chapter ›</text>
+                    </view>
+                  ) : (
+                    <view className="Reader-nav-btn disabled">
+                      <text className="Reader-nav-text">Next ›</text>
+                    </view>
+                  )}
+                </view>
+              )}
             </>
           )}
+        </view>
+      )}
+
+      {/* Tap Zones for Remote Mode */}
+      {remoteMode && (
+        <view className="Reader-tap-zones">
+          <view className="Reader-tap-zone prev" bindtap={() => goToPage(-1)} />
+          <view className="Reader-tap-zone center" bindtap={toggleControls} />
+          <view className="Reader-tap-zone next" bindtap={readingMode === 'vertical' ? scrollDown : () => goToPage(1)} />
         </view>
       )}
     </view>

@@ -16,6 +16,7 @@ export function Settings({ onBack, onNavigate }: Props) {
   );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
+  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [showClearConfirm, setShowClearConfirm] = useState<
@@ -30,6 +31,7 @@ export function Settings({ onBack, onNavigate }: Props) {
       setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
+      setRemoteMode(SettingsStore.getRemoteMode());
     });
 
     // Load counts
@@ -47,6 +49,10 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   const handleDarkModeToggle = () => {
     SettingsStore.setDarkMode(!darkMode);
+  };
+
+  const handleRemoteModeToggle = () => {
+    SettingsStore.setRemoteMode(!remoteMode);
   };
 
   const handleAboutTap = () => {
@@ -102,6 +108,25 @@ export function Settings({ onBack, onNavigate }: Props) {
               </view>
             </view>
             <text className="Settings-item-chevron">›</text>
+          </view>
+
+          <view className="Settings-item" bindtap={handleRemoteModeToggle}>
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">🎮</text>
+              <view className="Settings-item-text">
+                <text className="Settings-item-label">Remote Mode</text>
+                <text className="Settings-item-description">
+                  Tap zones for page turners
+                </text>
+              </view>
+            </view>
+            <view
+              className={
+                remoteMode ? 'Settings-toggle active' : 'Settings-toggle'
+              }
+            >
+              <view className="Settings-toggle-knob" />
+            </view>
           </view>
         </view>
 
