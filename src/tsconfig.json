@@ -8,7 +8,8 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "target": "ES2020",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "allowImportingTsExtensions": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts", "./**/*.tsx", "./**/*.mts"]
 }

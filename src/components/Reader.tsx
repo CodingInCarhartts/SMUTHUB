@@ -2,6 +2,7 @@ import { useEffect, useState } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
 import { StorageService } from '../services/storage';
 import { SettingsStore, type ReadingMode } from '../services/settings';
+import { ZoomableImage } from './ZoomableImage';
 import './Reader.css';
 
 interface Props {
@@ -68,12 +69,12 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
           <text className="Reader-panel-error-text">Failed to load - Tap to retry</text>
         </view>
       ) : (
-        <image 
+        <ZoomableImage 
           src={currentUrl}
           className="Reader-panel" 
-          mode="scaleToFill"
-          bindload={handleLoad}
-          binderror={handleError}
+          mode="aspectFit"
+          onLoad={handleLoad}
+          onError={handleError}
           style={{ 
             width: '100%',
             height: '100%'
@@ -121,11 +122,11 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
           <text className="Reader-panel-error-text">Failed - Tap to retry</text>
         </view>
       ) : (
-        <image 
+        <ZoomableImage 
           src={currentUrl}
           className="Reader-horizontal-image"
           mode="aspectFit"
-          binderror={handleError}
+          onError={handleError}
         />
       )}
       <view className="Reader-page-indicator">
@@ -155,17 +156,26 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
     const loadPanels = async () => {
       setLoading(true);
       console.log('[Reader] Loading panels for:', chapterUrl);
-      const urls = await BatotoService.getChapterPanels(chapterUrl);
-      console.log('[Reader] Received panels:', urls.length, 'First:', urls[0]);
-      setPanels(urls);
-      setLoading(false);
       
-      // Restore saved position if returning to same chapter
-      const savedPosition = StorageService.getReaderPosition();
-      if (savedPosition && savedPosition.chapterUrl === chapterUrl && manga?.id === savedPosition.mangaId) {
-        console.log('[Reader] Restoring position:', savedPosition.panelIndex);
-        setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
+      // 1. Fetch panels and position in parallel if possible
+      const [urls, syncedPosition] = await Promise.all([
+        BatotoService.getChapterPanels(chapterUrl),
+        manga ? StorageService.getReaderPositionForManga(manga.id) : Promise.resolve(null)
+      ]);
+
+      console.log('[Reader] Received panels:', urls.length);
+      setPanels(urls);
+      
+      // 2. Restore saved position if returning to same chapter OR if it's a known chapter
+      if (syncedPosition && syncedPosition.chapterUrl === chapterUrl) {
+        console.log('[Reader] Restoring position:', syncedPosition.panelIndex);
+        setCurrentPage(Math.min(syncedPosition.panelIndex, urls.length - 1));
+      } else {
+        // Reset to first page if chapter changed
+        setCurrentPage(0);
       }
+      
+      setLoading(false);
     };
     loadPanels();
   }, [chapterUrl, manga?.id]);
@@ -268,7 +278,18 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
           ) : (
             [
               ...panels.map((url, index) => (
-                <list-item key={`panel-${index}`} item-key={`panel-${index}`} full-span>
+                <list-item 
+                  key={`panel-${index}`} 
+                  item-key={`panel-${index}`} 
+                  full-span
+                  // @ts-ignore - Lynx specific prop for visibility detection
+                  bindappear={() => {
+                    // Update current page as user scrolls past panels
+                    if (readingMode === 'vertical' && currentPage !== index) {
+                      setCurrentPage(index);
+                    }
+                  }}
+                >
                   <ReaderPanel url={url} index={index} />
                 </list-item>
               )),

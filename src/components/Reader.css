@@ -112,7 +112,15 @@
 .Reader-panel-wrapper {
   width: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Allow zooming to exceed wrapper bounds slightly if needed */
+  z-index: 1;
+}
+
+.Zoomable-container {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 1;
 }
 
 .Reader-panel-loader {

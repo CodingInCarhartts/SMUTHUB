@@ -447,6 +447,37 @@ export const StorageService = {
     return getLocal<ReaderPosition | null>(STORAGE_KEYS.READER_POSITION, null);
   },
 
+  async getReaderPositionForManga(mangaId: string): Promise<ReaderPosition | null> {
+    // 1. Check local first
+    const local = this.getReaderPosition();
+    if (local && local.mangaId === mangaId) {
+      return local;
+    }
+
+    // 2. Fallback to Cloud
+    try {
+      const deviceId = this.getDeviceId();
+      const data = await SupabaseService.getAll<any>(
+        'reader_positions',
+        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`
+      );
+
+      if (data && data.length > 0) {
+        const row = data[0];
+        return {
+          mangaId,
+          chapterUrl: row.chapter_url,
+          panelIndex: row.panel_index,
+          timestamp: row.updated_at,
+        };
+      }
+    } catch (e) {
+      logError('[Storage] Failed to fetch reader position from cloud:', e);
+    }
+
+    return null;
+  },
+
   clearReaderPosition(): void {
     try {
       if (typeof localStorage !== 'undefined') localStorage.removeItem(STORAGE_KEYS.READER_POSITION);
