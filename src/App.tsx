@@ -265,6 +265,7 @@ export function App() {
       <Reader 
         chapterUrl={selectedChapterUrl} 
         chapterTitle={selectedChapterTitle}
+        manga={selectedManga ?? undefined}
         onBack={handleBack} 
         hasNextChapter={hasNextChapter}
         onNextChapter={handleNextChapter}

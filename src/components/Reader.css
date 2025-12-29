@@ -149,9 +149,14 @@
   padding: 20px;
 }
 
-/* Reading mode indicator in header */
-.Reader-mode-indicator {
-  font-size: 18px;
+/* Favorite button in header */
+.Reader-favorite-btn {
+  font-size: 22px;
+  transition: transform 0.15s ease;
+}
+
+.Reader-header-right:active .Reader-favorite-btn {
+  transform: scale(1.2);
 }
 
 /* Horizontal reading mode */

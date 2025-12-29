@@ -1,11 +1,13 @@
 import { useEffect, useState } from '@lynx-js/react';
-import { BatotoService } from '../services/batoto';
+import { BatotoService, type Manga } from '../services/batoto';
+import { StorageService } from '../services/storage';
 import { SettingsStore, type ReadingMode } from '../services/settings';
 import './Reader.css';
 
 interface Props {
   chapterUrl: string;
   chapterTitle?: string;
+  manga?: Manga;
   onBack: () => void;
   hasNextChapter: boolean;
   onNextChapter: () => void;
@@ -133,11 +135,14 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-export function Reader({ chapterUrl, chapterTitle, onBack, hasNextChapter, onNextChapter }: Props) {
+export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter, onNextChapter }: Props) {
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
   const [currentPage, setCurrentPage] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(() => 
+    manga ? StorageService.isFavoriteSync(manga.id) : false
+  );
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -175,6 +180,17 @@ export function Reader({ chapterUrl, chapterTitle, onBack, hasNextChapter, onNex
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!manga) return;
+    if (isFavorite) {
+      await StorageService.removeFavorite(manga.id);
+      setIsFavorite(false);
+    } else {
+      await StorageService.addFavorite(manga);
+      setIsFavorite(true);
+    }
+  };
+
   return (
     <view className="Reader">
       <view className="Reader-header">
@@ -193,9 +209,9 @@ export function Reader({ chapterUrl, chapterTitle, onBack, hasNextChapter, onNex
           </text>
         </view>
 
-        <view className="Reader-header-right">
-          <text className="Reader-mode-indicator">
-            {readingMode === 'vertical' ? '📜' : '📖'}
+        <view className="Reader-header-right" bindtap={handleToggleFavorite}>
+          <text className="Reader-favorite-btn">
+            {isFavorite ? '❤️' : '🤍'}
           </text>
         </view>
       </view>
