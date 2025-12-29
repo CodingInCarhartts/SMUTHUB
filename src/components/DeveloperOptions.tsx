@@ -9,7 +9,6 @@ export function DeveloperOptions() {
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
 
-
   const handleOpenDebugConsole = () => {
     // Generate fresh report
     const report = DebugLogService.getDebugReport();
@@ -88,8 +87,6 @@ export function DeveloperOptions() {
           </view>
           <text className="Settings-item-chevron">›</text>
         </view>
-
-
       </view>
 
       {/* Debug Console Modal */}

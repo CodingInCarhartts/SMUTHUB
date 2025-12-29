@@ -40,7 +40,7 @@ export const SupabaseService = {
           `[Supabase] Request failed: ${response.status} ${response.statusText}`,
           errorText,
           `Endpoint: ${endpoint}`,
-          `Body: ${options.body}`
+          `Body: ${options.body}`,
         );
         return null;
       }

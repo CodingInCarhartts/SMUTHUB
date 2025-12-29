@@ -166,7 +166,9 @@ export function Reader({
     SettingsStore.getReadingMode(),
   );
   const [currentPage, setCurrentPage] = useState(0);
-  const [restoredPageIndex, setRestoredPageIndex] = useState<number | undefined>(undefined);
+  const [restoredPageIndex, setRestoredPageIndex] = useState<
+    number | undefined
+  >(undefined);
   const [touchStartX, setTouchStartX] = useState(0);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -189,21 +191,26 @@ export function Reader({
       const urls = await BatotoService.getChapterPanels(chapterUrl);
       console.log('[Reader] Received panels:', urls.length);
       setPanels(urls);
-      
+
       if (manga) {
-        const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
+        const savedPosition = await StorageService.getReaderPositionForManga(
+          manga.id,
+        );
         const normalizedSavedUrl = savedPosition?.chapterUrl.replace(/\/$/, '');
         const normalizedCurrentUrl = chapterUrl.replace(/\/$/, '');
 
         if (savedPosition && normalizedSavedUrl === normalizedCurrentUrl) {
-           const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
-           console.log('[Reader] Found position to restore:', restoredPage);
-           setCurrentPage(restoredPage);
-           setRestoredPageIndex(restoredPage);
+          const restoredPage = Math.min(
+            savedPosition.panelIndex,
+            urls.length - 1,
+          );
+          console.log('[Reader] Found position to restore:', restoredPage);
+          setCurrentPage(restoredPage);
+          setRestoredPageIndex(restoredPage);
         } else {
-           console.log('[Reader] No matching position found for this chapter');
-           setCurrentPage(0);
-           setRestoredPageIndex(0);
+          console.log('[Reader] No matching position found for this chapter');
+          setCurrentPage(0);
+          setRestoredPageIndex(0);
         }
       }
 
@@ -248,7 +255,14 @@ export function Reader({
   // Save position when page changes (debounced)
   useEffect(() => {
     // CRITICAL: Block all saves until we are 100% sure we are in "tracking" mode
-    if (isRestoring || !positionRestored || !manga || loading || panels.length === 0) return;
+    if (
+      isRestoring ||
+      !positionRestored ||
+      !manga ||
+      loading ||
+      panels.length === 0
+    )
+      return;
 
     const timeoutId = setTimeout(() => {
       console.log('[Reader] SYNCING: Saving current position:', currentPage);
@@ -256,7 +270,15 @@ export function Reader({
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored, isRestoring]);
+  }, [
+    currentPage,
+    manga,
+    chapterUrl,
+    loading,
+    panels.length,
+    positionRestored,
+    isRestoring,
+  ]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
@@ -294,9 +316,9 @@ export function Reader({
 
       {readingMode === 'vertical' ? (
         // Vertical scroll mode (Webtoon)
-        <list 
-          className="Reader-content" 
-          scroll-y 
+        <list
+          className="Reader-content"
+          scroll-y
           initial-scroll-index={restoredPageIndex}
         >
           {loading ? (
@@ -353,7 +375,7 @@ export function Reader({
         </list>
       ) : (
         // Horizontal swipe mode (Manga)
-        <view 
+        <view
           className="Reader-horizontal-container"
           bindtouchstart={handleTouchStart}
           bindtouchend={handleTouchEnd}

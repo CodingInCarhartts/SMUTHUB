@@ -58,8 +58,7 @@ let NATIVE_DEVICE_ID: string | null = null;
 function hasNativeStorage(): boolean {
   try {
     const hasMods = typeof NativeModules !== 'undefined';
-    const hasStorageMod =
-      hasMods && !!NativeModules.NativeLocalStorageModule;
+    const hasStorageMod = hasMods && !!NativeModules.NativeLocalStorageModule;
     log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
     return hasStorageMod;
   } catch (e) {
@@ -165,11 +164,11 @@ async function initializeFromNativeStorage(): Promise<void> {
 
   // Pre-fetch device ID from NativeUtilsModule
   try {
-    const modules = (NativeModules as any);
+    const modules = NativeModules as any;
     const utilsModule = modules?.NativeUtilsModule;
-    log('[Storage] Checking NativeUtilsModule:', { 
-      exists: !!utilsModule, 
-      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function' 
+    log('[Storage] Checking NativeUtilsModule:', {
+      exists: !!utilsModule,
+      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function',
     });
 
     if (utilsModule && typeof utilsModule.getDeviceId === 'function') {
@@ -238,7 +237,11 @@ export const StorageService = {
 
   getDeviceId(): string {
     // 1. Prioritize Real Native Device ID (fetched during init)
-    if (NATIVE_DEVICE_ID && NATIVE_DEVICE_ID.length > 5 && NATIVE_DEVICE_ID !== 'android') {
+    if (
+      NATIVE_DEVICE_ID &&
+      NATIVE_DEVICE_ID.length > 5 &&
+      NATIVE_DEVICE_ID !== 'android'
+    ) {
       return NATIVE_DEVICE_ID;
     }
 
@@ -299,9 +302,12 @@ export const StorageService = {
       setLocal(STORAGE_KEYS.DEVICE_ID, newId);
       log('[Storage] Generated & SAVED NEW Device ID (web/fallback):', newId);
     } else {
-      log('[Storage] ⚠️ Generated TEMPORARY Device ID (still waiting for native?):', newId);
+      log(
+        '[Storage] ⚠️ Generated TEMPORARY Device ID (still waiting for native?):',
+        newId,
+      );
     }
-    
+
     return newId;
   },
 
@@ -544,20 +550,26 @@ export const StorageService = {
       timestamp: new Date().toISOString(),
     };
     setLocal(STORAGE_KEYS.READER_POSITION, position);
-    
+
     // Sync to Cloud
-    SupabaseService.upsert('reader_positions', {
-      device_id: this.getDeviceId(),
-      manga_id: mangaId,
-      chapter_url: chapterUrl,
-      panel_index: panelIndex,
-      updated_at: position.timestamp,
-    }, 'device_id,manga_id');
-    
+    SupabaseService.upsert(
+      'reader_positions',
+      {
+        device_id: this.getDeviceId(),
+        manga_id: mangaId,
+        chapter_url: chapterUrl,
+        panel_index: panelIndex,
+        updated_at: position.timestamp,
+      },
+      'device_id,manga_id',
+    );
+
     log('[Storage] Saved reader position:', { mangaId, panelIndex });
   },
 
-  async getReaderPositionForManga(mangaId: string): Promise<ReaderPosition | null> {
+  async getReaderPositionForManga(
+    mangaId: string,
+  ): Promise<ReaderPosition | null> {
     // 1. Check local first
     const local = this.getReaderPosition();
     if (local && local.mangaId === mangaId) {
@@ -569,7 +581,7 @@ export const StorageService = {
       const deviceId = this.getDeviceId();
       const data = await SupabaseService.getAll<any>(
         'reader_positions',
-        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`
+        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`,
       );
 
       if (data && data.length > 0) {

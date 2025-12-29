@@ -1,7 +1,7 @@
 import { useEffect, useState } from '@lynx-js/react';
 import { type ReadingMode, SettingsStore } from '../services/settings';
-import { APP_VERSION } from '../services/update';
 import { StorageService } from '../services/storage';
+import { APP_VERSION } from '../services/update';
 import { DeveloperOptions } from './DeveloperOptions';
 import './Settings.css';
 
@@ -214,7 +214,9 @@ export function Settings({ onBack, onNavigate }: Props) {
               <text className="Settings-item-icon">💜</text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">SMUTHUB</text>
-                <text className="Settings-item-description">Version {APP_VERSION}</text>
+                <text className="Settings-item-description">
+                  Version {APP_VERSION}
+                </text>
                 <text className="Settings-item-description">🖤 Daddy.</text>
               </view>
             </view>
