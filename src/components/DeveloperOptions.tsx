@@ -95,7 +95,7 @@ export function DeveloperOptions() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                marginTop: 8,
+                marginTop: '8px',
               }}
             >
               <input
@@ -126,7 +126,7 @@ export function DeveloperOptions() {
             </view>
             <text
               className="Settings-item-description"
-              style={{ marginTop: 4 }}
+              style={{ marginTop: '4px' }}
             >
               Paste your old ID to recover favorites and history.
             </text>
