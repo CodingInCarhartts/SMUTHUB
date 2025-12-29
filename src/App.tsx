@@ -237,7 +237,7 @@ export function App() {
 
   return (
     <view className={darkMode ? "Main dark-mode" : "Main"}>
-      <view className="Content">
+      <view className={view === 'browse' ? "Content Content-with-nav" : "Content"}>
         {/* Details view */}
         {view === 'details' && selectedManga && mangaDetails && (
            <MangaDetailsUi 
