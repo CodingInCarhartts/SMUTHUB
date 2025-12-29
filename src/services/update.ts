@@ -63,7 +63,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.15';
+export const APP_VERSION = '1.0.16';
 
 export const UpdateService = {
   /**
@@ -205,7 +205,11 @@ export const UpdateService = {
         ? NativeModules.NativeUpdaterModule
         : null;
     if (nativeUpdater && nativeUpdater.installUpdate) {
-      nativeUpdater.installUpdate(url);
+      try {
+        nativeUpdater.installUpdate(url);
+      } catch (e) {
+        logError('[UpdateService] Failed to trigger native update:', e);
+      }
     } else {
       logError('[UpdateService] NativeUpdaterModule not available');
     }
