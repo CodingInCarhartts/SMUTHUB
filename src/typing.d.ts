@@ -9,20 +9,39 @@ declare let NativeModules: {
    * - HarmonyOS: Preferences
    */
   NativeLocalStorageModule: {
-    /**
-     * Store a key-value pair in persistent storage
-     */
     setStorageItem(key: string, value: string): void;
-    
-    /**
-     * Retrieve a value from persistent storage
-     * Uses callback because native module calls are async
-     */
     getStorageItem(key: string, callback: (value: string | null) => void): void;
-    
-    /**
-     * Clear all data from persistent storage
-     */
     clearStorage(): void;
+  };
+
+  /**
+   * System UI controls (Immersive mode, Brightness, Orientation)
+   */
+  NativeUIModule: {
+    setImmersiveMode(enabled: boolean): void;
+    setBrightness(brightness: number): void;
+    setOrientation(orientation: 'portrait' | 'landscape' | 'sensor' | 'unspecified'): void;
+  };
+
+  /**
+   * Native Android Toast messages
+   */
+  NativeToastModule: {
+    show(message: string, duration: 0 | 1): void;
+  };
+
+  /**
+   * Haptic feedback (vibrations)
+   */
+  NativeHapticModule: {
+    vibrate(effect: 'light' | 'medium' | 'heavy' | 'success' | 'error'): void;
+  };
+
+  /**
+   * System utilities (Clipboard, Sharing)
+   */
+  NativeUtilsModule: {
+    copyToClipboard(text: string): void;
+    shareText(text: string, title: string): void;
   };
 };
