@@ -281,6 +281,46 @@
   letter-spacing: -0.2px;
 }
 
+.SubStatusText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  text-align: center;
+}
+
+.ErrorContainer {
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 40px;
+}
+
+.ErrorIcon {
+  font-size: 56px;
+  margin-bottom: 20px;
+}
+
+.ErrorTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-accent);
+  margin-bottom: 12px;
+}
+
+.RetryButton {
+  margin-top: 32px;
+  padding: 14px 40px;
+  background-color: var(--text-accent);
+  border-radius: 100px;
+  box-shadow: var(--shadow-soft);
+}
+
+.RetryText {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+}
+
 .EmptyState {
   flex: 1;
   padding: 100px 40px;

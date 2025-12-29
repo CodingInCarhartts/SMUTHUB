@@ -68,46 +68,37 @@ export class BatotoClient {
   public async initialize(): Promise<void> {
     if (this.activeMirror) return;
 
-    console.log("[SmutHub] resolving mirrors...");
+    console.log("[SmutHub] Resolving mirrors...");
     
-            // Simple race to find first working mirror
-    const checks = BATO_MIRRORS.map(async (url) => {
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 3000);
-            // Switch to GET because Lynx native fetch crashes on HEAD
-            const res = await fetch(url, { method: 'GET', signal: controller.signal });
-            clearTimeout(timeout);
-            if (res.ok || res.status === 403) { 
-                return url;
-            }
-        } catch (e) { /* ignore */ }
-        return null;
-    });
-
-    const result = await Promise.race(checks.filter(p => p !== null));
-    
-    // Safer updated logic:
+    // Safer updated logic with timeouts:
     for (const mirror of BATO_MIRRORS) {
         try {
             console.log(`[SmutHub] Checking mirror: ${mirror}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per mirror
+            
             const res = await fetch(mirror, { 
                 method: 'GET',
+                signal: controller.signal,
                 headers: {
                     'User-Agent': this.userAgent,
                     'Accept-Language': 'en-US,en;q=0.9',
                 }
             }); 
             
+            clearTimeout(timeoutId);
+            
             if (res.ok || res.status < 500) {
                 this.activeMirror = mirror;
                 const setCookie = res.headers.get('set-cookie');
                 this.saveCookies(setCookie);
-                console.log(`[SmutHub] Active mirror set to: ${this.activeMirror}. Cookies captured: ${!!setCookie}`);
+                console.log(`[SmutHub] Active mirror set to: ${this.activeMirror}`);
                 return;
+            } else {
+                console.warn(`[SmutHub] Mirror ${mirror} returned status: ${res.status}`);
             }
-        } catch (e) {
-            console.error(`[SmutHub] Mirror check failed for ${mirror}`, e);
+        } catch (e: any) {
+            console.error(`[SmutHub] Mirror check failed for ${mirror}: ${e.message}`);
         }
     }
 

@@ -29,6 +29,7 @@ export function App() {
   const [selectedChapterTitle, setSelectedChapterTitle] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [homeLoading, setHomeLoading] = useState(true);
+  const [homeError, setHomeError] = useState<string | null>(null);
   
   // Search & Filter State
   const [showFilters, setShowFilters] = useState(false);
@@ -105,10 +106,21 @@ export function App() {
 
   const fetchHomeFeed = useCallback(async () => {
     setHomeLoading(true);
-    const feed = await BatotoService.getHomeFeed();
-    setPopularMangas(feed.popular);
-    setLatestMangas(feed.latest);
-    setHomeLoading(false);
+    setHomeError(null);
+    try {
+      console.log('[App] fetchHomeFeed started');
+      const feed = await BatotoService.getHomeFeed();
+      setPopularMangas(feed.popular);
+      setLatestMangas(feed.latest);
+      if (feed.popular.length === 0 && feed.latest.length === 0) {
+          setHomeError("Connected but found no content. Batoto might be blocking the request.");
+      }
+    } catch (e: any) {
+      console.error('[App] fetchHomeFeed failed:', e);
+      setHomeError(e.message || "Failed to connect to Batoto. Site might be down or protected.");
+    } finally {
+      setHomeLoading(false);
+    }
   }, []);
 
   // Pull-to-refresh handler
@@ -234,6 +246,16 @@ export function App() {
                     <view className="LoadingContainer">
                         <view className="LoadingSpinner" />
                         <text className="StatusText">Fetching latest updates...</text>
+                        <text className="SubStatusText">Checking mirrors and resolving connection...</text>
+                    </view>
+                  ) : homeError ? (
+                    <view className="ErrorContainer">
+                        <text className="ErrorIcon">📡</text>
+                        <text className="ErrorTitle">Connection Issue</text>
+                        <text className="StatusText">{homeError}</text>
+                        <view className="RetryButton" bindtap={handleRefresh}>
+                            <text className="RetryText">Try Again</text>
+                        </view>
                     </view>
                   ) : (
                     <>
