@@ -219,6 +219,13 @@ export const StorageService = {
     return newId;
   },
 
+  setDeviceId(id: string): void {
+    if (id && id.length > 5) {
+      setLocal(STORAGE_KEYS.DEVICE_ID, id);
+      log('[Storage] Device ID manually updated to:', id);
+    }
+  },
+
   // ============ FAVORITES ============
   
   async getFavorites(): Promise<Manga[]> {

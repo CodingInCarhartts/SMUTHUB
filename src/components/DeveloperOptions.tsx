@@ -80,6 +80,40 @@ export function DeveloperOptions() {
           </view>
           <text className="Settings-item-chevron">›</text>
         </view>
+
+        <view className="Settings-item">
+          <view className="Settings-item-text" style={{ padding: '12px 0' }}>
+            <text className="Settings-item-label">Restore Session</text>
+            <view style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <input 
+                className="RestoreInput"
+                placeholder="Enter previous Device ID" 
+                bindinput={(e) => {
+                  const val = e.detail.value;
+                  if (val && val.length > 5) {
+                    StorageService.setDeviceId(val);
+                  }
+                }}
+              />
+              <view 
+                className="RestoreButton" 
+                bindtap={() => {
+                  // After setting ID in bindinput, we just need to reload
+                  // @ts-ignore
+                  const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+                  if (runtime && runtime.reload) {
+                    runtime.reload();
+                  }
+                }}
+              >
+                <text className="RestoreButtonText">Restore</text>
+              </view>
+            </view>
+            <text className="Settings-item-description" style={{ marginTop: 4 }}>
+              Paste your old ID to recover favorites and history.
+            </text>
+          </view>
+        </view>
       </view>
 
       {/* Debug Console Modal */}
