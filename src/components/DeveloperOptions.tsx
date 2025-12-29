@@ -19,8 +19,13 @@ export function DeveloperOptions() {
 
   const handleCopyReport = async () => {
     try {
-      // For Lynx runtime, try multiple copy methods
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      // @ts-ignore
+      const nativeUtils = typeof NativeModules !== 'undefined' ? NativeModules.NativeUtilsModule : null;
+      
+      if (nativeUtils && nativeUtils.copyToClipboard) {
+        nativeUtils.copyToClipboard(debugReport);
+        setCopyStatus('✅ Copied to clipboard (Native)!');
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(debugReport);
         setCopyStatus('✅ Copied to clipboard!');
       } else {
