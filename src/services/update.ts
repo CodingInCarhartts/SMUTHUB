@@ -1,4 +1,9 @@
 import { SupabaseService } from './supabase';
+import { logCapture } from './debugLog';
+
+const log = (...args: any[]) => logCapture('log', ...args);
+const logWarn = (...args: any[]) => logCapture('warn', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
 
 export interface AppUpdate {
   version: string;
@@ -6,7 +11,7 @@ export interface AppUpdate {
   releaseNotes: string;
 }
 
-export const APP_VERSION = '1.0.2';
+export const APP_VERSION = '1.0.3';
 
 export const UpdateService = {
   /**
@@ -28,7 +33,7 @@ export const UpdateService = {
         };
       }
     } catch (e) {
-      console.warn('[UpdateService] Failed to fetch updates:', e);
+      logWarn('[UpdateService] Failed to fetch updates:', e);
     }
     return null;
   },
@@ -64,12 +69,12 @@ export const UpdateService = {
     // Check if version is skipped
     const skipped = typeof localStorage !== 'undefined' ? localStorage.getItem('batoto:skipped_version') : null;
     if (skipped === latest.version && !latest.isMandatory) {
-      console.log(`[UpdateService] Version ${latest.version} is skipped by user.`);
+      log(`[UpdateService] Version ${latest.version} is skipped by user.`);
       return null;
     }
 
     if (this.compareVersions(latest.version, APP_VERSION) > 0) {
-      console.log(`[UpdateService] New update found: ${latest.version} (Current: ${APP_VERSION})`);
+      log(`[UpdateService] New update found: ${latest.version} (Current: ${APP_VERSION})`);
       return latest;
     }
     
@@ -82,7 +87,7 @@ export const UpdateService = {
   skipVersion(version: string): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('batoto:skipped_version', version);
-      console.log(`[UpdateService] Skipping version ${version}`);
+      log(`[UpdateService] Skipping version ${version}`);
     }
   },
 
@@ -90,19 +95,19 @@ export const UpdateService = {
    * Reload the Lynx bundle to apply the OTA update
    */
   async applyUpdate(): Promise<void> {
-    console.log('[UpdateService] Applying update (reloading bundle)...');
+    log('[UpdateService] Applying update (reloading bundle)...');
     try {
       // @ts-ignore
       const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
       if (runtime && runtime.reload) {
         runtime.reload();
       } else {
-        console.warn('[UpdateService] lynx.reload is not available in this environment');
+        logWarn('[UpdateService] lynx.reload is not available in this environment');
         // If we can't reload, the user will have to restart the app manually.
         // We notify them via the UI (handled in the Modal).
       }
     } catch (e) {
-      console.error('[UpdateService] Reload failed:', e);
+      logError('[UpdateService] Reload failed:', e);
     }
   }
 };

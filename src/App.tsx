@@ -71,18 +71,43 @@ export function App() {
     }
   }, []);
 
-  // Check for updates on mount
+  // Check for updates on mount and periodically
   useEffect(() => {
     const checkUpdate = async () => {
-      // Small delay to let initial load finish
-      setTimeout(async () => {
-        const update = await UpdateService.checkUpdate();
-        if (update) {
-          setPendingUpdate(update);
-        }
-      }, 2000);
+      console.log('[App] Checking for updates...');
+      const update = await UpdateService.checkUpdate();
+      if (update) {
+        console.log('[App] Update found:', update.version);
+        setPendingUpdate(update);
+      }
     };
-    checkUpdate();
+
+    // 1. Check on mount (with small delay)
+    const initialTimeout = setTimeout(checkUpdate, 3000);
+
+    // 2. Check periodically (every 5 minutes)
+    const interval = setInterval(checkUpdate, 5 * 60 * 1000);
+
+    // 3. Check on app resume/foreground
+    // Lynx provides 'appshow' and 'apphide' events on the global lynx object
+    const handleAppShow = () => {
+      console.log('[App] App resumed, checking for updates...');
+      checkUpdate();
+    };
+
+    // @ts-ignore
+    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    if (runtime && runtime.on) {
+      runtime.on('appshow', handleAppShow);
+    }
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+      if (runtime && runtime.off) {
+        runtime.off('appshow', handleAppShow);
+      }
+    };
   }, []);
 
   const loadBrowse = useCallback(async (filters?: SearchFilters) => {

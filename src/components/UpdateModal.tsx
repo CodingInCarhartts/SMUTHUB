@@ -1,3 +1,4 @@
+import { useState } from '@lynx-js/react';
 import { UpdateService, type AppUpdate } from '../services/update';
 import './UpdateModal.css';
 
@@ -7,7 +8,10 @@ interface Props {
 }
 
 export function UpdateModal({ update, onDismiss }: Props) {
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const handleUpdate = () => {
+    setIsUpdating(true);
     UpdateService.applyUpdate();
   };
 
@@ -39,10 +43,12 @@ export function UpdateModal({ update, onDismiss }: Props) {
 
         <view className="UpdateActions">
           <view className="UpdateButton" bindtap={handleUpdate}>
-             <text className="UpdateButtonText">Update Now</text>
+             <text className="UpdateButtonText">
+               {isUpdating ? 'Updating...' : 'Update Now'}
+             </text>
           </view>
           
-          {!update.isMandatory && (
+          {!update.isMandatory && !isUpdating && (
             <view className="LaterButton" bindtap={onDismiss}>
                <text className="LaterButtonText">Maybe Later</text>
             </view>
