@@ -7,7 +7,7 @@ import { pluginTypeCheck } from '@rsbuild/plugin-type-check'
 export default defineConfig({
   /**
    * Production bundle URL:
-   * https://codingincartartts.github.io/SMUTHUB/main.lynx.bundle
+   * https://codingincarhartts.github.io/SMUTHUB/main.lynx.bundle
    */
   server: {
     host: '10.0.0.55', // Your LAN IP - ensure phone is on same network
