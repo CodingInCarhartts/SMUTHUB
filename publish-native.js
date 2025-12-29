@@ -7,6 +7,9 @@ const GRADLE_FILE = join(process.cwd(), "SMUTHUB/app/build.gradle.kts");
 const UPDATE_FILE = join(process.cwd(), "src/services/update.ts");
 const APK_SOURCE = join(process.cwd(), "SMUTHUB/app/build/outputs/apk/debug/app-debug.apk");
 const APK_DEST = join(process.cwd(), "SMUTHUB.apk");
+const ASSETS_DIR = join(process.cwd(), "SMUTHUB/app/src/main/assets");
+const BUNDLE_SOURCE = join(process.cwd(), "dist/main.lynx.bundle");
+const BUNDLE_DEST = join(ASSETS_DIR, "main.lynx.bundle");
 
 // Configuration
 const SUPABASE_URL = "https://exymyvbkjsttqsnifedq.supabase.co/rest/v1/app_native_updates";
@@ -59,7 +62,19 @@ async function publish() {
   writeFileSync(UPDATE_FILE, tsContent);
   console.log("✅ Updated src/services/update.ts");
 
-  // 2. Build APK
+  // 2. Build Lynx Bundle
+  console.log("\n📦 Building Lynx Bundle...");
+  try {
+    run("npm run build");
+    run(`mkdir -p "${ASSETS_DIR}"`);
+    run(`cp "${BUNDLE_SOURCE}" "${BUNDLE_DEST}"`);
+    console.log("✅ Lynx bundle built and copied to assets");
+  } catch (e) {
+    console.error("❌ Lynx Build Failed:", e.message);
+    process.exit(1);
+  }
+
+  // 3. Build APK
   console.log("\n🔨 Building APK... (this may take a while)");
   try {
     const env = { ...process.env, JAVA_HOME: "/opt/android-studio/jbr" };

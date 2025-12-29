@@ -8,7 +8,7 @@ export function DeveloperOptions() {
   const [showDebugConsole, setShowDebugConsole] = useState(false);
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
-  const [restoreId, setRestoreId] = useState('');
+
 
   const handleOpenDebugConsole = () => {
     // Generate fresh report
@@ -89,69 +89,7 @@ export function DeveloperOptions() {
           <text className="Settings-item-chevron">›</text>
         </view>
 
-        <view className="Settings-item">
-          <view className="Settings-item-text" style={{ padding: '12px 0', width: '100%' }}>
-            <text className="Settings-item-label">Restore Session</text>
-            <view className="RestoreRow">
-              <input
-                className="RestoreInput"
-                placeholder="Enter previous Device ID"
-                // @ts-expect-error - Lynx input supports value for programmatic updates
-                value={restoreId}
-                bindinput={(e) => setRestoreId(e.detail.value)}
-              />
-              <view
-                className="RestoreButton secondary"
-                bindtap={async () => {
-                   try {
-                     const nativeModule = typeof NativeModules !== 'undefined' ? NativeModules.NativeUtilsModule : null;
-                     // @ts-expect-error - Custom native module method
-                     if (nativeModule && nativeModule.getClipboardData) {
-                       // @ts-expect-error - Custom native module method
-                       nativeModule.getClipboardData((data: string) => {
-                         if (data) setRestoreId(data);
-                       });
-                     } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                       const text = await navigator.clipboard.readText();
-                       if (text) setRestoreId(text);
-                     }
-                   } catch (e) {
-                     // ignore
-                   }
-                }}
-              >
-                <text className="RestoreButtonText" style={{ color: 'var(--text-primary)', fontSize: '20px' }}>📋</text>
-              </view>
-              <view
-                className="RestoreButton"
-                bindtap={() => {
-                  if (!restoreId || restoreId.length < 5) return;
-                  
-                  StorageService.setDeviceId(restoreId);
-                  setCopyStatus('✅ Restoring...');
-                  
-                  setTimeout(() => {
-                    const runtime =
-                      typeof lynx !== 'undefined'
-                        ? lynx
-                        : (globalThis as any).lynx;
-                    if (runtime && runtime.reload) {
-                      runtime.reload();
-                    }
-                  }, 500);
-                }}
-              >
-                <text className="RestoreButtonText">Restore</text>
-              </view>
-            </view>
-            <text
-              className="Settings-item-description"
-              style={{ marginTop: '8px' }}
-            >
-              Paste your old ID to recover favorites and history.
-            </text>
-          </view>
-        </view>
+
       </view>
 
       {/* Debug Console Modal */}

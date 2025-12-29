@@ -49,6 +49,7 @@ const HISTORY_LIMIT_CLOUD = 999;
 
 // In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
+let NATIVE_DEVICE_ID: string | null = null;
 
 // Immediate startup log
 // log('[Storage] Module loading, checking native storage...');
@@ -159,6 +160,41 @@ async function initializeFromNativeStorage(): Promise<void> {
     return;
   }
 
+  // Debug: View available modules
+  log('[Storage] Available NativeModules:', Object.keys(NativeModules || {}));
+
+  // Pre-fetch device ID from NativeUtilsModule
+  try {
+    const modules = (NativeModules as any);
+    const utilsModule = modules?.NativeUtilsModule;
+    log('[Storage] Checking NativeUtilsModule:', { 
+      exists: !!utilsModule, 
+      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function' 
+    });
+
+    if (utilsModule && typeof utilsModule.getDeviceId === 'function') {
+      NATIVE_DEVICE_ID = await new Promise((resolve) => {
+        log('[Storage] Calling native getDeviceId...');
+        utilsModule.getDeviceId((id: string) => {
+          log('[Storage] Fetched native device ID success:', id);
+          // If we previously generated a temp UUID, we should overwrite it in SharedPreferences
+          // but ONLY if the native ID is valid.
+          if (id && id.length > 5) {
+            setNativeItem(STORAGE_KEYS.DEVICE_ID, id);
+          }
+          resolve(id);
+        });
+        // Timeout just in case
+        setTimeout(() => {
+          logWarn('[Storage] Native getDeviceId timed out after 2s');
+          resolve(null);
+        }, 2000);
+      });
+    }
+  } catch (e) {
+    logError('[Storage] Failed to fetch native device ID:', e);
+  }
+
   log('[Storage] Loading from native storage...');
 
   const keys = [
@@ -201,7 +237,12 @@ export const StorageService = {
   // ============ DEVICE ID ============
 
   getDeviceId(): string {
-    // 1. Check LocalStorage first for a persistent ID
+    // 1. Prioritize Real Native Device ID (fetched during init)
+    if (NATIVE_DEVICE_ID && NATIVE_DEVICE_ID.length > 5 && NATIVE_DEVICE_ID !== 'android') {
+      return NATIVE_DEVICE_ID;
+    }
+
+    // 2. Check LocalStorage next for a persistent ID
     const id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
     log('[Storage] getDeviceId - LocalStorage check:', {
       key: STORAGE_KEYS.DEVICE_ID,
@@ -240,7 +281,9 @@ export const StorageService = {
     }
 
     // 3. Generate a fresh UUID if nothing else is found
-    // crypto.randomUUID fallback for environments without it
+    // If we're on a native-capable device, we'd prefer to wait for NATIVE_DEVICE_ID,
+    // but this function is sync. So we generate a temp one but DON'T save it permanently
+    // to Native Storage yet if we are still initializing.
     const newId =
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
@@ -250,8 +293,15 @@ export const StorageService = {
             return v.toString(16);
           });
 
-    setLocal(STORAGE_KEYS.DEVICE_ID, newId);
-    log('[Storage] ⚠️ Generated NEW Device ID (nothing found):', newId);
+    // Only save permanently to LocalStorage/Native if we are NOT on a hardware-capable device
+    // OR if we've determined native ID fetch is truly impossible.
+    if (!hasNativeStorage()) {
+      setLocal(STORAGE_KEYS.DEVICE_ID, newId);
+      log('[Storage] Generated & SAVED NEW Device ID (web/fallback):', newId);
+    } else {
+      log('[Storage] ⚠️ Generated TEMPORARY Device ID (still waiting for native?):', newId);
+    }
+    
     return newId;
   },
 

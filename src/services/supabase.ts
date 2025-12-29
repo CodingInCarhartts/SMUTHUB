@@ -36,9 +36,11 @@ export const SupabaseService = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn(
+        console.error(
           `[Supabase] Request failed: ${response.status} ${response.statusText}`,
           errorText,
+          `Endpoint: ${endpoint}`,
+          `Body: ${options.body}`
         );
         return null;
       }
