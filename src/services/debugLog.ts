@@ -8,15 +8,21 @@ interface LogEntry {
 }
 
 const MAX_LOGS = 500;
-const logs: LogEntry[] = [];
+
+// Store logs on globalThis so they persist across module instances (Lynx can isolate modules)
+const globalLogs = (globalThis as any).__DEBUG_LOGS__ = (globalThis as any).__DEBUG_LOGS__ || [];
+const logs: LogEntry[] = globalLogs;
+
+// Get the actual console object (may differ in Lynx)
+const targetConsole = globalThis.console || console;
 
 // Store original console methods
 const originalConsole = {
-  log: console.log.bind(console),
-  warn: console.warn.bind(console),
-  error: console.error.bind(console),
-  info: console.info.bind(console),
-  debug: console.debug.bind(console),
+  log: targetConsole.log?.bind(targetConsole),
+  warn: targetConsole.warn?.bind(targetConsole),
+  error: targetConsole.error?.bind(targetConsole),
+  info: targetConsole.info?.bind(targetConsole),
+  debug: targetConsole.debug?.bind(targetConsole),
 };
 
 function formatArgs(args: any[]): string {
@@ -47,31 +53,50 @@ function captureLog(level: LogEntry['level'], args: any[]) {
   }
 }
 
-// Override console methods
-console.log = (...args) => {
-  captureLog('log', args);
-  originalConsole.log(...args);
+// Direct capture function that doesn't rely on console override
+export function logCapture(level: LogEntry['level'], ...args: any[]) {
+  captureLog(level, args);
+  if (originalConsole[level]) {
+    originalConsole[level](...args);
+  }
+}
+
+// Override console methods on both local and global
+const overrideConsole = (target: any) => {
+  target.log = (...args: any[]) => {
+    captureLog('log', args);
+    originalConsole.log?.(...args);
+  };
+
+  target.warn = (...args: any[]) => {
+    captureLog('warn', args);
+    originalConsole.warn?.(...args);
+  };
+
+  target.error = (...args: any[]) => {
+    captureLog('error', args);
+    originalConsole.error?.(...args);
+  };
+
+  target.info = (...args: any[]) => {
+    captureLog('info', args);
+    originalConsole.info?.(...args);
+  };
+
+  target.debug = (...args: any[]) => {
+    captureLog('debug', args);
+    originalConsole.debug?.(...args);
+  };
 };
 
-console.warn = (...args) => {
-  captureLog('warn', args);
-  originalConsole.warn(...args);
-};
+// Override on both console and globalThis.console
+overrideConsole(console);
+if (globalThis.console && globalThis.console !== console) {
+  overrideConsole(globalThis.console);
+}
 
-console.error = (...args) => {
-  captureLog('error', args);
-  originalConsole.error(...args);
-};
-
-console.info = (...args) => {
-  captureLog('info', args);
-  originalConsole.info(...args);
-};
-
-console.debug = (...args) => {
-  captureLog('debug', args);
-  originalConsole.debug(...args);
-};
+// Add an immediate test log to verify capture is working
+captureLog('info', ['[DebugLog] Console capture initialized at', new Date().toISOString()]);
 
 export const DebugLogService = {
   getLogs(): LogEntry[] {
