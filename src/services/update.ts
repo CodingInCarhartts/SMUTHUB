@@ -4,6 +4,18 @@ import { SupabaseService } from './supabase';
 // Storage helper for skip version (using native storage via StorageService pattern)
 const SKIP_KEY = 'batoto:skipped_version';
 let skippedVersionCache: string | null = null;
+let storageInitialized = false;
+
+// Deferred promise pattern
+let resolveStorageReady: () => void;
+const storageReadyPromise = new Promise<void>((resolve) => {
+  resolveStorageReady = resolve;
+});
+
+function markStorageReady() {
+  storageInitialized = true;
+  resolveStorageReady();
+}
 
 function getSkippedVersion(): string | null {
   return skippedVersionCache;
@@ -33,11 +45,16 @@ try {
       SKIP_KEY,
       (value: string | null) => {
         skippedVersionCache = value;
+        markStorageReady();
       },
     );
+  } else {
+    // No native storage, mark as ready immediately
+    markStorageReady();
   }
 } catch (e) {
-  // Ignore
+  // Ignore, mark ready
+  markStorageReady();
 }
 
 const log = (...args: any[]) => logCapture('log', ...args);
@@ -63,7 +80,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.26';
+export const APP_VERSION = '1.0.28';
 
 export const UpdateService = {
   /**
@@ -117,6 +134,9 @@ export const UpdateService = {
    * Includes a cooldown to prevent spamming server during rapid navigation.
    */
   async checkUpdate(): Promise<AppUpdate | null> {
+    // Wait for storage to be ready (so we have the skipped version)
+    await storageReadyPromise;
+
     const now = Date.now();
     if (now - lastCheckTimestamp < CHECK_COOLDOWN_MS) {
       log('[UpdateService] Skipping check (cooldown active).');
