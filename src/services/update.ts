@@ -63,7 +63,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.14';
+export const APP_VERSION = '1.0.15';
 
 export const UpdateService = {
   /**
@@ -175,7 +175,7 @@ export const UpdateService = {
         const latest = data[0];
         if (this.compareVersions(latest.version, currentVersion) > 0) {
           log(
-            `[UpdateService] New native APK found: ${latest.version} (Current: ${currentVersion})`,
+            `[UpdateService] New native APK found: ${latest.version} (URL: ${latest.download_url})`,
           );
           return {
             version: latest.version,
