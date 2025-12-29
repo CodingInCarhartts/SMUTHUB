@@ -40,21 +40,37 @@ function getLocal<T>(key: string, defaultValue: T): T {
   try {
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultValue;
+      const parsed = stored ? JSON.parse(stored) : defaultValue;
+      if (key === STORAGE_KEYS.DEVICE_ID) {
+        console.log('[getLocal] localStorage read:', { key, raw: stored, parsed, hasLocalStorage: true });
+      }
+      return parsed;
     }
   } catch (e) {
-    // Ignore error
+    console.error('[getLocal] localStorage error:', e);
   }
   
   const stored = memoryStorage.get(key);
-  return stored ? JSON.parse(stored) : defaultValue;
+  const parsed = stored ? JSON.parse(stored) : defaultValue;
+  if (key === STORAGE_KEYS.DEVICE_ID) {
+    console.log('[getLocal] memoryStorage fallback:', { key, raw: stored, parsed });
+  }
+  return parsed;
 }
 
 function setLocal<T>(key: string, value: T): void {
   const strValue = JSON.stringify(value);
+  if (key === STORAGE_KEYS.DEVICE_ID) {
+    console.log('[setLocal] Writing deviceId:', { key, value: strValue });
+  }
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(key, strValue);
+      if (key === STORAGE_KEYS.DEVICE_ID) {
+        // Verify write
+        const verify = localStorage.getItem(key);
+        console.log('[setLocal] Verified localStorage write:', { key, wrote: strValue, read: verify, match: verify === strValue });
+      }
     }
   } catch (e) {
     console.error('[Storage] localStorage error:', e);
@@ -69,14 +85,21 @@ export const StorageService = {
   getDeviceId(): string {
     // 1. Check LocalStorage first for a persistent ID
     let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
-    if (id && id.length > 5) return id;
+    console.log('[Storage] getDeviceId - LocalStorage check:', { key: STORAGE_KEYS.DEVICE_ID, found: id, type: typeof id });
+    
+    if (id && typeof id === 'string' && id.length > 5) {
+      console.log('[Storage] getDeviceId - Using stored ID:', id);
+      return id;
+    }
 
     // 2. Check SystemInfo, but only use it if it's not a generic/malformed ID
     try {
       // @ts-ignore - SystemInfo is provided by Lynx runtime
       const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
+      console.log('[Storage] getDeviceId - SystemInfo check:', { available: !!si, deviceId: si?.deviceId });
       if (si && si.deviceId && si.deviceId.length > 5 && si.deviceId !== 'undefined' && si.deviceId !== 'android') {
         setLocal(STORAGE_KEYS.DEVICE_ID, si.deviceId);
+        console.log('[Storage] getDeviceId - Using SystemInfo ID:', si.deviceId);
         return si.deviceId;
       }
     } catch (e) {
@@ -94,7 +117,7 @@ export const StorageService = {
         });
 
     setLocal(STORAGE_KEYS.DEVICE_ID, newId);
-    console.log('[Storage] Generated robust persistent Device ID:', newId);
+    console.log('[Storage] ⚠️ Generated NEW Device ID (nothing found):', newId);
     return newId;
   },
 

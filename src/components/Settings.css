@@ -216,3 +216,97 @@
 .ConfirmButton.danger .ConfirmButtonText {
   color: white;
 }
+
+/* Debug Console Modal */
+.DebugConsole-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.DebugConsole-modal {
+  background-color: #1a1a2e;
+  border-radius: 16px;
+  width: 100%;
+  height: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+}
+
+.DebugConsole-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.DebugConsole-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.DebugConsole-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.DebugConsole-button {
+  padding: 8px 12px;
+  background-color: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.DebugConsole-button.primary {
+  background-color: rgba(138, 43, 226, 0.6);
+}
+
+.DebugConsole-button-text {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.DebugConsole-status {
+  padding: 8px 16px;
+  background-color: rgba(138, 43, 226, 0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.DebugConsole-status-text {
+  font-size: 13px;
+  color: #a0e7a0;
+  font-weight: 500;
+}
+
+.DebugConsole-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.DebugConsole-text {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #8fbc8f;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
