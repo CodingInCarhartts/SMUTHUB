@@ -10,7 +10,8 @@ interface LogEntry {
 const MAX_LOGS = 500;
 
 // Store logs on globalThis so they persist across module instances (Lynx can isolate modules)
-const globalLogs = (globalThis as any).__DEBUG_LOGS__ = (globalThis as any).__DEBUG_LOGS__ || [];
+const globalLogs = ((globalThis as any).__DEBUG_LOGS__ =
+  (globalThis as any).__DEBUG_LOGS__ || []);
 const logs: LogEntry[] = globalLogs;
 
 // Get the actual console object (may differ in Lynx)
@@ -26,16 +27,18 @@ const originalConsole = {
 };
 
 function formatArgs(args: any[]): string {
-  return args.map(arg => {
-    if (typeof arg === 'object') {
-      try {
-        return JSON.stringify(arg, null, 2);
-      } catch {
-        return String(arg);
+  return args
+    .map((arg) => {
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch {
+          return String(arg);
+        }
       }
-    }
-    return String(arg);
-  }).join(' ');
+      return String(arg);
+    })
+    .join(' ');
 }
 
 function captureLog(level: LogEntry['level'], args: any[]) {
@@ -44,9 +47,9 @@ function captureLog(level: LogEntry['level'], args: any[]) {
     level,
     args: formatArgs(args),
   };
-  
+
   logs.push(entry);
-  
+
   // Trim old logs
   if (logs.length > MAX_LOGS) {
     logs.splice(0, logs.length - MAX_LOGS);
@@ -96,7 +99,10 @@ if (globalThis.console && globalThis.console !== console) {
 }
 
 // Add an immediate test log to verify capture is working
-captureLog('info', ['[DebugLog] Console capture initialized at', new Date().toISOString()]);
+captureLog('info', [
+  '[DebugLog] Console capture initialized at',
+  new Date().toISOString(),
+]);
 
 export const DebugLogService = {
   getLogs(): LogEntry[] {
@@ -104,31 +110,42 @@ export const DebugLogService = {
   },
 
   getLogsAsText(): string {
-    return logs.map(entry => 
-      `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.args}`
-    ).join('\n');
+    return logs
+      .map(
+        (entry) =>
+          `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.args}`,
+      )
+      .join('\n');
   },
 
   getDebugReport(): string {
     const report: string[] = [];
-    
+
     report.push('='.repeat(60));
     report.push('SMUTHUB DEBUG REPORT');
     report.push(`Generated: ${new Date().toISOString()}`);
     report.push('='.repeat(60));
     report.push('');
-    
+
     // Environment info
     report.push('--- ENVIRONMENT ---');
-    report.push(`Platform: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}`);
-    report.push(`localStorage available: ${typeof localStorage !== 'undefined'}`);
+    report.push(
+      `Platform: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}`,
+    );
+    report.push(
+      `localStorage available: ${typeof localStorage !== 'undefined'}`,
+    );
     report.push(`crypto available: ${typeof crypto !== 'undefined'}`);
-    report.push(`crypto.randomUUID available: ${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'}`);
-    
+    report.push(
+      `crypto.randomUUID available: ${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'}`,
+    );
+
     // SystemInfo check
     try {
-      // @ts-ignore
-      const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
+      const si =
+        typeof SystemInfo !== 'undefined'
+          ? SystemInfo
+          : (globalThis as any).SystemInfo;
       report.push(`SystemInfo available: ${!!si}`);
       if (si) {
         report.push(`SystemInfo.deviceId: ${si.deviceId || 'undefined'}`);
@@ -137,14 +154,12 @@ export const DebugLogService = {
     } catch (e) {
       report.push(`SystemInfo error: ${e}`);
     }
-    
+
     // NativeModules check
     try {
-      // @ts-ignore
       const hasNative = typeof NativeModules !== 'undefined';
       report.push(`NativeModules available: ${hasNative}`);
       if (hasNative) {
-        // @ts-ignore
         const hasStorage = NativeModules.NativeLocalStorageModule !== undefined;
         report.push(`NativeLocalStorageModule available: ${hasStorage}`);
       }
@@ -152,16 +167,23 @@ export const DebugLogService = {
       report.push(`NativeModules error: ${e}`);
     }
     report.push('');
-    
+
     // LocalStorage dump
     report.push('--- LOCALSTORAGE ---');
     if (typeof localStorage !== 'undefined') {
       try {
-        const keys = ['batoto:device_id', 'batoto:settings', 'batoto:favorites', 'batoto:history', 'batoto:filters'];
+        const keys = [
+          'batoto:device_id',
+          'batoto:settings',
+          'batoto:favorites',
+          'batoto:history',
+          'batoto:filters',
+        ];
         for (const key of keys) {
           const val = localStorage.getItem(key);
           if (val) {
-            const preview = val.length > 200 ? val.substring(0, 200) + '...' : val;
+            const preview =
+              val.length > 200 ? val.substring(0, 200) + '...' : val;
             report.push(`${key}: ${preview}`);
           } else {
             report.push(`${key}: (not set)`);
@@ -175,24 +197,26 @@ export const DebugLogService = {
       report.push('localStorage not available');
     }
     report.push('');
-    
+
     // Console logs
     report.push('--- CONSOLE LOGS ---');
     report.push(`Total captured: ${logs.length}`);
     report.push('');
-    
+
     // Show last 100 logs
     const recentLogs = logs.slice(-100);
     for (const entry of recentLogs) {
       const time = entry.timestamp.split('T')[1].split('.')[0];
-      report.push(`[${time}] [${entry.level.toUpperCase().padEnd(5)}] ${entry.args}`);
+      report.push(
+        `[${time}] [${entry.level.toUpperCase().padEnd(5)}] ${entry.args}`,
+      );
     }
-    
+
     report.push('');
     report.push('='.repeat(60));
     report.push('END OF DEBUG REPORT');
     report.push('='.repeat(60));
-    
+
     return report.join('\n');
   },
 
@@ -202,7 +226,7 @@ export const DebugLogService = {
 
   count(): number {
     return logs.length;
-  }
+  },
 };
 
 // Log startup

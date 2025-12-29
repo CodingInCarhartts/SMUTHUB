@@ -1,1 +1,1 @@
-export * from "./batoto/index";
+export * from './batoto/index';

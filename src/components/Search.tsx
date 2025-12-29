@@ -1,10 +1,10 @@
-import { useState, useEffect } from '@lynx-js/react';
+import { useEffect, useState } from '@lynx-js/react';
 import './Search.css';
 
 interface Props {
   onSearch: (query: string) => void;
   onFilterClick?: () => void;
-  value?: string;  // Controlled value from parent
+  value?: string; // Controlled value from parent
 }
 
 export function Search({ onSearch, onFilterClick, value = '' }: Props) {
@@ -28,11 +28,11 @@ export function Search({ onSearch, onFilterClick, value = '' }: Props) {
       <view className="Search-input-container">
         <view className="Search-box">
           <text className="Search-icon">🔍</text>
-          <input 
+          <input
             key={value}
             type="text"
-            className="Search-input" 
-            placeholder="Search manga..." 
+            className="Search-input"
+            placeholder="Search manga..."
             placeholder-style="color: #8E8E93"
             show-soft-input-on-focus={true}
             bindinput={(e: any) => setQuery(e.detail.value)}
@@ -43,9 +43,9 @@ export function Search({ onSearch, onFilterClick, value = '' }: Props) {
           </view>
         </view>
         {onFilterClick && (
-            <view className="FilterButton" bindtap={onFilterClick}>
-                <text className="FilterIcon">⚙️</text> 
-            </view>
+          <view className="FilterButton" bindtap={onFilterClick}>
+            <text className="FilterIcon">⚙️</text>
+          </view>
         )}
       </view>
     </view>

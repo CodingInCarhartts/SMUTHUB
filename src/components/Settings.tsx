@@ -1,5 +1,5 @@
-import { useState, useEffect } from '@lynx-js/react';
-import { SettingsStore, type ReadingMode } from '../services/settings';
+import { useEffect, useState } from '@lynx-js/react';
+import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService } from '../services/storage';
 import { DeveloperOptions } from './DeveloperOptions';
 import './Settings.css';
@@ -10,13 +10,17 @@ interface Props {
 }
 
 export function Settings({ onBack, onNavigate }: Props) {
-  const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
+  const [readingMode, setReadingMode] = useState<ReadingMode>(
+    SettingsStore.getReadingMode(),
+  );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
-  const [showClearConfirm, setShowClearConfirm] = useState<'history' | 'all' | null>(null);
-  
+  const [showClearConfirm, setShowClearConfirm] = useState<
+    'history' | 'all' | null
+  >(null);
+
   // Developer mode tap counter
   const [aboutTaps, setAboutTaps] = useState(0);
 
@@ -28,14 +32,15 @@ export function Settings({ onBack, onNavigate }: Props) {
     });
 
     // Load counts
-    StorageService.getHistory().then(h => setHistoryCount(h.length));
-    StorageService.getFavorites().then(f => setFavoritesCount(f.length));
+    StorageService.getHistory().then((h) => setHistoryCount(h.length));
+    StorageService.getFavorites().then((f) => setFavoritesCount(f.length));
 
     return unsubscribe;
   }, []);
 
   const handleReadingModeToggle = () => {
-    const newMode: ReadingMode = readingMode === 'vertical' ? 'horizontal' : 'vertical';
+    const newMode: ReadingMode =
+      readingMode === 'vertical' ? 'horizontal' : 'vertical';
     SettingsStore.setReadingMode(newMode);
   };
 
@@ -49,7 +54,9 @@ export function Settings({ onBack, onNavigate }: Props) {
       const newState = !devMode;
       SettingsStore.setDevMode(newState);
       setAboutTaps(0);
-      console.log(`[Settings] Developer mode ${newState ? 'activated' : 'deactivated'}!`);
+      console.log(
+        `[Settings] Developer mode ${newState ? 'activated' : 'deactivated'}!`,
+      );
     } else {
       setAboutTaps(newTaps);
     }
@@ -73,19 +80,23 @@ export function Settings({ onBack, onNavigate }: Props) {
       <view className="Settings-header">
         <text className="Settings-title">Settings</text>
       </view>
-      
+
       <scroll-view className="Settings-content" scroll-y>
         {/* Reading Section */}
         <view className="Settings-section">
           <text className="Settings-section-title">READING</text>
-          
+
           <view className="Settings-item" bindtap={handleReadingModeToggle}>
             <view className="Settings-item-left">
-              <text className="Settings-item-icon">{readingMode === 'vertical' ? '📜' : '📖'}</text>
+              <text className="Settings-item-icon">
+                {readingMode === 'vertical' ? '📜' : '📖'}
+              </text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Reading Mode</text>
                 <text className="Settings-item-description">
-                  {readingMode === 'vertical' ? 'Webtoon (Vertical Scroll)' : 'Manga (Horizontal Swipe)'}
+                  {readingMode === 'vertical'
+                    ? 'Webtoon (Vertical Scroll)'
+                    : 'Manga (Horizontal Swipe)'}
                 </text>
               </view>
             </view>
@@ -96,10 +107,12 @@ export function Settings({ onBack, onNavigate }: Props) {
         {/* Appearance Section */}
         <view className="Settings-section">
           <text className="Settings-section-title">APPEARANCE</text>
-          
+
           <view className="Settings-item" bindtap={handleDarkModeToggle}>
             <view className="Settings-item-left">
-              <text className="Settings-item-icon">{darkMode ? '🌙' : '☀️'}</text>
+              <text className="Settings-item-icon">
+                {darkMode ? '🌙' : '☀️'}
+              </text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Dark Mode</text>
                 <text className="Settings-item-description">
@@ -107,7 +120,11 @@ export function Settings({ onBack, onNavigate }: Props) {
                 </text>
               </view>
             </view>
-            <view className={darkMode ? "Settings-toggle active" : "Settings-toggle"}>
+            <view
+              className={
+                darkMode ? 'Settings-toggle active' : 'Settings-toggle'
+              }
+            >
               <view className="Settings-toggle-knob" />
             </view>
           </view>
@@ -116,8 +133,11 @@ export function Settings({ onBack, onNavigate }: Props) {
         {/* Library Section */}
         <view className="Settings-section">
           <text className="Settings-section-title">LIBRARY</text>
-          
-          <view className="Settings-item" bindtap={() => onNavigate?.('favorites')}>
+
+          <view
+            className="Settings-item"
+            bindtap={() => onNavigate?.('favorites')}
+          >
             <view className="Settings-item-left">
               <text className="Settings-item-icon">❤️</text>
               <view className="Settings-item-text">
@@ -130,7 +150,10 @@ export function Settings({ onBack, onNavigate }: Props) {
             <text className="Settings-item-chevron">›</text>
           </view>
 
-          <view className="Settings-item" bindtap={() => onNavigate?.('history')}>
+          <view
+            className="Settings-item"
+            bindtap={() => onNavigate?.('history')}
+          >
             <view className="Settings-item-left">
               <text className="Settings-item-icon">📚</text>
               <view className="Settings-item-text">
@@ -144,29 +167,37 @@ export function Settings({ onBack, onNavigate }: Props) {
           </view>
         </view>
 
-      
-
         {/* Data Management */}
         <view className="Settings-section">
           <text className="Settings-section-title">DATA</text>
-          
-          <view className="Settings-item" bindtap={() => setShowClearConfirm('history')}>
+
+          <view
+            className="Settings-item"
+            bindtap={() => setShowClearConfirm('history')}
+          >
             <view className="Settings-item-left">
               <text className="Settings-item-icon">🗑️</text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Clear History</text>
-                <text className="Settings-item-description">Remove all reading history</text>
+                <text className="Settings-item-description">
+                  Remove all reading history
+                </text>
               </view>
             </view>
             <text className="Settings-item-chevron">›</text>
           </view>
 
-          <view className="Settings-item danger" bindtap={() => setShowClearConfirm('all')}>
+          <view
+            className="Settings-item danger"
+            bindtap={() => setShowClearConfirm('all')}
+          >
             <view className="Settings-item-left">
               <text className="Settings-item-icon">⚠️</text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Clear All Data</text>
-                <text className="Settings-item-description">Remove favorites, history, and settings</text>
+                <text className="Settings-item-description">
+                  Remove favorites, history, and settings
+                </text>
               </view>
             </view>
             <text className="Settings-item-chevron">›</text>
@@ -176,7 +207,7 @@ export function Settings({ onBack, onNavigate }: Props) {
         {/* About Section */}
         <view className="Settings-section">
           <text className="Settings-section-title">ABOUT</text>
-          
+
           <view className="Settings-item" bindtap={handleAboutTap}>
             <view className="Settings-item-left">
               <text className="Settings-item-icon">💜</text>
@@ -187,30 +218,42 @@ export function Settings({ onBack, onNavigate }: Props) {
               </view>
             </view>
           </view>
-            {/* Developer Section */}
-        {devMode && <DeveloperOptions />}
+          {/* Developer Section */}
+          {devMode && <DeveloperOptions />}
         </view>
       </scroll-view>
 
       {/* Confirmation Dialog */}
       {showClearConfirm && (
-        <view className="ConfirmOverlay" bindtap={() => setShowClearConfirm(null)}>
+        <view
+          className="ConfirmOverlay"
+          bindtap={() => setShowClearConfirm(null)}
+        >
           <view className="ConfirmDialog" catchtap={() => {}}>
             <text className="ConfirmTitle">
-              {showClearConfirm === 'history' ? 'Clear History?' : 'Clear All Data?'}
+              {showClearConfirm === 'history'
+                ? 'Clear History?'
+                : 'Clear All Data?'}
             </text>
             <text className="ConfirmMessage">
-              {showClearConfirm === 'history' 
+              {showClearConfirm === 'history'
                 ? 'This will remove all your reading history. This cannot be undone.'
                 : 'This will remove all favorites, history, and settings. This cannot be undone.'}
             </text>
             <view className="ConfirmActions">
-              <view className="ConfirmButton cancel" bindtap={() => setShowClearConfirm(null)}>
+              <view
+                className="ConfirmButton cancel"
+                bindtap={() => setShowClearConfirm(null)}
+              >
                 <text className="ConfirmButtonText">Cancel</text>
               </view>
-              <view 
-                className="ConfirmButton danger" 
-                bindtap={showClearConfirm === 'history' ? handleClearHistory : handleClearAll}
+              <view
+                className="ConfirmButton danger"
+                bindtap={
+                  showClearConfirm === 'history'
+                    ? handleClearHistory
+                    : handleClearAll
+                }
               >
                 <text className="ConfirmButtonText">Clear</text>
               </view>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
+import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService } from '../services/storage';
-import { SettingsStore, type ReadingMode } from '../services/settings';
 import './Reader.css';
 
 interface Props {
@@ -19,9 +19,10 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   const [failed, setFailed] = useState(false);
   const MAX_RETRIES = 5;
 
-  const currentUrl = retryCount > 0 
-    ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}` 
-    : url;
+  const currentUrl =
+    retryCount > 0
+      ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
+      : url;
 
   useEffect(() => {
     console.log(`[ReaderPanel #${index}] URL: ${url} (retry: ${retryCount})`);
@@ -30,7 +31,9 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   const handleLoad = (e: any) => {
     const { width, height } = e.detail;
     const calcRatio = width / height;
-    console.log(`[ReaderPanel #${index}] LOADED: ${width}x${height} (ratio: ${calcRatio.toFixed(3)})`);
+    console.log(
+      `[ReaderPanel #${index}] LOADED: ${width}x${height} (ratio: ${calcRatio.toFixed(3)})`,
+    );
     if (width && height) {
       setRatio(calcRatio);
       setFailed(false);
@@ -38,11 +41,17 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   };
 
   const handleError = (e: any) => {
-    console.error(`[ReaderPanel #${index}] ERROR (attempt ${retryCount + 1}/${MAX_RETRIES}):`, e.detail?.errMsg);
+    console.error(
+      `[ReaderPanel #${index}] ERROR (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
+      e.detail?.errMsg,
+    );
     if (retryCount < MAX_RETRIES - 1) {
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-      }, 500 + (index % 5) * 200);
+      setTimeout(
+        () => {
+          setRetryCount((prev) => prev + 1);
+        },
+        500 + (index % 5) * 200,
+      );
     } else {
       setFailed(true);
     }
@@ -58,32 +67,39 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   const displayRatio = ratio ? `${ratio}` : '0.6';
 
   return (
-    <view className="Reader-panel-wrapper" style={{ 
-      aspectRatio: displayRatio,
-      backgroundColor: ratio ? 'transparent' : '#1a1a1a',
-      minHeight: ratio ? 'auto' : '400px',
-    }}>
+    <view
+      className="Reader-panel-wrapper"
+      style={{
+        aspectRatio: displayRatio,
+        backgroundColor: ratio ? 'transparent' : '#1a1a1a',
+        minHeight: ratio ? 'auto' : '400px',
+      }}
+    >
       {failed ? (
         <view className="Reader-panel-error" bindtap={handleRetryTap}>
-          <text className="Reader-panel-error-text">Failed to load - Tap to retry</text>
+          <text className="Reader-panel-error-text">
+            Failed to load - Tap to retry
+          </text>
         </view>
       ) : (
-        <image 
+        <image
           src={currentUrl}
-          className="Reader-panel" 
+          className="Reader-panel"
           mode="scaleToFill"
           bindload={handleLoad}
           binderror={handleError}
-          style={{ 
+          style={{
             width: '100%',
-            height: '100%'
+            height: '100%',
           }}
         />
       )}
       {!ratio && !failed && (
         <view className="Reader-panel-loader">
           <text className="Reader-panel-loader-text">
-            {retryCount > 0 ? `Retrying (${retryCount}/${MAX_RETRIES})...` : 'Loading...'}
+            {retryCount > 0
+              ? `Retrying (${retryCount}/${MAX_RETRIES})...`
+              : 'Loading...'}
           </text>
         </view>
       )}
@@ -97,13 +113,14 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 5;
 
-  const currentUrl = retryCount > 0 
-    ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}` 
-    : url;
+  const currentUrl =
+    retryCount > 0
+      ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
+      : url;
 
   const handleError = () => {
     if (retryCount < MAX_RETRIES - 1) {
-      setTimeout(() => setRetryCount(prev => prev + 1), 500);
+      setTimeout(() => setRetryCount((prev) => prev + 1), 500);
     } else {
       setFailed(true);
     }
@@ -121,7 +138,7 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
           <text className="Reader-panel-error-text">Failed - Tap to retry</text>
         </view>
       ) : (
-        <image 
+        <image
           src={currentUrl}
           className="Reader-horizontal-image"
           mode="aspectFit"
@@ -135,13 +152,22 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter, onNextChapter }: Props) {
+export function Reader({
+  chapterUrl,
+  chapterTitle,
+  manga,
+  onBack,
+  hasNextChapter,
+  onNextChapter,
+}: Props) {
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
+  const [readingMode, setReadingMode] = useState<ReadingMode>(
+    SettingsStore.getReadingMode(),
+  );
   const [currentPage, setCurrentPage] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(() => 
-    manga ? StorageService.isFavoriteSync(manga.id) : false
+  const [isFavorite, setIsFavorite] = useState(() =>
+    manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
 
   useEffect(() => {
@@ -159,10 +185,14 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
       console.log('[Reader] Received panels:', urls.length, 'First:', urls[0]);
       setPanels(urls);
       setLoading(false);
-      
+
       // Restore saved position if returning to same chapter
       const savedPosition = StorageService.getReaderPosition();
-      if (savedPosition && savedPosition.chapterUrl === chapterUrl && manga?.id === savedPosition.mangaId) {
+      if (
+        savedPosition &&
+        savedPosition.chapterUrl === chapterUrl &&
+        manga?.id === savedPosition.mangaId
+      ) {
         console.log('[Reader] Restoring position:', savedPosition.panelIndex);
         setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
       }
@@ -174,9 +204,9 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
     // Handle horizontal swipe navigation
     const direction = e.detail?.direction;
     if (direction === 'left' && currentPage < panels.length - 1) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     } else if (direction === 'right' && currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   };
 
@@ -190,11 +220,11 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
   // Save position when page changes (debounced)
   useEffect(() => {
     if (!manga || loading || panels.length === 0) return;
-    
+
     const timeoutId = setTimeout(() => {
       StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
     }, 500); // Debounce 500ms to avoid excessive writes
-    
+
     return () => clearTimeout(timeoutId);
   }, [currentPage, manga, chapterUrl, loading, panels.length]);
 
@@ -213,24 +243,22 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
     <view className="Reader">
       <view className="Reader-header">
         <view className="Reader-header-left" bindtap={onBack}>
-          <text className="Reader-back">{"‹ Back"}</text>
+          <text className="Reader-back">{'‹ Back'}</text>
         </view>
-        
+
         <view className="Reader-header-center">
           <text className="Reader-header-title">
             {chapterTitle || 'Reading Chapter'}
           </text>
           <text className="Reader-header-subtitle">
-            {readingMode === 'horizontal' 
-              ? `Panel ${currentPage + 1} of ${panels.length}` 
+            {readingMode === 'horizontal'
+              ? `Panel ${currentPage + 1} of ${panels.length}`
               : `${panels.length} panels total`}
           </text>
         </view>
 
         <view className="Reader-header-right" bindtap={handleToggleFavorite}>
-          <text className="Reader-favorite-btn">
-            {isFavorite ? '❤️' : '🤍'}
-          </text>
+          <text className="Reader-favorite-btn">{isFavorite ? '❤️' : '🤍'}</text>
         </view>
       </view>
 
@@ -252,19 +280,34 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
           ) : (
             [
               ...panels.map((url, index) => (
-                <list-item key={`panel-${index}`} item-key={`panel-${index}`} full-span>
+                <list-item
+                  key={`panel-${index}`}
+                  item-key={`panel-${index}`}
+                  full-span
+                >
                   <ReaderPanel url={url} index={index} />
                 </list-item>
               )),
-              ...(hasNextChapter && onNextChapter ? [
-                <list-item key="next-chapter" item-key="next-chapter" full-span>
-                  <view className="Reader-footer-nav">
-                    <view className="Reader-next-btn" bindtap={onNextChapter}>
-                      <text className="Reader-next-text">Next Chapter ›</text>
-                    </view>
-                  </view>
-                </list-item>
-              ] : [])
+              ...(hasNextChapter && onNextChapter
+                ? [
+                    <list-item
+                      key="next-chapter"
+                      item-key="next-chapter"
+                      full-span
+                    >
+                      <view className="Reader-footer-nav">
+                        <view
+                          className="Reader-next-btn"
+                          bindtap={onNextChapter}
+                        >
+                          <text className="Reader-next-text">
+                            Next Chapter ›
+                          </text>
+                        </view>
+                      </view>
+                    </list-item>,
+                  ]
+                : []),
             ]
           )}
         </list>
@@ -282,11 +325,15 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
           ) : (
             <>
               <HorizontalPanel url={panels[currentPage]} index={currentPage} />
-              
+
               {/* Navigation buttons */}
               <view className="Reader-nav-buttons">
-                <view 
-                  className={currentPage > 0 ? "Reader-nav-btn" : "Reader-nav-btn disabled"} 
+                <view
+                  className={
+                    currentPage > 0
+                      ? 'Reader-nav-btn'
+                      : 'Reader-nav-btn disabled'
+                  }
                   bindtap={() => goToPage(-1)}
                 >
                   <text className="Reader-nav-text">‹ Prev</text>

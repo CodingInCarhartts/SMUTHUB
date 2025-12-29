@@ -31,7 +31,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, rgba(74, 63, 63, 0.3), rgba(255, 255, 255, 0.95));
+  background: linear-gradient(
+    to bottom,
+    rgba(74, 63, 63, 0.3),
+    rgba(255, 255, 255, 0.95)
+  );
   padding: 50px 24px 24px 24px;
   display: flex;
   flex-direction: column;
@@ -98,7 +102,7 @@
 }
 
 .Badge.rating {
-  background-color: #FFF3CD;
+  background-color: #fff3cd;
   color: #856404;
 }
 

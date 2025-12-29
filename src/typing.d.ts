@@ -5,7 +5,7 @@ declare let NativeModules: {
   /**
    * Native local storage module using platform-specific persistent storage:
    * - Android: SharedPreferences
-   * - iOS: NSUserDefaults  
+   * - iOS: NSUserDefaults
    * - HarmonyOS: Preferences
    */
   NativeLocalStorageModule: {
@@ -20,7 +20,9 @@ declare let NativeModules: {
   NativeUIModule: {
     setImmersiveMode(enabled: boolean): void;
     setBrightness(brightness: number): void;
-    setOrientation(orientation: 'portrait' | 'landscape' | 'sensor' | 'unspecified'): void;
+    setOrientation(
+      orientation: 'portrait' | 'landscape' | 'sensor' | 'unspecified',
+    ): void;
   };
 
   /**

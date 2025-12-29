@@ -6,17 +6,20 @@ const REST_URL = `${SUPABASE_URL}/rest/v1`;
 const SUPABASE_ANON_KEY = 'sb_publishable_tyLE5ronU6B5LAGta5GBjA_ZSqpzHyz';
 
 const HEADERS = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
   'Content-Type': 'application/json',
-  'Prefer': 'return=minimal' // Don't return the inserted row to save data
+  Prefer: 'return=minimal', // Don't return the inserted row to save data
 };
 
 export const SupabaseService = {
   /**
    * Generic Fetch Wrapper
    */
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
+  async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<T | null> {
     try {
       const response = await fetch(`${REST_URL}${endpoint}`, {
         ...options,
@@ -28,7 +31,10 @@ export const SupabaseService = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn(`[Supabase] Request failed: ${response.status} ${response.statusText}`, errorText);
+        console.warn(
+          `[Supabase] Request failed: ${response.status} ${response.statusText}`,
+          errorText,
+        );
         return null;
       }
 
@@ -42,7 +48,7 @@ export const SupabaseService = {
       if (!text || text.trim().length === 0) {
         return null;
       }
-      
+
       try {
         return JSON.parse(text);
       } catch (e) {
@@ -67,25 +73,32 @@ export const SupabaseService = {
   /**
    * Upsert a row (Insert or Update)
    */
-  async upsert(table: string, data: any, conflictColumn: string = 'id'): Promise<boolean> {
+  async upsert(
+    table: string,
+    data: any,
+    conflictColumn: string = 'id',
+  ): Promise<boolean> {
     // resolution=merge-duplicates is key for upsert behavior via REST
-    const headers = { 
-      'Prefer': `resolution=merge-duplicates,return=minimal` 
+    const headers = {
+      Prefer: `resolution=merge-duplicates,return=minimal`,
     };
 
-    const result = await this.request(`/${table}?on_conflict=${conflictColumn}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
+    const result = await this.request(
+      `/${table}?on_conflict=${conflictColumn}`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      },
+    );
 
     // If result is null (due to 204 No Content), it succeeded
     // If request failed, it returned null but logged error
     // check if it was a success or failure is tricky with just null return
-    // But our request wrapper catches errors. 
-    // Ideally request should throw or return { error, data } tuple. 
+    // But our request wrapper catches errors.
+    // Ideally request should throw or return { error, data } tuple.
     // For simplicity, assuming if it didn't throw/log, it worked.
-    return true; 
+    return true;
   },
 
   /**
@@ -93,13 +106,15 @@ export const SupabaseService = {
    * @param value - Can be a raw value (implies 'eq.') or an operator string like 'neq.0'
    */
   async delete(table: string, column: string, value: string): Promise<boolean> {
-    const filter = value.match(/^(eq\.|neq\.|gt\.|gte\.|lt\.|lte\.|like\.|ilike\.|is\.|in\.|cs\.|cd\.|ov\.|sl\.|sr\.|nxr\.|nxl\.|adj\.)/) 
-      ? value 
+    const filter = value.match(
+      /^(eq\.|neq\.|gt\.|gte\.|lt\.|lte\.|like\.|ilike\.|is\.|in\.|cs\.|cd\.|ov\.|sl\.|sr\.|nxr\.|nxl\.|adj\.)/,
+    )
+      ? value
       : `eq.${value}`;
-      
+
     const result = await this.request(`/${table}?${column}=${filter}`, {
       method: 'DELETE',
     });
     return true;
-  }
+  },
 };

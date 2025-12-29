@@ -1,5 +1,5 @@
-import { SupabaseService } from './supabase';
 import { logCapture } from './debugLog';
+import { SupabaseService } from './supabase';
 
 // Storage helper for skip version (using native storage via StorageService pattern)
 const SKIP_KEY = 'batoto:skipped_version';
@@ -12,8 +12,10 @@ function getSkippedVersion(): string | null {
 function setSkippedVersion(version: string): void {
   skippedVersionCache = version;
   try {
-    // @ts-ignore
-    if (typeof NativeModules !== 'undefined' && NativeModules.NativeLocalStorageModule) {
+    if (
+      typeof NativeModules !== 'undefined' &&
+      NativeModules.NativeLocalStorageModule
+    ) {
       NativeModules.NativeLocalStorageModule.setStorageItem(SKIP_KEY, version);
     }
   } catch (e) {
@@ -23,11 +25,16 @@ function setSkippedVersion(version: string): void {
 
 // Initialize from native storage on load
 try {
-  // @ts-ignore
-  if (typeof NativeModules !== 'undefined' && NativeModules.NativeLocalStorageModule) {
-    NativeModules.NativeLocalStorageModule.getStorageItem(SKIP_KEY, (value: string | null) => {
-      skippedVersionCache = value;
-    });
+  if (
+    typeof NativeModules !== 'undefined' &&
+    NativeModules.NativeLocalStorageModule
+  ) {
+    NativeModules.NativeLocalStorageModule.getStorageItem(
+      SKIP_KEY,
+      (value: string | null) => {
+        skippedVersionCache = value;
+      },
+    );
   }
 } catch (e) {
   // Ignore
@@ -59,16 +66,16 @@ export const UpdateService = {
   async getLatestUpdate(): Promise<AppUpdate | null> {
     try {
       const data = await SupabaseService.getAll<any>(
-        'app_updates', 
-        '?select=version,is_mandatory,release_notes&order=created_at.desc&limit=1'
+        'app_updates',
+        '?select=version,is_mandatory,release_notes&order=created_at.desc&limit=1',
       );
-      
+
       if (data && data.length > 0) {
         const row = data[0];
         return {
           version: row.version,
           isMandatory: !!row.is_mandatory,
-          releaseNotes: row.release_notes || ''
+          releaseNotes: row.release_notes || '',
         };
       }
     } catch (e) {
@@ -79,15 +86,15 @@ export const UpdateService = {
 
   /**
    * Compare two semver strings
-   * Returns: 
+   * Returns:
    *   1 if v1 > v2
    *  -1 if v1 < v2
    *   0 if v1 == v2
    */
   compareVersions(v1: string, v2: string): number {
-    const parts1 = v1.split('.').map(p => parseInt(p, 10) || 0);
-    const parts2 = v2.split('.').map(p => parseInt(p, 10) || 0);
-    
+    const parts1 = v1.split('.').map((p) => parseInt(p, 10) || 0);
+    const parts2 = v2.split('.').map((p) => parseInt(p, 10) || 0);
+
     const length = Math.max(parts1.length, parts2.length);
     for (let i = 0; i < length; i++) {
       const p1 = parts1[i] || 0;
@@ -113,10 +120,12 @@ export const UpdateService = {
     }
 
     if (this.compareVersions(latest.version, APP_VERSION) > 0) {
-      log(`[UpdateService] New update found: ${latest.version} (Current: ${APP_VERSION})`);
+      log(
+        `[UpdateService] New update found: ${latest.version} (Current: ${APP_VERSION})`,
+      );
       return latest;
     }
-    
+
     return null;
   },
 
@@ -133,26 +142,32 @@ export const UpdateService = {
    */
   async checkNativeUpdate(): Promise<NativeAppUpdate | null> {
     try {
-      // @ts-ignore
-      const nativeUpdater = typeof NativeModules !== 'undefined' ? NativeModules.NativeUpdaterModule : null;
+      const nativeUpdater =
+        typeof NativeModules !== 'undefined'
+          ? NativeModules.NativeUpdaterModule
+          : null;
       if (!nativeUpdater) return null;
 
       const currentVersion = nativeUpdater.getNativeVersion();
-      
+
       const data = await SupabaseService.getAll<any>(
-        'app_native_updates', 
-        '?select=version,download_url,is_mandatory,release_notes&order=created_at.desc&limit=1'
+        'app_native_updates',
+        '?select=version,download_url,is_mandatory,release_notes&order=created_at.desc&limit=1',
       );
-      
+
       if (data && data.length > 0) {
         const latest = data[0];
         if (this.compareVersions(latest.version, currentVersion) > 0) {
-          log(`[UpdateService] New native APK found: ${latest.version} (Current: ${currentVersion})`);
+          log(
+            `[UpdateService] New native APK found: ${latest.version} (Current: ${currentVersion})`,
+          );
           return {
             version: latest.version,
             url: latest.download_url,
             isMandatory: !!latest.is_mandatory,
-            releaseNotes: latest.release_notes || 'New native features and performance improvements.'
+            releaseNotes:
+              latest.release_notes ||
+              'New native features and performance improvements.',
           };
         }
       }
@@ -167,8 +182,10 @@ export const UpdateService = {
    */
   async installNativeUpdate(url: string): Promise<void> {
     log('[UpdateService] Triggering native APK install from:', url);
-    // @ts-ignore
-    const nativeUpdater = typeof NativeModules !== 'undefined' ? NativeModules.NativeUpdaterModule : null;
+    const nativeUpdater =
+      typeof NativeModules !== 'undefined'
+        ? NativeModules.NativeUpdaterModule
+        : null;
     if (nativeUpdater && nativeUpdater.installUpdate) {
       nativeUpdater.installUpdate(url);
     } else {
@@ -182,17 +199,19 @@ export const UpdateService = {
   async applyUpdate(): Promise<void> {
     log('[UpdateService] Applying update (reloading bundle)...');
     try {
-      // @ts-ignore
-      const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+      const runtime =
+        typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
       if (runtime && runtime.reload) {
         runtime.reload();
       } else {
-        logWarn('[UpdateService] lynx.reload is not available in this environment');
+        logWarn(
+          '[UpdateService] lynx.reload is not available in this environment',
+        );
         // If we can't reload, the user will have to restart the app manually.
         // We notify them via the UI (handled in the Modal).
       }
     } catch (e) {
       logError('[UpdateService] Reload failed:', e);
     }
-  }
+  },
 };

@@ -11,7 +11,7 @@
 
 .MangaCard-cover {
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 3 / 4;
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--accent-soft);

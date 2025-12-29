@@ -1,6 +1,6 @@
 import { useState } from '@lynx-js/react';
-import { StorageService } from '../services/storage';
 import { DebugLogService } from '../services/debugLog';
+import { StorageService } from '../services/storage';
 import './Settings.css';
 
 export function DeveloperOptions() {
@@ -19,9 +19,11 @@ export function DeveloperOptions() {
 
   const handleCopyReport = async () => {
     try {
-      // @ts-ignore
-      const nativeUtils = typeof NativeModules !== 'undefined' ? NativeModules.NativeUtilsModule : null;
-      
+      const nativeUtils =
+        typeof NativeModules !== 'undefined'
+          ? NativeModules.NativeUtilsModule
+          : null;
+
       if (nativeUtils && nativeUtils.copyToClipboard) {
         nativeUtils.copyToClipboard(debugReport);
         setCopyStatus('✅ Copied to clipboard (Native)!');
@@ -36,7 +38,7 @@ export function DeveloperOptions() {
       console.error('[DeveloperOptions] Copy failed:', e);
       setCopyStatus('❌ Copy failed');
     }
-    
+
     // Clear status after 3s
     setTimeout(() => setCopyStatus(''), 3000);
   };
@@ -52,7 +54,7 @@ export function DeveloperOptions() {
     <>
       <view className="Settings-section">
         <text className="Settings-section-title">DEVELOPER</text>
-        
+
         <view className="Settings-item">
           <view className="Settings-item-left">
             <text className="Settings-item-icon">🆔</text>
@@ -89,10 +91,16 @@ export function DeveloperOptions() {
         <view className="Settings-item">
           <view className="Settings-item-text" style={{ padding: '12px 0' }}>
             <text className="Settings-item-label">Restore Session</text>
-            <view style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-              <input 
+            <view
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 8,
+              }}
+            >
+              <input
                 className="RestoreInput"
-                placeholder="Enter previous Device ID" 
+                placeholder="Enter previous Device ID"
                 bindinput={(e) => {
                   const val = e.detail.value;
                   if (val && val.length > 5) {
@@ -100,12 +108,14 @@ export function DeveloperOptions() {
                   }
                 }}
               />
-              <view 
-                className="RestoreButton" 
+              <view
+                className="RestoreButton"
                 bindtap={() => {
                   // After setting ID in bindinput, we just need to reload
-                  // @ts-ignore
-                  const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+                  const runtime =
+                    typeof lynx !== 'undefined'
+                      ? lynx
+                      : (globalThis as any).lynx;
                   if (runtime && runtime.reload) {
                     runtime.reload();
                   }
@@ -114,7 +124,10 @@ export function DeveloperOptions() {
                 <text className="RestoreButtonText">Restore</text>
               </view>
             </view>
-            <text className="Settings-item-description" style={{ marginTop: 4 }}>
+            <text
+              className="Settings-item-description"
+              style={{ marginTop: 4 }}
+            >
               Paste your old ID to recover favorites and history.
             </text>
           </view>
@@ -123,29 +136,41 @@ export function DeveloperOptions() {
 
       {/* Debug Console Modal */}
       {showDebugConsole && (
-        <view className="DebugConsole-overlay" bindtap={() => setShowDebugConsole(false)}>
+        <view
+          className="DebugConsole-overlay"
+          bindtap={() => setShowDebugConsole(false)}
+        >
           <view className="DebugConsole-modal" catchtap={() => {}}>
             <view className="DebugConsole-header">
               <text className="DebugConsole-title">🐛 Debug Console</text>
               <view className="DebugConsole-actions">
-                <view className="DebugConsole-button" bindtap={handleRefreshReport}>
+                <view
+                  className="DebugConsole-button"
+                  bindtap={handleRefreshReport}
+                >
                   <text className="DebugConsole-button-text">🔄</text>
                 </view>
-                <view className="DebugConsole-button primary" bindtap={handleCopyReport}>
+                <view
+                  className="DebugConsole-button primary"
+                  bindtap={handleCopyReport}
+                >
                   <text className="DebugConsole-button-text">📋 Copy All</text>
                 </view>
-                <view className="DebugConsole-button" bindtap={() => setShowDebugConsole(false)}>
+                <view
+                  className="DebugConsole-button"
+                  bindtap={() => setShowDebugConsole(false)}
+                >
                   <text className="DebugConsole-button-text">✕</text>
                 </view>
               </view>
             </view>
-            
+
             {copyStatus && (
               <view className="DebugConsole-status">
                 <text className="DebugConsole-status-text">{copyStatus}</text>
               </view>
             )}
-            
+
             <scroll-view className="DebugConsole-content" scroll-y>
               <text className="DebugConsole-text">{debugReport}</text>
             </scroll-view>

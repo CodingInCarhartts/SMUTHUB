@@ -1,4 +1,4 @@
-import { useState, useEffect } from '@lynx-js/react';
+import { useEffect, useState } from '@lynx-js/react';
 import type { Manga } from '../services/batoto';
 import { StorageService } from '../services/storage';
 import { MangaCard } from './MangaCard';
@@ -36,7 +36,9 @@ export function FavoritesView({ onBack, onSelectManga }: Props) {
   return (
     <view className="FavoritesView">
       <view className="FavoritesView-header">
-        <text className="FavoritesView-back" bindtap={onBack}>‹ Back</text>
+        <text className="FavoritesView-back" bindtap={onBack}>
+          ‹ Back
+        </text>
         <text className="FavoritesView-title">Favorites</text>
         <view className="FavoritesView-spacer" />
       </view>
@@ -44,7 +46,9 @@ export function FavoritesView({ onBack, onSelectManga }: Props) {
       <scroll-view className="FavoritesView-content" scroll-y>
         {loading ? (
           <view className="FavoritesView-loading">
-            <text className="FavoritesView-loading-text">Loading favorites...</text>
+            <text className="FavoritesView-loading-text">
+              Loading favorites...
+            </text>
           </view>
         ) : favorites.length === 0 ? (
           <view className="FavoritesView-empty">
@@ -56,10 +60,10 @@ export function FavoritesView({ onBack, onSelectManga }: Props) {
           </view>
         ) : (
           <view className="FavoritesView-grid">
-            {favorites.map(manga => (
+            {favorites.map((manga) => (
               <view key={manga.id} className="FavoritesView-item">
-                <MangaCard 
-                  manga={manga} 
+                <MangaCard
+                  manga={manga}
                   onSelect={handleSelectManga}
                   showFavoriteButton={true}
                 />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from '@lynx-js/react';
+import { useEffect, useState } from '@lynx-js/react';
 import type { Manga } from '../services/batoto';
 import { StorageService, type ViewedManga } from '../services/storage';
 import './HistoryView.css';
@@ -52,7 +52,9 @@ export function HistoryView({ onBack, onSelectManga }: Props) {
   return (
     <view className="HistoryView">
       <view className="HistoryView-header">
-        <text className="HistoryView-back" bindtap={onBack}>‹ Back</text>
+        <text className="HistoryView-back" bindtap={onBack}>
+          ‹ Back
+        </text>
         <text className="HistoryView-title">History</text>
         <view className="HistoryView-spacer" />
       </view>
@@ -72,19 +74,21 @@ export function HistoryView({ onBack, onSelectManga }: Props) {
           </view>
         ) : (
           <view className="HistoryView-list">
-            {history.map(item => (
-              <view 
-                key={item.manga.id} 
+            {history.map((item) => (
+              <view
+                key={item.manga.id}
                 className="HistoryView-item"
                 bindtap={() => handleSelectManga(item.manga)}
               >
-                <image 
-                  src={item.manga.cover} 
-                  className="HistoryView-item-cover" 
-                  mode="aspectFill" 
+                <image
+                  src={item.manga.cover}
+                  className="HistoryView-item-cover"
+                  mode="aspectFill"
                 />
                 <view className="HistoryView-item-info">
-                  <text className="HistoryView-item-title">{item.manga.title}</text>
+                  <text className="HistoryView-item-title">
+                    {item.manga.title}
+                  </text>
                   {item.lastChapterTitle && (
                     <text className="HistoryView-item-chapter">
                       📖 {item.lastChapterTitle}
