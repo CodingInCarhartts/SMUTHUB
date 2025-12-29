@@ -218,6 +218,7 @@ export function App() {
     return (
       <Reader 
         chapterUrl={selectedChapterUrl} 
+        chapterTitle={selectedChapterTitle}
         onBack={handleBack} 
         hasNextChapter={hasNextChapter}
         onNextChapter={handleNextChapter}

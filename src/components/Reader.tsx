@@ -5,6 +5,7 @@ import './Reader.css';
 
 interface Props {
   chapterUrl: string;
+  chapterTitle?: string;
   onBack: () => void;
   hasNextChapter: boolean;
   onNextChapter: () => void;
@@ -132,7 +133,7 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Props) {
+export function Reader({ chapterUrl, chapterTitle, onBack, hasNextChapter, onNextChapter }: Props) {
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
@@ -177,13 +178,26 @@ export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Pr
   return (
     <view className="Reader">
       <view className="Reader-header">
-        <text className="Reader-back" bindtap={onBack}>{"< Back"}</text>
-        <text className="Reader-title">
-          {readingMode === 'horizontal' ? `${currentPage + 1}/${panels.length}` : `${panels.length} panels`}
-        </text>
-        <text className="Reader-mode-indicator">
-          {readingMode === 'vertical' ? '📜' : '📖'}
-        </text>
+        <view className="Reader-header-left" bindtap={onBack}>
+          <text className="Reader-back">{"‹ Back"}</text>
+        </view>
+        
+        <view className="Reader-header-center">
+          <text className="Reader-header-title">
+            {chapterTitle || 'Reading Chapter'}
+          </text>
+          <text className="Reader-header-subtitle">
+            {readingMode === 'horizontal' 
+              ? `Panel ${currentPage + 1} of ${panels.length}` 
+              : `${panels.length} panels total`}
+          </text>
+        </view>
+
+        <view className="Reader-header-right">
+          <text className="Reader-mode-indicator">
+            {readingMode === 'vertical' ? '📜' : '📖'}
+          </text>
+        </view>
       </view>
 
       {readingMode === 'vertical' ? (
