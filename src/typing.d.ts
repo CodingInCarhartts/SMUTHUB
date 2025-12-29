@@ -44,4 +44,12 @@ declare let NativeModules: {
     copyToClipboard(text: string): void;
     shareText(text: string, title: string): void;
   };
+
+  /**
+   * Native APK Updater
+   */
+  NativeUpdaterModule: {
+    getNativeVersion(): string;
+    installUpdate(url: string): void;
+  };
 };

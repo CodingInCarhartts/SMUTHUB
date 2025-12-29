@@ -92,6 +92,53 @@ export const UpdateService = {
   },
 
   /**
+   * Check if a newer native APK version exists in Supabase
+   */
+  async checkNativeUpdate(): Promise<{ version: string, url: string, isMandatory: boolean } | null> {
+    try {
+      // @ts-ignore
+      const nativeUpdater = typeof NativeModules !== 'undefined' ? NativeModules.NativeUpdaterModule : null;
+      if (!nativeUpdater) return null;
+
+      const currentVersion = nativeUpdater.getNativeVersion();
+      
+      const data = await SupabaseService.getAll<any>(
+        'app_native_updates', 
+        '?select=version,download_url,is_mandatory&order=created_at.desc&limit=1'
+      );
+      
+      if (data && data.length > 0) {
+        const latest = data[0];
+        if (this.compareVersions(latest.version, currentVersion) > 0) {
+          log(`[UpdateService] New native APK found: ${latest.version} (Current: ${currentVersion})`);
+          return {
+            version: latest.version,
+            url: latest.download_url,
+            isMandatory: !!latest.is_mandatory
+          };
+        }
+      }
+    } catch (e) {
+      logWarn('[UpdateService] Native update check failed:', e);
+    }
+    return null;
+  },
+
+  /**
+   * Trigger the native APK installation flow
+   */
+  async installNativeUpdate(url: string): Promise<void> {
+    log('[UpdateService] Triggering native APK install from:', url);
+    // @ts-ignore
+    const nativeUpdater = typeof NativeModules !== 'undefined' ? NativeModules.NativeUpdaterModule : null;
+    if (nativeUpdater && nativeUpdater.installUpdate) {
+      nativeUpdater.installUpdate(url);
+    } else {
+      logError('[UpdateService] NativeUpdaterModule not available');
+    }
+  },
+
+  /**
    * Reload the Lynx bundle to apply the OTA update
    */
   async applyUpdate(): Promise<void> {
