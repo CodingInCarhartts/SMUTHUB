@@ -234,7 +234,8 @@ export function App() {
             {tab === 'home' && (
               <view className="Home">
                 <view className="HomeHeader">
-                  <text className="HomeTitle">Discover</text>
+                  {/* TODO: SOMETHING FOR WIFE */}
+                  <text className="HomeTitle">Explore</text>
                 </view>
                 <scroll-view 
                   className="MangaList" 
