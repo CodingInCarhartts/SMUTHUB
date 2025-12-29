@@ -208,6 +208,15 @@ export function App() {
     return <Reader chapterUrl={selectedChapterUrl} onBack={handleBack} />;
   }
 
+  const headerTitleRandom = [
+    "I love you",
+    "Discover",
+    "Explore",
+  ];
+
+  const randomHeaderTitle = headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
+
+
   return (
     <view className={darkMode ? "Main dark-mode" : "Main"}>
       <view className="Content">
@@ -234,8 +243,7 @@ export function App() {
             {tab === 'home' && (
               <view className="Home">
                 <view className="HomeHeader">
-                  {/* TODO: SOMETHING FOR WIFE */}
-                  <text className="HomeTitle">Explore</text>
+                  <text className="HomeTitle">{randomHeaderTitle}</text>
                 </view>
                 <scroll-view 
                   className="MangaList" 
