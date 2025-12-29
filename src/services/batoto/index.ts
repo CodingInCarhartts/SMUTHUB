@@ -118,6 +118,7 @@ export const BatotoService = {
                                     summary
                                     score_avg
                                     chaps_normal
+                                    tranLang
                                     views { field count }
                                 }
                             }
@@ -138,6 +139,7 @@ export const BatotoService = {
                                     dname
                                     urlPath
                                     dateCreate
+                                    lang
                                     userNode { data { name } }
                                 }
                             }
@@ -155,19 +157,38 @@ export const BatotoService = {
 
           const comic = detailsJson?.data?.get_comicNode;
           if (!comic) {
-              console.error("[Service] Comic not found in GraphQL response. Headers:", detailsJson?.errors);
+              console.error("[Service] Comic not found in GraphQL response. Errors:", JSON.stringify(detailsJson?.errors));
               return null;
           }
 
           const data = comic.data;
+          const comicLang = data.tranLang || 'en';
           const baseUrl = client.getBaseUrl();
-          const chapters = (chaptersJson?.data?.get_comic_chapterList || []).map((c: any) => ({
-              id: c.id,
-              title: c.data?.dname || "Unknown Chapter",
-              url: c.data?.urlPath.startsWith("http") ? c.data.urlPath : `${baseUrl}${c.data.urlPath}`,
-              uploadDate: c.data?.dateCreate ? new Date(c.data.dateCreate).toLocaleDateString() : "",
-              group: c.data?.userNode?.data?.name || "Scanlator"
-          })).reverse(); 
+          
+          const rawChapters = chaptersJson?.data?.get_comic_chapterList || [];
+          
+          const chapters = rawChapters
+              .filter((c: any) => {
+                  const cLang = c.data?.lang?.toLowerCase();
+                  const comicLangNorm = comicLang?.toLowerCase();
+                  
+                  // Permissive filtering: 
+                  // 1. Specifically English
+                  // 2. Falsy/null language (defaults to comic language or English)
+                  // 3. Fallback to comic's language if it's English
+                  return !cLang || 
+                         cLang === 'en' || 
+                         cLang === 'english' || 
+                         comicLangNorm === 'en' || 
+                         comicLangNorm === 'english';
+              })
+              .map((c: any) => ({
+                  id: c.id,
+                  title: c.data?.dname || "Unknown Chapter",
+                  url: c.data?.urlPath.startsWith("http") ? c.data.urlPath : `${baseUrl}${c.data.urlPath}`,
+                  uploadDate: c.data?.dateCreate ? new Date(c.data.dateCreate).toLocaleDateString() : "",
+                  group: c.data?.userNode?.data?.name || "Scanlator"
+              }));
 
           // Extract total views (usually field 'd000')
           const totalViews = data.views?.find((v: any) => v.field === 'd000')?.count || 

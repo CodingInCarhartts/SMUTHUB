@@ -10,7 +10,7 @@ interface Props {
 
 export function MangaDetailsUi({ details, onBack, onRead }: Props) {
   const [descExpanded, setDescExpanded] = useState(false);
-  const [reverseOrder, setReverseOrder] = useState(false);
+  const [reverseOrder, setReverseOrder] = useState(true);
 
   // My wife can only read english, so we should only show english chapters. 
   // For now, simple list with sort toggle.

@@ -6,8 +6,8 @@ import './Reader.css';
 interface Props {
   chapterUrl: string;
   onBack: () => void;
-  hasNextChapter?: boolean;
-  onNextChapter?: () => void;
+  hasNextChapter: boolean;
+  onNextChapter: () => void;
 }
 
 function ReaderPanel({ url, index }: { url: string; index: number }) {
@@ -208,7 +208,7 @@ export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Pr
                   <ReaderPanel url={url} index={index} />
                 </list-item>
               )),
-              hasNextChapter && onNextChapter && (
+              ...(hasNextChapter && onNextChapter ? [
                 <list-item key="next-chapter" item-key="next-chapter" full-span>
                   <view className="Reader-footer-nav">
                     <view className="Reader-next-btn" bindtap={onNextChapter}>
@@ -216,7 +216,7 @@ export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Pr
                     </view>
                   </view>
                 </list-item>
-              )
+              ] : [])
             ]
           )}
         </list>
@@ -249,8 +249,8 @@ export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Pr
                     <text className="Reader-nav-text">Next ›</text>
                   </view>
                 ) : hasNextChapter && onNextChapter ? (
-                  <view className="Reader-nav-btn" style={{ background: '#34c759' }} bindtap={onNextChapter}>
-                    <text className="Reader-nav-text">Next Chapter ›</text>
+                  <view className="Reader-next-btn" bindtap={onNextChapter}>
+                    <text className="Reader-next-text">Next Chapter ›</text>
                   </view>
                 ) : (
                   <view className="Reader-nav-btn disabled">
