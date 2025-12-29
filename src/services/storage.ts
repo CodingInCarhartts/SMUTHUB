@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
   HISTORY: 'batoto:history',
   SETTINGS: 'batoto:settings',
   FILTERS: 'batoto:filters',
+  DEVICE_ID: 'batoto:device_id',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -61,11 +62,32 @@ function setLocal<T>(key: string, value: T): void {
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
+  // ============ DEVICE ID ============
+  
+  getDeviceId(): string {
+    let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
+    if (!id) {
+      id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      setLocal(STORAGE_KEYS.DEVICE_ID, id);
+      console.log('[Storage] Generated new Device ID:', id);
+    }
+    return id;
+  },
+
+  // Helpers for device-specific keys
+  getPrefixedId(mangaId: string): string {
+    return `${this.getDeviceId()}:${mangaId}`;
+  },
+
   // ============ FAVORITES ============
   
   async getFavorites(): Promise<Manga[]> {
-    // Try Cloud
-    const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>('favorites', '?select=manga_data&order=created_at.desc');
+    const deviceId = this.getDeviceId();
+    // Filter by manga_id starting with deviceId
+    const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>(
+      'favorites', 
+      `?select=manga_data&manga_id=like.${deviceId}:*&order=created_at.desc`
+    );
     
     if (cloudData.length > 0) {
       const favorites = cloudData.map(row => row.manga_data);
@@ -85,12 +107,12 @@ export const StorageService = {
       setLocal(STORAGE_KEYS.FAVORITES, favorites);
     }
     
-    // Sync to Cloud
+    // Sync to Cloud with prefixed ID
     await SupabaseService.upsert('favorites', {
-      manga_id: manga.id,
+      manga_id: this.getPrefixedId(manga.id),
       manga_data: manga
     }, 'manga_id');
-    console.log('[Storage] Synced favorite to cloud:', manga.title);
+    console.log('[Storage] Synced device-specific favorite to cloud:', manga.title);
   },
 
   async removeFavorite(mangaId: string): Promise<void> {
@@ -99,8 +121,8 @@ export const StorageService = {
     setLocal(STORAGE_KEYS.FAVORITES, favorites.filter(m => m.id !== mangaId));
     
     // Sync to Cloud
-    await SupabaseService.delete('favorites', 'manga_id', mangaId);
-    console.log('[Storage] Removed favorite from cloud:', mangaId);
+    await SupabaseService.delete('favorites', 'manga_id', this.getPrefixedId(mangaId));
+    console.log('[Storage] Removed device-specific favorite from cloud:', mangaId);
   },
 
   isFavoriteSync(mangaId: string): boolean {
@@ -115,13 +137,14 @@ export const StorageService = {
   // ============ HISTORY ============
 
   async getHistory(): Promise<ViewedManga[]> {
+    const deviceId = this.getDeviceId();
     // Try Cloud
     const cloudData = await SupabaseService.getAll<{
       manga_data: Manga,
       last_chapter_id: string,
       last_chapter_title: string,
       viewed_at: string
-    }>('history', `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`);
+    }>('history', `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&manga_id=like.${deviceId}:*&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`);
     
     if (cloudData.length > 0) {
       const history = cloudData.map(row => ({
@@ -154,7 +177,7 @@ export const StorageService = {
     
     // Sync to Cloud
     await SupabaseService.upsert('history', {
-      manga_id: manga.id,
+      manga_id: this.getPrefixedId(manga.id),
       manga_data: manga,
       last_chapter_id: chapterId,
       last_chapter_title: chapterTitle,
@@ -163,20 +186,22 @@ export const StorageService = {
   },
 
   async clearHistory(): Promise<void> {
+    const deviceId = this.getDeviceId();
     setLocal(STORAGE_KEYS.HISTORY, []);
-    await SupabaseService.delete('history', 'id', 'neq.00000000-0000-0000-0000-000000000000'); // Hack to delete all? REST delete requires filter.
-    // Better way to delete all is tricky safely via REST without stored procedure or unrestricted policy.
-    // Actually, 'neq' might work if ID is UUID.
-    // Alternative: We can leave cloud history or request row-by-row delete (inefficient).
-    // Let's try to delete where ID is not null.
-    // Supabase REST DELETE requires at least one filter.
+    // Delete only this device's history
+    await SupabaseService.delete('history', 'manga_id', `like.${deviceId}:*`);
   },
 
   // ============ SETTINGS ============
 
   async getSettings(): Promise<AppSettings> {
+    const deviceHash = this.getDeviceId(); // Use device ID as key in settings table
     // Try Cloud
-    const cloudData = await SupabaseService.getAll<{ reading_mode: string, dark_mode: boolean }>('settings', '?select=reading_mode,dark_mode&id=eq.1');
+    const cloudData = await SupabaseService.getAll<{ reading_mode: string, dark_mode: boolean }>(
+      'settings', 
+      `?select=reading_mode,dark_mode&device_id=eq.${deviceHash}`
+    );
+    
     if (cloudData && cloudData.length > 0) {
       const row = cloudData[0];
       const settings: AppSettings = {
@@ -196,11 +221,11 @@ export const StorageService = {
     
     // Sync to Cloud
     await SupabaseService.upsert('settings', {
-      id: 1,
+      device_id: this.getDeviceId(),
       reading_mode: updated.readingMode,
       dark_mode: updated.darkMode,
-    }, 'id');
-    console.log('[Storage] Saved settings');
+    }, 'device_id');
+    console.log('[Storage] Saved device-specific settings');
   },
 
   getSettingsSync(): AppSettings {
@@ -228,6 +253,7 @@ export const StorageService = {
 
   async clearAllData(): Promise<void> {
     try {
+      const deviceId = this.getDeviceId();
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(STORAGE_KEYS.FAVORITES);
         localStorage.removeItem(STORAGE_KEYS.HISTORY);
@@ -236,11 +262,8 @@ export const StorageService = {
       }
       memoryStorage.clear();
       
-      // Clear Cloud? Maybe dangerous to clear everything via REST without confirmation.
-      // But user requested it.
       await this.clearHistory();
-      // Clear favorites: delete where id is not null
-      // await SupabaseService.delete('favorites', 'manga_id', 'neq.0');
+      await SupabaseService.delete('favorites', 'manga_id', `like.${deviceId}:*`);
     } catch (e) {
       console.warn('[Storage] clearAllData failed:', e);
     }
