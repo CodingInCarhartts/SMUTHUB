@@ -6,6 +6,8 @@ import './Reader.css';
 interface Props {
   chapterUrl: string;
   onBack: () => void;
+  hasNextChapter?: boolean;
+  onNextChapter?: () => void;
 }
 
 function ReaderPanel({ url, index }: { url: string; index: number }) {
@@ -130,7 +132,7 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-export function Reader({ chapterUrl, onBack }: Props) {
+export function Reader({ chapterUrl, onBack, hasNextChapter, onNextChapter }: Props) {
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
@@ -200,11 +202,22 @@ export function Reader({ chapterUrl, onBack }: Props) {
               </view>
             </list-item>
           ) : (
-            panels.map((url, index) => (
-              <list-item key={`panel-${index}`} item-key={`panel-${index}`} full-span>
-                <ReaderPanel url={url} index={index} />
-              </list-item>
-            ))
+            [
+              ...panels.map((url, index) => (
+                <list-item key={`panel-${index}`} item-key={`panel-${index}`} full-span>
+                  <ReaderPanel url={url} index={index} />
+                </list-item>
+              )),
+              hasNextChapter && onNextChapter && (
+                <list-item key="next-chapter" item-key="next-chapter" full-span>
+                  <view className="Reader-footer-nav">
+                    <view className="Reader-next-btn" bindtap={onNextChapter}>
+                      <text className="Reader-next-text">Next Chapter ›</text>
+                    </view>
+                  </view>
+                </list-item>
+              )
+            ]
           )}
         </list>
       ) : (
@@ -230,12 +243,20 @@ export function Reader({ chapterUrl, onBack }: Props) {
                 >
                   <text className="Reader-nav-text">‹ Prev</text>
                 </view>
-                <view 
-                  className={currentPage < panels.length - 1 ? "Reader-nav-btn" : "Reader-nav-btn disabled"} 
-                  bindtap={() => goToPage(1)}
-                >
-                  <text className="Reader-nav-text">Next ›</text>
-                </view>
+
+                {currentPage < panels.length - 1 ? (
+                  <view className="Reader-nav-btn" bindtap={() => goToPage(1)}>
+                    <text className="Reader-nav-text">Next ›</text>
+                  </view>
+                ) : hasNextChapter && onNextChapter ? (
+                  <view className="Reader-nav-btn" style={{ background: '#34c759' }} bindtap={onNextChapter}>
+                    <text className="Reader-nav-text">Next Chapter ›</text>
+                  </view>
+                ) : (
+                  <view className="Reader-nav-btn disabled">
+                    <text className="Reader-nav-text">Next ›</text>
+                  </view>
+                )}
               </view>
             </>
           )}

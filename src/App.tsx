@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from '@lynx-js/react';
+import { useCallback, useState, useEffect, useMemo } from '@lynx-js/react';
 import { BatotoService, type Manga, type Chapter, type MangaDetails, type SearchFilters } from './services/batoto';
 import { SettingsStore } from './services/settings';
 import { StorageService } from './services/storage';
@@ -182,6 +182,27 @@ export function App() {
     }
   }, [view]);
 
+  const handleNextChapter = useCallback(() => {
+    if (!mangaDetails || !selectedChapterUrl) return;
+    
+    // Chapters are oldest to newest (0 to length-1)
+    const chapters = mangaDetails.chapters;
+    const currentIndex = chapters.findIndex(c => c.url === selectedChapterUrl);
+    
+    if (currentIndex !== -1 && currentIndex < chapters.length - 1) {
+      const nextChapter = chapters[currentIndex + 1];
+      console.log(`[App] Navigating to next chapter: ${nextChapter.title}`);
+      handleSelectChapter(nextChapter.url, nextChapter.title);
+    }
+  }, [mangaDetails, selectedChapterUrl, handleSelectChapter]);
+
+  const hasNextChapter = useMemo(() => {
+    if (!mangaDetails || !selectedChapterUrl) return false;
+    const chapters = mangaDetails.chapters;
+    const currentIndex = chapters.findIndex(c => c.url === selectedChapterUrl);
+    return currentIndex !== -1 && currentIndex < chapters.length - 1;
+  }, [mangaDetails, selectedChapterUrl]);
+
   const handleTabChange = useCallback((newTab: Tab) => {
     setTab(newTab);
     setView('browse');
@@ -205,7 +226,14 @@ export function App() {
 
   // Reader view (fullscreen, no bottom nav)
   if (view === 'reader') {
-    return <Reader chapterUrl={selectedChapterUrl} onBack={handleBack} />;
+    return (
+      <Reader 
+        chapterUrl={selectedChapterUrl} 
+        onBack={handleBack} 
+        hasNextChapter={hasNextChapter}
+        onNextChapter={handleNextChapter}
+      />
+    );
   }
 
   const headerTitleRandom = [
