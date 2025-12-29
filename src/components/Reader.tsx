@@ -166,6 +166,7 @@ export function Reader({
     SettingsStore.getReadingMode(),
   );
   const [currentPage, setCurrentPage] = useState(0);
+  const [restoredPageIndex, setRestoredPageIndex] = useState<number | undefined>(undefined);
   const [touchStartX, setTouchStartX] = useState(0);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -198,9 +199,11 @@ export function Reader({
            const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
            console.log('[Reader] Found position to restore:', restoredPage);
            setCurrentPage(restoredPage);
+           setRestoredPageIndex(restoredPage);
         } else {
            console.log('[Reader] No matching position found for this chapter');
            setCurrentPage(0);
+           setRestoredPageIndex(0);
         }
       }
 
@@ -294,7 +297,7 @@ export function Reader({
         <list 
           className="Reader-content" 
           scroll-y 
-          initial-scroll-index={currentPage}
+          initial-scroll-index={restoredPageIndex}
         >
           {loading ? (
             <list-item item-key="loading" full-span>
