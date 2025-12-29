@@ -168,6 +168,7 @@ export function Reader({
   const [currentPage, setCurrentPage] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [positionRestored, setPositionRestored] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
@@ -182,22 +183,34 @@ export function Reader({
   useEffect(() => {
     const loadPanels = async () => {
       setLoading(true);
+      setIsRestoring(true);
       console.log('[Reader] Loading panels for:', chapterUrl);
       const urls = await BatotoService.getChapterPanels(chapterUrl);
-      console.log('[Reader] Received panels:', urls.length, 'First:', urls[0]);
+      console.log('[Reader] Received panels:', urls.length);
       setPanels(urls);
       
-      // Restore saved position if returning to same chapter or another chapter of same manga
       if (manga) {
         const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
-        if (savedPosition && savedPosition.chapterUrl === chapterUrl) {
-           console.log('[Reader] Restoring position:', savedPosition.panelIndex);
-           setCurrentPage(Math.min(savedPosition.panelIndex, urls.length - 1));
+        const normalizedSavedUrl = savedPosition?.chapterUrl.replace(/\/$/, '');
+        const normalizedCurrentUrl = chapterUrl.replace(/\/$/, '');
+
+        if (savedPosition && normalizedSavedUrl === normalizedCurrentUrl) {
+           const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
+           console.log('[Reader] Found position to restore:', restoredPage);
+           setCurrentPage(restoredPage);
+        } else {
+           console.log('[Reader] No matching position found for this chapter');
+           setCurrentPage(0);
         }
       }
 
-      setPositionRestored(true);
-      setLoading(false);
+      // Small delay to let the list / pager initialize before we allow saves
+      setTimeout(() => {
+        setPositionRestored(true);
+        setIsRestoring(false);
+        setLoading(false);
+        console.log('[Reader] Restoration window closed. Tracking active.');
+      }, 100);
     };
     loadPanels();
   }, [chapterUrl, manga?.id]);
@@ -231,15 +244,16 @@ export function Reader({
 
   // Save position when page changes (debounced)
   useEffect(() => {
-    if (!positionRestored || !manga || loading || panels.length === 0) return;
+    // CRITICAL: Block all saves until we are 100% sure we are in "tracking" mode
+    if (isRestoring || !positionRestored || !manga || loading || panels.length === 0) return;
 
     const timeoutId = setTimeout(() => {
-      console.log('[Reader] Saving position to cloud:', { mangaId: manga.id, page: currentPage });
+      console.log('[Reader] SYNCING: Saving current position:', currentPage);
       StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
-    }, 1000); // Increase debounce to 1s to be safer
+    }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored]);
+  }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored, isRestoring]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
@@ -277,7 +291,11 @@ export function Reader({
 
       {readingMode === 'vertical' ? (
         // Vertical scroll mode (Webtoon)
-        <list className="Reader-content" scroll-y>
+        <list 
+          className="Reader-content" 
+          scroll-y 
+          initial-scroll-index={currentPage}
+        >
           {loading ? (
             <list-item item-key="loading" full-span>
               <view className="Reader-loading-container">
@@ -298,8 +316,8 @@ export function Reader({
                   item-key={`panel-${index}`}
                   full-span
                   binduiappear={() => {
-                    if (!loading && positionRestored) {
-                      console.log('[Reader] Panel appeared:', index);
+                    // Only update currentPage if we are NOT in the middle of restoration
+                    if (!isRestoring && !loading && positionRestored) {
                       setCurrentPage(index);
                     }
                   }}
