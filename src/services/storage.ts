@@ -12,6 +12,7 @@ export interface ViewedManga {
 export interface AppSettings {
   readingMode: 'vertical' | 'horizontal';
   darkMode: boolean;
+  devMode: boolean;
 }
 
 const STORAGE_KEYS = {
@@ -25,6 +26,7 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS: AppSettings = {
   readingMode: 'vertical',
   darkMode: false,
+  devMode: false,
 };
 
 const HISTORY_LIMIT_LOCAL = 50;
@@ -65,11 +67,26 @@ export const StorageService = {
   // ============ DEVICE ID ============
   
   getDeviceId(): string {
+    // derivations from SystemInfo for stable ID without local storage
+    try {
+      // @ts-ignore - SystemInfo is provided by Lynx runtime
+      const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
+      if (si) {
+        // Use a combination of stable properties to form an ID if a direct deviceId isn't found
+        // Most Lynx environments have deviceId, but we fallback to a hash of platform/model/etc
+        const stableId = si.deviceId || 
+                         `${si.platform}-${si.model}-${si.pixelRatio}`.replace(/\s+/g, '');
+        return stableId;
+      }
+    } catch (e) {
+      console.warn('[Storage] SystemInfo not available, falling back to legacy ID');
+    }
+
     let id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
     if (!id) {
       id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       setLocal(STORAGE_KEYS.DEVICE_ID, id);
-      console.log('[Storage] Generated new Device ID:', id);
+      console.log('[Storage] Generated new fallback Device ID:', id);
     }
     return id;
   },
@@ -195,18 +212,28 @@ export const StorageService = {
   // ============ SETTINGS ============
 
   async getSettings(): Promise<AppSettings> {
-    const deviceHash = this.getDeviceId(); // Use device ID as key in settings table
-    // Try Cloud
-    const cloudData = await SupabaseService.getAll<{ reading_mode: string, dark_mode: boolean }>(
+    const deviceHash = this.getDeviceId();
+    
+    // First, try fetching with dev_mode (the newer schema)
+    let cloudData = await SupabaseService.getAll<any>(
       'settings', 
-      `?select=reading_mode,dark_mode&device_id=eq.${deviceHash}`
+      `?select=reading_mode,dark_mode,dev_mode&device_id=eq.${deviceHash}`
     );
+    
+    // If that fails (likely 400 because dev_mode column missing), try basic fetch
+    if (!cloudData || cloudData.length === 0) {
+      cloudData = await SupabaseService.getAll<any>(
+        'settings', 
+        `?select=reading_mode,dark_mode&device_id=eq.${deviceHash}`
+      );
+    }
     
     if (cloudData && cloudData.length > 0) {
       const row = cloudData[0];
       const settings: AppSettings = {
-        readingMode: row.reading_mode as any,
-        darkMode: row.dark_mode,
+        readingMode: row.reading_mode as any || DEFAULT_SETTINGS.readingMode,
+        darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
+        devMode: row.dev_mode ?? getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS).devMode,
       };
       setLocal(STORAGE_KEYS.SETTINGS, settings);
       return settings;
@@ -224,6 +251,7 @@ export const StorageService = {
       device_id: this.getDeviceId(),
       reading_mode: updated.readingMode,
       dark_mode: updated.darkMode,
+      dev_mode: updated.devMode,
     }, 'device_id');
     console.log('[Storage] Saved device-specific settings');
   },

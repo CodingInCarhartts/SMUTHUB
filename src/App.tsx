@@ -54,17 +54,6 @@ export function App() {
 
   // Fetch popular/latest manga on mount
   useEffect(() => {
-    // Debug Runtime Environment
-    console.log('[Env Debug] globalThis keys:', Object.keys(globalThis));
-    try {
-      // @ts-ignore
-      if (typeof NativeModules !== 'undefined') console.log('[Env Debug] NativeModules:', Object.keys(NativeModules));
-      // @ts-ignore
-      if (typeof lynx !== 'undefined') console.log('[Env Debug] lynx keys:', Object.keys(lynx));
-    } catch (e) {
-      console.log('[Env Debug] Error inspecting env:', e);
-    }
-
     fetchHomeFeed();
     
     // Load saved filters
@@ -187,7 +176,7 @@ export function App() {
     
     // Chapters are oldest to newest (0 to length-1)
     const chapters = mangaDetails.chapters;
-    const currentIndex = chapters.findIndex(c => c.url === selectedChapterUrl);
+    const currentIndex = chapters.findIndex((c: Chapter) => c.url === selectedChapterUrl);
     
     if (currentIndex !== -1 && currentIndex < chapters.length - 1) {
       const nextChapter = chapters[currentIndex + 1];
@@ -199,7 +188,7 @@ export function App() {
   const hasNextChapter = useMemo(() => {
     if (!mangaDetails || !selectedChapterUrl) return false;
     const chapters = mangaDetails.chapters;
-    const currentIndex = chapters.findIndex(c => c.url === selectedChapterUrl);
+    const currentIndex = chapters.findIndex((c: Chapter) => c.url === selectedChapterUrl);
     return currentIndex !== -1 && currentIndex < chapters.length - 1;
   }, [mangaDetails, selectedChapterUrl]);
 

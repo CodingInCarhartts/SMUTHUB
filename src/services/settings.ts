@@ -26,6 +26,10 @@ export const SettingsStore = {
     return settings.darkMode;
   },
 
+  getDevMode(): boolean {
+    return settings.devMode;
+  },
+
   setReadingMode(mode: ReadingMode): void {
     settings.readingMode = mode;
     console.log('[SettingsStore] Reading mode set to:', mode);
@@ -37,6 +41,13 @@ export const SettingsStore = {
     console.log('[SettingsStore] Toggling dark mode to:', enabled);
     settings.darkMode = enabled;
     StorageService.saveSettings({ darkMode: enabled });
+    listeners.forEach(fn => fn());
+  },
+
+  setDevMode(enabled: boolean): void {
+    console.log('[SettingsStore] Developer mode set to:', enabled);
+    settings.devMode = enabled;
+    StorageService.saveSettings({ devMode: enabled });
     listeners.forEach(fn => fn());
   },
 

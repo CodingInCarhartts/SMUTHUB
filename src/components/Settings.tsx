@@ -1,6 +1,7 @@
 import { useState, useEffect } from '@lynx-js/react';
 import { SettingsStore, type ReadingMode } from '../services/settings';
 import { StorageService } from '../services/storage';
+import { DeveloperOptions } from './DeveloperOptions';
 import './Settings.css';
 
 interface Props {
@@ -11,14 +12,19 @@ interface Props {
 export function Settings({ onBack, onNavigate }: Props) {
   const [readingMode, setReadingMode] = useState<ReadingMode>(SettingsStore.getReadingMode());
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
+  const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [showClearConfirm, setShowClearConfirm] = useState<'history' | 'all' | null>(null);
+  
+  // Developer mode tap counter
+  const [aboutTaps, setAboutTaps] = useState(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
+      setDevMode(SettingsStore.getDevMode());
     });
 
     // Load counts
@@ -35,6 +41,18 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   const handleDarkModeToggle = () => {
     SettingsStore.setDarkMode(!darkMode);
+  };
+
+  const handleAboutTap = () => {
+    const newTaps = aboutTaps + 1;
+    if (newTaps >= 5) {
+      const newState = !devMode;
+      SettingsStore.setDevMode(newState);
+      setAboutTaps(0);
+      console.log(`[Settings] Developer mode ${newState ? 'activated' : 'deactivated'}!`);
+    } else {
+      setAboutTaps(newTaps);
+    }
   };
 
   const handleClearHistory = async () => {
@@ -126,6 +144,8 @@ export function Settings({ onBack, onNavigate }: Props) {
           </view>
         </view>
 
+      
+
         {/* Data Management */}
         <view className="Settings-section">
           <text className="Settings-section-title">DATA</text>
@@ -157,7 +177,7 @@ export function Settings({ onBack, onNavigate }: Props) {
         <view className="Settings-section">
           <text className="Settings-section-title">ABOUT</text>
           
-          <view className="Settings-item">
+          <view className="Settings-item" bindtap={handleAboutTap}>
             <view className="Settings-item-left">
               <text className="Settings-item-icon">💜</text>
               <view className="Settings-item-text">
@@ -167,6 +187,8 @@ export function Settings({ onBack, onNavigate }: Props) {
               </view>
             </view>
           </view>
+            {/* Developer Section */}
+        {devMode && <DeveloperOptions />}
         </view>
       </scroll-view>
 
