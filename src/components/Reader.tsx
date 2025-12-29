@@ -180,23 +180,34 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
     }
   };
 
-  const goToPage = (delta: number) => {
-    const newPage = currentPage + delta;
-    if (newPage >= 0 && newPage < panels.length) {
-      setCurrentPage(newPage);
+  const goToPage = (index: number) => {
+    if (index >= 0 && index < panels.length) {
+      setCurrentPage(index);
+    }
+  };
+
+  const handleScroll = (e: any) => {
+    if (readingMode === 'vertical' && e.detail) {
+      // rough estimation of current index based on scroll position vs total content height
+      // or we can just ignore tracking scroll for now and stick to manual panel changes
+      // but list doesn't trigger scroll changes to currentPage easily.
     }
   };
 
   // Save position when page changes (debounced)
   useEffect(() => {
-    if (!manga || loading || panels.length === 0) return;
-    
-    const timeoutId = setTimeout(() => {
-      StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
-    }, 500); // Debounce 500ms to avoid excessive writes
-    
-    return () => clearTimeout(timeoutId);
-  }, [currentPage, manga, chapterUrl, loading, panels.length]);
+    if (!manga || panels.length === 0 || loading) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
+      } catch (e) {
+        console.error('[Reader] Failed to save position:', e);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [currentPage, chapterUrl, manga?.id, panels.length, loading]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
@@ -236,7 +247,12 @@ export function Reader({ chapterUrl, chapterTitle, manga, onBack, hasNextChapter
 
       {readingMode === 'vertical' ? (
         // Vertical scroll mode (Webtoon)
-        <list className="Reader-content" scroll-y>
+        <list 
+          className="Reader-content" 
+          scroll-y 
+          initial-scroll-index={currentPage}
+          bindscroll={handleScroll}
+        >
           {loading ? (
             <list-item item-key="loading" full-span>
               <view className="Reader-loading-container">

@@ -421,7 +421,7 @@ export const StorageService = {
 
   // ============ READER POSITION ============
 
-  saveReaderPosition(mangaId: string, chapterUrl: string, panelIndex: number, scrollPosition?: number): void {
+  async saveReaderPosition(mangaId: string, chapterUrl: string, panelIndex: number, scrollPosition?: number): Promise<void> {
     const position: ReaderPosition = {
       mangaId,
       chapterUrl,
@@ -430,7 +430,17 @@ export const StorageService = {
       timestamp: new Date().toISOString(),
     };
     setLocal(STORAGE_KEYS.READER_POSITION, position);
-    log('[Storage] Saved reader position:', { mangaId, panelIndex });
+    
+    // Sync to Cloud
+    await SupabaseService.upsert('reader_positions', {
+      device_id: this.getDeviceId(),
+      manga_id: mangaId,
+      chapter_url: chapterUrl,
+      panel_index: panelIndex,
+      updated_at: position.timestamp,
+    }, 'device_id,manga_id');
+    
+    log('[Storage] Saved reader position to local & cloud:', { mangaId, panelIndex });
   },
 
   getReaderPosition(): ReaderPosition | null {
