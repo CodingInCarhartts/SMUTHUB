@@ -352,8 +352,19 @@ export function Reader({
   // Listen for Native GlobalKeyEvents (from MainActivity.kt)
   useEffect(() => {
     log('[Reader] Setting up global event listeners...');
-    log('[Reader] lynx available:', typeof lynx !== 'undefined');
-    log('[Reader] lynx.on available:', typeof lynx !== 'undefined' && typeof (lynx as any).on === 'function');
+    
+    // Get GlobalEventEmitter from Lynx
+    let globalEventEmitter: any = null;
+    try {
+      if (typeof lynx !== 'undefined' && (lynx as any).getJSModule) {
+        globalEventEmitter = (lynx as any).getJSModule('GlobalEventEmitter');
+        log('[Reader] GlobalEventEmitter obtained:', !!globalEventEmitter);
+      } else {
+        log('[Reader] lynx.getJSModule not available');
+      }
+    } catch (e: any) {
+      logError('[Reader] Failed to get GlobalEventEmitter:', e?.message);
+    }
 
     const onGlobalKey = (data: any) => {
       log('[Reader] GlobalKeyEvent received:', JSON.stringify(data));
@@ -376,22 +387,13 @@ export function Reader({
       }
     };
 
-    const onGenericEvent = (name: string, data: any) => {
-      log(`[Reader] Generic GlobalEvent: ${name}`, JSON.stringify(data));
-      if (name === 'GlobalKeyEvent') {
-        onGlobalKey(data);
-      }
-    };
-
     const onGlobalTouch = (data: any) => {
       log('[Reader] GlobalTouchEvent received:', JSON.stringify(data));
-      // payload structure matches Native: [{x, y}] or {data: [{x, y}]}
       const payload = data?.data?.[0] || (Array.isArray(data) ? data[0] : data?.data || data);
       if (payload && typeof payload.x === 'number') {
         const tx = payload.x;
         log(`[Reader] Remote Touch Mapping: x=${tx}`);
         
-        // Keys 24/25 are the left/right ring buttons
         if (tx > 500) {
           log('[Reader] Remote UP detected via touch coordinate');
           if (readingMode === 'vertical') scrollUp(); else goToPage(-1);
@@ -402,27 +404,39 @@ export function Reader({
       }
     };
 
-    if (typeof lynx !== 'undefined') {
+    // Try to register with GlobalEventEmitter (correct Lynx API)
+    if (globalEventEmitter && globalEventEmitter.addListener) {
       try {
-        log('[Reader] Calling lynx.on for GlobalKeyEvent...');
-        (lynx as any).on('GlobalKeyEvent', onGlobalKey);
-        log('[Reader] Calling lynx.on for GlobalTouchEvent...');
-        (lynx as any).on('GlobalTouchEvent', onGlobalTouch);
-        log('[Reader] Calling lynx.on for GlobalEvent...');
-        (lynx as any).on('GlobalEvent', onGenericEvent);
-        log('[Reader] All listeners registered successfully!');
+        log('[Reader] Using GlobalEventEmitter.addListener...');
+        globalEventEmitter.addListener('GlobalKeyEvent', onGlobalKey);
+        globalEventEmitter.addListener('GlobalTouchEvent', onGlobalTouch);
+        log('[Reader] All listeners registered via GlobalEventEmitter!');
       } catch (e: any) {
-        logError('[Reader] Failed to register listeners:', e?.message || e);
+        logError('[Reader] GlobalEventEmitter.addListener failed:', e?.message);
       }
     } else {
-      log('[Reader] WARNING: lynx is undefined, cannot register listeners');
+      log('[Reader] GlobalEventEmitter not available, trying lynx.on fallback...');
+      // Fallback to lynx.on (older API)
+      try {
+        if (typeof lynx !== 'undefined' && (lynx as any).on) {
+          (lynx as any).on('GlobalKeyEvent', onGlobalKey);
+          (lynx as any).on('GlobalTouchEvent', onGlobalTouch);
+          log('[Reader] Registered via lynx.on fallback');
+        } else {
+          logError('[Reader] No event listening API available!');
+        }
+      } catch (e: any) {
+        logError('[Reader] lynx.on fallback failed:', e?.message);
+      }
     }
 
     return () => {
-      if (typeof lynx !== 'undefined') {
+      if (globalEventEmitter && globalEventEmitter.removeListener) {
+        globalEventEmitter.removeListener('GlobalKeyEvent', onGlobalKey);
+        globalEventEmitter.removeListener('GlobalTouchEvent', onGlobalTouch);
+      } else if (typeof lynx !== 'undefined' && (lynx as any).off) {
         (lynx as any).off('GlobalKeyEvent', onGlobalKey);
         (lynx as any).off('GlobalTouchEvent', onGlobalTouch);
-        (lynx as any).off('GlobalEvent', onGenericEvent);
       }
     };
   }, [readingMode, currentPage, panels.length]);
