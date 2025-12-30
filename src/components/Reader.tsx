@@ -303,16 +303,16 @@ export function Reader({
 
   const handleKeyDown = (e: any) => {
     // Throttle key events significantly to prevent over-scrolling/rapid page turns
-    // HID rings often send many repeat events or have high sensitivity
     const now = Date.now();
-    if (now - lastKeyDownTime.current < 800) {
-      console.log('[Reader] Throttling KeyDown (800ms debounce)');
+    if (now - lastKeyDownTime.current < 400) { // Reduced debounce to 400ms since native is cleaner
+      console.log('[Reader] Throttling KeyDown (400ms debounce)');
       return;
     }
     lastKeyDownTime.current = now;
 
-    const keyCode = e.detail?.keyCode || e.keyCode;
-    console.log('[Reader] KeyDown:', keyCode);
+    // Handle both event structures (native override vs standard bindkeydown)
+    const keyCode = e.keyCode || e.detail?.keyCode;
+    console.log('[Reader] KeyDown processing:', keyCode);
 
     switch (keyCode) {
       case 19: // DPAD_UP
@@ -335,10 +335,39 @@ export function Reader({
         break;
       case 23: // DPAD_CENTER
       case 66: // ENTER
+      case 62: // SPACE
         toggleControls();
         break;
     }
   };
+
+  // Listen for Native GlobalKeyEvents (from MainActivity.kt)
+  useEffect(() => {
+    const onGlobalKey = (e: any) => {
+      // e.data might be an array (based on our native Fix) or object
+      let keyCode: number | undefined;
+
+      if (Array.isArray(e.data) && e.data.length > 0) {
+        keyCode = e.data[0].keyCode;
+      } else if (e.data && e.data.keyCode) {
+        keyCode = e.data.keyCode;
+      }
+
+      if (keyCode) {
+        console.log('[Reader] Received GlobalKeyEvent:', keyCode);
+        handleKeyDown({ keyCode });
+      }
+    };
+
+    if (typeof lynx !== 'undefined') {
+      (lynx as any).on('GlobalKeyEvent', onGlobalKey);
+    }
+    return () => {
+        if (typeof lynx !== 'undefined') {
+            (lynx as any).off('GlobalKeyEvent', onGlobalKey);
+        }
+    };
+  }, [readingMode, currentPage, panels.length]); // Dependencies for closure stability
 
   // Save position when page changes (debounced)
   useEffect(() => {
