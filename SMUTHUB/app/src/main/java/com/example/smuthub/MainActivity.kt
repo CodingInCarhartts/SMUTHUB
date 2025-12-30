@@ -39,9 +39,6 @@ class MainActivity : AppCompatActivity() {
                     if (event != null && event.action == android.view.KeyEvent.ACTION_DOWN) {
                         val mKey = event.keyCode
                         Log.d(TAG, "Media Button: $mKey")
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Media: $mKey", Toast.LENGTH_SHORT).show()
-                        }
                     }
                     return super.onMediaButtonEvent(mediaButtonIntent)
                 }
@@ -122,9 +119,6 @@ class MainActivity : AppCompatActivity() {
 
         if (action == android.view.KeyEvent.ACTION_DOWN) {
             Log.d(TAG, "Any KeyDown: $keyCode")
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, "Key: $keyCode", Toast.LENGTH_SHORT).show()
-            }
             
             val map = com.lynx.react.bridge.JavaOnlyMap()
             map.putInt("keyCode", keyCode)
@@ -151,10 +145,6 @@ class MainActivity : AppCompatActivity() {
         
         Log.d(TAG, "Generic Motion: act=$action, V=$vScroll")
         
-        // Toast EVERYTHING in this debug build
-        runOnUiThread {
-            Toast.makeText(this@MainActivity, "Motion: $action (V:$vScroll)", Toast.LENGTH_SHORT).show()
-        }
         return super.dispatchGenericMotionEvent(event)
     }
 
@@ -163,9 +153,6 @@ class MainActivity : AppCompatActivity() {
             val tx = event.x.toInt()
             val ty = event.y.toInt()
             Log.d(TAG, "Touch Down: $tx, $ty")
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, "Touch: $tx, $ty", Toast.LENGTH_SHORT).show()
-            }
 
             // Also broadcast touch to JS
             val map = com.lynx.react.bridge.JavaOnlyMap()
@@ -180,9 +167,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onTrackballEvent(event: android.view.MotionEvent): Boolean {
         Log.d(TAG, "Trackball: ${event.action}")
-        runOnUiThread {
-            Toast.makeText(this@MainActivity, "Trackball: ${event.action}", Toast.LENGTH_SHORT).show()
-        }
         return super.onTrackballEvent(event)
     }
 
