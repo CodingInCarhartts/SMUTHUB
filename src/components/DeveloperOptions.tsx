@@ -160,8 +160,20 @@ export function DeveloperOptions() {
         </view>
 
 
-        <view className="Settings-item" style={{ height: 'auto', flexDirection: 'column', alignItems: 'stretch', paddingBottom: '12px' }}>
-          <view className="Settings-item-left" style={{ marginBottom: '8px' }}>
+        <view
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            padding: '16px',
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--accent-border)',
+            borderRadius: '16px',
+            marginBottom: '8px',
+            boxShadow: 'var(--shadow-soft)'
+          }}
+        >
+          <view className="Settings-item-left" style={{ marginBottom: '12px' }}>
             <text className="Settings-item-icon">🎭</text>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Override User Persona</text>
@@ -169,34 +181,38 @@ export function DeveloperOptions() {
             </view>
           </view>
 
-          <view style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+          <view style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <input
               className="Settings-input"
               // @ts-ignore
               value={deviceIdOverrideInput}
               bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
               placeholder="Device ID / UUID"
-              placeholder-style="color: #666;"
+              placeholder-style="color: #888;"
               style={{
                 flex: 1,
                 backgroundColor: '#333',
                 color: '#fff',
-                padding: '10px',
+                padding: '12px',
                 borderRadius: '8px',
                 fontSize: '14px',
-                border: '1px solid #444'
+                border: '1px solid #444',
+                minHeight: '40px'
               }}
             />
           </view>
 
-          <view style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+          <view style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
             <view
               bindtap={handleClearDeviceOverride}
               style={{
                 backgroundColor: 'rgba(255, 82, 82, 0.15)',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                border: '1px solid rgba(255, 82, 82, 0.3)'
+                borderRadius: '8px',
+                padding: '10px 16px',
+                border: '1px solid rgba(255, 82, 82, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <text style={{ color: '#ff5252', fontWeight: '600', fontSize: '13px' }}>CLEAR</text>
@@ -205,9 +221,12 @@ export function DeveloperOptions() {
               bindtap={handleSetDeviceOverride}
               style={{
                 backgroundColor: '#00e676',
-                borderRadius: '6px',
-                padding: '8px 24px',
-                opacity: deviceIdOverrideInput ? 1 : 0.5
+                borderRadius: '8px',
+                padding: '10px 24px',
+                opacity: deviceIdOverrideInput ? 1 : 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <text style={{ color: '#000', fontWeight: '700', fontSize: '13px' }}>APPLY OVERRIDE</text>
