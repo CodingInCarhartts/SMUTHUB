@@ -1,61 +1,33 @@
 import { logCapture } from './debugLog';
 import { SupabaseService } from './supabase';
+import { StorageService, storageReady } from './storage';
 
-// Storage helper for skip version (using native storage via StorageService pattern)
-const SKIP_KEY = 'batoto:skipped_version';
-let skippedVersionCache: string | null = null;
 let storageInitialized = false;
-
-// Deferred promise pattern
 let resolveStorageReady: () => void;
 const storageReadyPromise = new Promise<void>((resolve) => {
   resolveStorageReady = resolve;
 });
 
 function markStorageReady() {
+  if (storageInitialized) return;
+  console.log('[UpdateService] Storage ready marked');
   storageInitialized = true;
   resolveStorageReady();
 }
 
-function getSkippedVersion(): string | null {
-  return skippedVersionCache;
-}
+// Wait for global storage to be ready
+storageReady.then(() => {
+  console.log('[UpdateService] Global storage ready signal received');
+  markStorageReady();
+});
 
-function setSkippedVersion(version: string): void {
-  skippedVersionCache = version;
-  try {
-    if (
-      typeof NativeModules !== 'undefined' &&
-      NativeModules.NativeLocalStorageModule
-    ) {
-      NativeModules.NativeLocalStorageModule.setStorageItem(SKIP_KEY, version);
-    }
-  } catch (e) {
-    // Ignore
-  }
-}
-
-// Initialize from native storage on load
-try {
-  if (
-    typeof NativeModules !== 'undefined' &&
-    NativeModules.NativeLocalStorageModule
-  ) {
-    NativeModules.NativeLocalStorageModule.getStorageItem(
-      SKIP_KEY,
-      (value: string | null) => {
-        skippedVersionCache = value;
-        markStorageReady();
-      },
-    );
-  } else {
-    // No native storage, mark as ready immediately
+// Safety timeout: don't wait for storage more than 5 seconds
+setTimeout(() => {
+  if (!storageInitialized) {
+    console.warn('[UpdateService] Storage init timed out, proceeding anyway');
     markStorageReady();
   }
-} catch (e) {
-  // Ignore, mark ready
-  markStorageReady();
-}
+}, 5000);
 
 const log = (...args: any[]) => logCapture('log', ...args);
 const logWarn = (...args: any[]) => logCapture('warn', ...args);
@@ -81,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.39';
+export const APP_VERSION = '1.0.42';
 
 export const UpdateService = {
   /**
@@ -140,31 +112,43 @@ export const UpdateService = {
   async checkUpdate(): Promise<AppUpdate | null> {
     // Wait for storage to be ready (so we have the skipped version)
     await storageReadyPromise;
+    console.log('[UpdateService] Starting update check...');
 
     const now = Date.now();
     if (now - lastCheckTimestamp < CHECK_COOLDOWN_MS) {
-      log('[UpdateService] Skipping check (cooldown active).');
+      console.log(
+        `[UpdateService] Skipping check (cooldown active: ${Math.round((CHECK_COOLDOWN_MS - (now - lastCheckTimestamp)) / 1000)}s left).`,
+      );
       return null;
     }
     lastCheckTimestamp = now;
 
+    console.log('[UpdateService] Fetching from Supabase (app_updates)...');
     const latest = await this.getLatestUpdate();
-    if (!latest) return null;
+    if (!latest) {
+      console.log('[UpdateService] No update data found in Supabase');
+      return null;
+    }
+    console.log(`[UpdateService] Latest in DB: ${latest.version}`);
 
     // Check if version is skipped
-    const skipped = getSkippedVersion();
+    const skipped = StorageService.getSkippedVersion();
     if (skipped === latest.version && !latest.isMandatory) {
-      log(`[UpdateService] Version ${latest.version} is skipped by user.`);
+      console.log(`[UpdateService] Version ${latest.version} is skipped by user.`);
       return null;
     }
 
-    if (this.compareVersions(latest.version, APP_VERSION) > 0) {
-      log(
-        `[UpdateService] New update found: ${latest.version} (Current: ${APP_VERSION})`,
-      );
+    const comparison = this.compareVersions(latest.version, APP_VERSION);
+    console.log(
+      `[UpdateService] Comparing ${latest.version} vs current ${APP_VERSION} => Result: ${comparison}`,
+    );
+
+    if (comparison > 0) {
+      console.log('[UpdateService] NEW UPDATE FOUND!');
       return latest;
     }
 
+    console.log('[UpdateService] App is up to date.');
     return null;
   },
 
@@ -173,8 +157,8 @@ export const UpdateService = {
    * Mark a version as skipped
    */
   skipVersion(version: string): void {
-    setSkippedVersion(version);
     log(`[UpdateService] Skipping version ${version}`);
+    StorageService.setSkippedVersion(version);
   },
 
   /**
