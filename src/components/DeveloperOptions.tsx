@@ -3,20 +3,45 @@ import { DebugLogService } from '../services/debugLog';
 import { StorageService } from '../services/storage';
 import { SettingsStore } from '../services/settings';
 import { UpdateService, BUNDLE_VERSION } from '../services/update';
+import { NetworkInspector } from './NetworkInspector';
+import { SyncMonitor } from './SyncMonitor';
+import { StateInspector } from './StateInspector';
 import './Settings.css';
 
 export function DeveloperOptions() {
   const deviceId = StorageService.getDeviceId();
   const [showDebugConsole, setShowDebugConsole] = useState(false);
+  const [showNetworkInspector, setShowNetworkInspector] = useState(false);
+  const [showSyncMonitor, setShowSyncMonitor] = useState(false);
+  const [showStateInspector, setShowStateInspector] = useState(false);
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [deviceIdOverrideInput, setDeviceIdOverrideInput] = useState('');
+
+  const handleSetDeviceOverride = () => {
+    if (!deviceIdOverrideInput) {
+      setCopyStatus('❌ Enter an ID');
+      setTimeout(() => setCopyStatus(''), 2000);
+      return;
+    }
+    StorageService.setDeviceIdOverride(deviceIdOverrideInput);
+    setCopyStatus('✅ Device ID Overridden!');
+    setTimeout(() => setCopyStatus(''), 2000);
+  };
+
+  const handleClearDeviceOverride = () => {
+    StorageService.clearDeviceIdOverride();
+    setDeviceIdOverrideInput('');
+    setCopyStatus('✅ Override Cleared');
+    setTimeout(() => setCopyStatus(''), 2000);
+  };
 
 
   const handleOpenDebugConsole = async () => {
     // Gather context for the report
     const settings = SettingsStore.get();
     const deviceId = StorageService.getDeviceId();
-    
+
     // Fetch all known native storage keys
     const storageValues: Record<string, string | null> = {};
     const keys = [
@@ -27,7 +52,7 @@ export function DeveloperOptions() {
       'batoto:device_id',
       'batoto:reader_position',
     ];
-    
+
     for (const key of keys) {
       storageValues[key] = await StorageService.getNativeItemSync(key);
     }
@@ -54,7 +79,7 @@ export function DeveloperOptions() {
     try {
       const { SupabaseService } = await import('../services/supabase');
       const deviceId = StorageService.getDeviceId();
-      
+
       const success = await SupabaseService.upsert('debug_logs', {
         device_id: deviceId,
         report: debugReport,
@@ -134,6 +159,32 @@ export function DeveloperOptions() {
           </view>
         </view>
 
+        <view className="Settings-item" style={{ height: 'auto', alignItems: 'flex-start', flexDirection: 'column', gap: '8px' }}>
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">🎭</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">Override User Persona</text>
+              <text className="Settings-item-description">Set a custom Device ID to simulate a specific user.</text>
+            </view>
+          </view>
+          <view style={{ flexDirection: 'row', width: '100%', alignItems: 'center', marginTop: '4px' }}>
+            <input
+              className="Settings-input"
+              // @ts-ignore - Lynx input supports value
+              value={deviceIdOverrideInput}
+              bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
+              placeholder="Enter User/Device ID"
+              style={{ flex: 1, backgroundColor: '#f0f0f0', padding: '8px', borderRadius: '6px', fontSize: '14px', marginRight: '8px', color: '#333' }}
+            />
+            <view bindtap={handleSetDeviceOverride} style={{ backgroundColor: '#00e676', borderRadius: '6px', padding: '8px 12px' }}>
+              <text style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>SET</text>
+            </view>
+            <view bindtap={handleClearDeviceOverride} style={{ backgroundColor: '#ff5252', borderRadius: '6px', padding: '8px 12px', marginLeft: '6px' }}>
+              <text style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>CLEAR</text>
+            </view>
+          </view>
+        </view>
+
         <view className="Settings-item">
           <view className="Settings-item-left">
             <text className="Settings-item-icon">🛠️</text>
@@ -157,6 +208,63 @@ export function DeveloperOptions() {
           <text className="Settings-item-chevron">›</text>
         </view>
 
+        <view className="Settings-item" bindtap={() => setShowNetworkInspector(true)}>
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">📡</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">Network Inspector</text>
+              <text className="Settings-item-description">
+                Monitor API traffic and headers
+              </text>
+            </view>
+          </view>
+          <text className="Settings-item-chevron">›</text>
+        </view>
+
+        <view className="Settings-item" bindtap={() => setShowSyncMonitor(true)}>
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">🔄</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">Sync Monitor</text>
+              <text className="Settings-item-description">
+                View background sync queue & status
+              </text>
+            </view>
+          </view>
+          <text className="Settings-item-chevron">›</text>
+        </view>
+
+        <view className="Settings-item" bindtap={() => setShowStateInspector(true)}>
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">💾</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">State Inspector</text>
+              <text className="Settings-item-description">
+                View & clear local storage keys
+              </text>
+            </view>
+          </view>
+          <text className="Settings-item-chevron">›</text>
+        </view>
+
+        <view className="Settings-item">
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">📐</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">Layout Debugger</text>
+              <text className="Settings-item-description">
+                Show element outlines
+              </text>
+            </view>
+          </view>
+          {/* @ts-ignore */}
+          <switch
+            checked={SettingsStore.getDebugOutlines()}
+            bindchange={(e: any) => SettingsStore.setDebugOutlines(e.detail.value)}
+            color="#00e676"
+          />
+        </view>
+
 
       </view>
 
@@ -166,7 +274,7 @@ export function DeveloperOptions() {
           className="DebugConsole-overlay"
           bindtap={() => setShowDebugConsole(false)}
         >
-          <view className="DebugConsole-modal" catchtap={() => {}}>
+          <view className="DebugConsole-modal" catchtap={() => { }}>
             <view className="DebugConsole-header">
               <text className="DebugConsole-title">🐛 Debug Console</text>
               <view className="DebugConsole-actions">
@@ -225,6 +333,73 @@ export function DeveloperOptions() {
                 );
               })}
             </scroll-view>
+          </view>
+        </view>
+      )}
+
+      {/* Network Inspector Modal */}
+      {showNetworkInspector && (
+        <view
+          className="DebugConsole-overlay"
+          bindtap={() => setShowNetworkInspector(false)}
+        >
+          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+            <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
+              <text className="DebugConsole-title">📡 Network Inspector</text>
+              <view className="DebugConsole-actions">
+                <view
+                  className="DebugConsole-button"
+                  bindtap={() => setShowNetworkInspector(false)}
+                >
+                  <text className="DebugConsole-button-text">✕</text>
+                </view>
+              </view>
+            </view>
+            <NetworkInspector />
+          </view>
+        </view>
+      )}
+      {/* Sync Monitor Modal */}
+      {showSyncMonitor && (
+        <view
+          className="DebugConsole-overlay"
+          bindtap={() => setShowSyncMonitor(false)}
+        >
+          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+            <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
+              <text className="DebugConsole-title">🔄 Sync Monitor</text>
+              <view className="DebugConsole-actions">
+                <view
+                  className="DebugConsole-button"
+                  bindtap={() => setShowSyncMonitor(false)}
+                >
+                  <text className="DebugConsole-button-text">✕</text>
+                </view>
+              </view>
+            </view>
+            <SyncMonitor />
+          </view>
+        </view>
+      )}
+      {/* State Inspector Modal */}
+      {showStateInspector && (
+        <view
+          className="DebugConsole-overlay"
+          bindtap={() => setShowStateInspector(false)}
+        >
+          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+            <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
+              <text className="DebugConsole-title">💾 State Inspector</text>
+              <view className="DebugConsole-actions">
+                <view
+                  className="DebugConsole-button"
+                  bindtap={() => setShowStateInspector(false)}
+                >
+                  <text className="DebugConsole-button-text">✕</text>
+                </view>
+              </view>
+            </view>
+            <StateInspector />
           </view>
         </view>
       )}

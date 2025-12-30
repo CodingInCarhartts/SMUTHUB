@@ -59,6 +59,8 @@ export function App() {
 
   // Dark mode
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
+  // Debug outlines
+  const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
 
   // OTA Update state
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
@@ -71,8 +73,10 @@ export function App() {
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       const newMode = SettingsStore.getDarkMode();
-      console.log('[App] Settings update received. Dark mode:', newMode);
+      const newOutlines = SettingsStore.getDebugOutlines();
+      console.log('[App] Settings update received. Dark:', newMode, 'Outlines:', newOutlines);
       setDarkMode(newMode);
+      setDebugOutlines(newOutlines);
     });
     return unsubscribe;
   }, []);
@@ -178,7 +182,7 @@ export function App() {
       console.error('[App] fetchHomeFeed failed:', e);
       setHomeError(
         e.message ||
-          'Failed to connect to Batoto. Site might be down or protected.',
+        'Failed to connect to Batoto. Site might be down or protected.',
       );
     } finally {
       setHomeLoading(false);
@@ -263,9 +267,9 @@ export function App() {
 
     const chapters = mangaDetails.chapters;
     const normalizedSelected = normalizeUrl(selectedChapterUrl);
-    
+
     console.log(`[App] Searching for next chapter after: ${normalizedSelected}`);
-    
+
     const currentIndex = chapters.findIndex(
       (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
     );
@@ -352,7 +356,7 @@ export function App() {
     headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
 
   return (
-    <view className={darkMode ? 'Main dark-mode' : 'Main'}>
+    <view className={`${darkMode ? 'Main dark-mode' : 'Main'}${debugOutlines ? ' debug-outlines' : ''}`}>
       <view
         className={view === 'browse' ? 'Content Content-with-nav' : 'Content'}
       >

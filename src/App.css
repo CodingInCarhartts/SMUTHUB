@@ -15,7 +15,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: var(--surface); /* Uses var immediately */
+  background-color: var(--surface);
+  /* Uses var immediately */
   min-height: 100%;
 }
 
@@ -263,6 +264,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -273,10 +275,12 @@
     transform: scale(0.95);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(0.95);
     opacity: 0.5;
@@ -357,4 +361,16 @@
   color: var(--text-secondary);
   text-align: center;
   line-height: 1.4;
+}
+
+/* Debug Overlay */
+.debug-outlines view,
+.debug-outlines text,
+.debug-outlines image,
+.debug-outlines scroll-view,
+.debug-outlines list,
+.debug-outlines list-item,
+.debug-outlines input,
+.debug-outlines switch {
+  outline: 1px solid rgba(255, 0, 0, 0.2) !important;
 }

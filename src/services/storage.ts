@@ -29,6 +29,7 @@ export interface AppSettings {
   darkMode: boolean;
   devMode: boolean;
   scrollSpeed: number; // 0.1 = 10%, 0.2 = 20%, etc.
+  debugOutlines?: boolean;
 }
 
 export interface ReaderPosition {
@@ -39,14 +40,16 @@ export interface ReaderPosition {
   timestamp: string;
 }
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   FAVORITES: 'batoto:favorites',
   HISTORY: 'batoto:history',
   SETTINGS: 'batoto:settings',
   FILTERS: 'batoto:filters',
   DEVICE_ID: 'batoto:device_id',
   READER_POSITION: 'batoto:reader_position',
+
   SKIPPED_VERSION: 'batoto:skipped_version',
+  DEVICE_ID_OVERRIDE: 'batoto:device_id_override',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -255,6 +258,13 @@ export const StorageService = {
     // 1. Session Cache
     if (SESSION_DEVICE_ID) return SESSION_DEVICE_ID;
 
+    // 1.5 Check Override
+    const override = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID_OVERRIDE, null);
+    if (override && override.length > 0) {
+      SESSION_DEVICE_ID = override;
+      return override;
+    }
+
     // 2. Prioritize Real Native Device ID (fetched during init)
     if (NATIVE_DEVICE_ID && NATIVE_DEVICE_ID.length > 5 && NATIVE_DEVICE_ID !== 'android') {
       SESSION_DEVICE_ID = NATIVE_DEVICE_ID;
@@ -302,6 +312,33 @@ export const StorageService = {
       setLocal(STORAGE_KEYS.DEVICE_ID, id);
       log('[Storage] Device ID manually updated to:', id);
     }
+  },
+
+  setDeviceIdOverride(id: string): void {
+    if (id && id.length > 0) {
+      setLocal(STORAGE_KEYS.DEVICE_ID_OVERRIDE, id);
+      SESSION_DEVICE_ID = id;
+
+      // Clear data caches to force refetch for new persona
+      memoryStorage.delete(STORAGE_KEYS.FAVORITES);
+      memoryStorage.delete(STORAGE_KEYS.HISTORY);
+      memoryStorage.delete(STORAGE_KEYS.SETTINGS);
+
+      log('[Storage] Device ID OVERRIDE set to:', id);
+    }
+  },
+
+  clearDeviceIdOverride(): void {
+    memoryStorage.delete(STORAGE_KEYS.DEVICE_ID_OVERRIDE);
+    setNativeItem(STORAGE_KEYS.DEVICE_ID_OVERRIDE, '');
+    SESSION_DEVICE_ID = null; // Will trigger re-detection/native fallback next call
+
+    // Clear data caches
+    memoryStorage.delete(STORAGE_KEYS.FAVORITES);
+    memoryStorage.delete(STORAGE_KEYS.HISTORY);
+    memoryStorage.delete(STORAGE_KEYS.SETTINGS);
+
+    log('[Storage] Device ID OVERRIDE cleared');
   },
 
   // ============ FAVORITES ============
@@ -607,6 +644,26 @@ export const StorageService = {
   },
 
   // ============ NATIVE ACCESSORS ============
+
+  // ============ DEBUG & INSPECTOR ============
+
+  getMemoryState(): Record<string, any> {
+    const state: Record<string, any> = {};
+    for (const [key, val] of memoryStorage.entries()) {
+      try {
+        state[key] = JSON.parse(val);
+      } catch {
+        state[key] = val;
+      }
+    }
+    return state;
+  },
+
+  async clearKey(key: string): Promise<void> {
+    memoryStorage.delete(key);
+    setNativeItem(key, '');
+    logWarn('[Storage] Cleared key via inspector:', key);
+  },
 
   async getNativeItemSync(key: string): Promise<string | null> {
     return await getNativeItem(key);

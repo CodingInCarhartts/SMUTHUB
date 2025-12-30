@@ -63,6 +63,17 @@ export const SettingsStore = {
     listeners.forEach((fn) => fn());
   },
 
+  getDebugOutlines(): boolean {
+    return settings.debugOutlines ?? false;
+  },
+
+  setDebugOutlines(enabled: boolean): void {
+    console.log('[SettingsStore] Debug outlines set to:', enabled);
+    settings.debugOutlines = enabled;
+    StorageService.saveSettings({ debugOutlines: enabled });
+    listeners.forEach((fn) => fn());
+  },
+
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);

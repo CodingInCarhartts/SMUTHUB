@@ -18,6 +18,21 @@ let isSyncing = false;
  * Background Sync Engine & Operation Queue
  */
 export const SyncEngine = {
+  listeners: new Set<() => void>(),
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  },
+
+  notify() {
+    this.listeners.forEach(l => l());
+  },
+
+  isSyncing(): boolean {
+    return isSyncing;
+  },
+
   /**
    * Add an operation to the persistent queue
    */
@@ -27,7 +42,8 @@ export const SyncEngine = {
     queue.push(op);
     await this.saveQueue(queue);
     console.log(`[SyncEngine] Queue size after enqueue: ${queue.length}`);
-    
+    this.notify();
+
     // Trigger background sync attempt
     this.processQueue();
   },
@@ -40,7 +56,7 @@ export const SyncEngine = {
       console.log('[SyncEngine] Already syncing, skipping...');
       return;
     }
-    
+
     const queue = await this.getQueue();
     if (queue.length === 0) {
       console.log('[SyncEngine] Queue is empty, nothing to process');
@@ -49,6 +65,7 @@ export const SyncEngine = {
 
     console.log(`[SyncEngine] Processing queue (${queue.length} items)...`);
     isSyncing = true;
+    this.notify();
 
     try {
       // Processes operations sequentially to maintain order and validity
@@ -56,11 +73,12 @@ export const SyncEngine = {
         const op = queue[0];
         console.log(`[SyncEngine] Executing: ${op.type} on ${op.table}...`);
         const success = await this.executeOperation(op);
-        
+
         if (success) {
           console.log(`[SyncEngine] SUCCESS: ${op.type} on ${op.table}`);
           queue.shift(); // Remove processed
           await this.saveQueue(queue);
+          this.notify();
         } else {
           // If execution fails (e.g., network error), stop and retry later
           console.warn('[SyncEngine] Operation failed, stopping queue processing');
@@ -71,6 +89,7 @@ export const SyncEngine = {
       console.error('[SyncEngine] Critical error during queue processing:', e?.message || e);
     } finally {
       isSyncing = false;
+      this.notify();
       console.log(`[SyncEngine] Finished processing. Remaining: ${queue.length}`);
     }
   },
@@ -93,14 +112,14 @@ export const SyncEngine = {
         const deviceId = op.payload.device_id;
         const column = op.table === 'settings' ? 'device_id' : 'manga_id';
         const value = op.table === 'settings' ? deviceId : op.payload.manga_id;
-        
+
         // For table-specific deletes (favorites/history), we usually need both ID filters
         // but our current SupabaseService.delete is a bit simplified.
         // If it's a many-to-many style table, we need complex filters.
         if (op.table === 'favorites' || op.table === 'history') {
-           return await SupabaseService.request(`/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`, {
-             method: 'DELETE'
-           }) !== null;
+          return await SupabaseService.request(`/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`, {
+            method: 'DELETE'
+          }) !== null;
         }
 
         return await SupabaseService.delete(op.table, column, value);
