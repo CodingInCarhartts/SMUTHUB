@@ -55,7 +55,7 @@ export const STORAGE_KEYS = {
 const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   devMode: false,
-  scrollSpeed: 0.15, // 15% of screen per scroll
+  scrollSpeed: 0.6, // 60% of screen per scroll
 };
 
 

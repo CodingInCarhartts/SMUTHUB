@@ -159,28 +159,58 @@ export function DeveloperOptions() {
           </view>
         </view>
 
-        <view className="Settings-item" style={{ height: 'auto', alignItems: 'flex-start', flexDirection: 'column', gap: '8px' }}>
-          <view className="Settings-item-left">
+
+        <view className="Settings-item" style={{ height: 'auto', flexDirection: 'column', alignItems: 'stretch', paddingBottom: '12px' }}>
+          <view className="Settings-item-left" style={{ marginBottom: '8px' }}>
             <text className="Settings-item-icon">🎭</text>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Override User Persona</text>
-              <text className="Settings-item-description">Set a custom Device ID to simulate a specific user.</text>
+              <text className="Settings-item-description">Simulate a different user</text>
             </view>
           </view>
-          <view style={{ flexDirection: 'row', width: '100%', alignItems: 'center', marginTop: '4px' }}>
+
+          <view style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
             <input
               className="Settings-input"
-              // @ts-ignore - Lynx input supports value
+              // @ts-ignore
               value={deviceIdOverrideInput}
               bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
-              placeholder="Enter User/Device ID"
-              style={{ flex: 1, backgroundColor: '#f0f0f0', padding: '8px', borderRadius: '6px', fontSize: '14px', marginRight: '8px', color: '#333' }}
+              placeholder="Device ID / UUID"
+              placeholder-style="color: #666;"
+              style={{
+                flex: 1,
+                backgroundColor: '#333',
+                color: '#fff',
+                padding: '10px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                border: '1px solid #444'
+              }}
             />
-            <view bindtap={handleSetDeviceOverride} style={{ backgroundColor: '#00e676', borderRadius: '6px', padding: '8px 12px' }}>
-              <text style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>SET</text>
+          </view>
+
+          <view style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+            <view
+              bindtap={handleClearDeviceOverride}
+              style={{
+                backgroundColor: 'rgba(255, 82, 82, 0.15)',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                border: '1px solid rgba(255, 82, 82, 0.3)'
+              }}
+            >
+              <text style={{ color: '#ff5252', fontWeight: '600', fontSize: '13px' }}>CLEAR</text>
             </view>
-            <view bindtap={handleClearDeviceOverride} style={{ backgroundColor: '#ff5252', borderRadius: '6px', padding: '8px 12px', marginLeft: '6px' }}>
-              <text style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>CLEAR</text>
+            <view
+              bindtap={handleSetDeviceOverride}
+              style={{
+                backgroundColor: '#00e676',
+                borderRadius: '6px',
+                padding: '8px 24px',
+                opacity: deviceIdOverrideInput ? 1 : 0.5
+              }}
+            >
+              <text style={{ color: '#000', fontWeight: '700', fontSize: '13px' }}>APPLY OVERRIDE</text>
             </view>
           </view>
         </view>

@@ -107,32 +107,32 @@ export function Settings({ onBack, onNavigate }: Props) {
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Scroll Speed</text>
                 <text className="Settings-item-description">
-                  {scrollSpeed <= 0.1 ? 'Slow' : scrollSpeed <= 0.2 ? 'Normal' : scrollSpeed <= 0.3 ? 'Fast' : 'Very Fast'} ({Math.round(scrollSpeed * 100)}%)
+                  {scrollSpeed <= 0.4 ? 'Slow' : scrollSpeed <= 0.6 ? 'Normal' : scrollSpeed <= 0.8 ? 'Fast' : 'Very Fast'} ({Math.round(scrollSpeed * 100)}%)
                 </text>
               </view>
             </view>
             <view className="Settings-speed-buttons">
               <view
-                className={scrollSpeed === 0.1 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
-                bindtap={() => handleScrollSpeedChange(0.1)}
+                className={scrollSpeed === 0.4 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.4)}
               >
                 <text>S</text>
               </view>
               <view
-                className={scrollSpeed === 0.15 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
-                bindtap={() => handleScrollSpeedChange(0.15)}
+                className={scrollSpeed === 0.6 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.6)}
               >
                 <text>N</text>
               </view>
               <view
-                className={scrollSpeed === 0.25 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
-                bindtap={() => handleScrollSpeedChange(0.25)}
+                className={scrollSpeed === 0.8 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.8)}
               >
                 <text>F</text>
               </view>
               <view
-                className={scrollSpeed === 0.4 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
-                bindtap={() => handleScrollSpeedChange(0.4)}
+                className={scrollSpeed === 1.0 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(1.0)}
               >
                 <text>VF</text>
               </view>
