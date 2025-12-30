@@ -80,7 +80,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.30';
+export const APP_VERSION = '1.0.31';
 
 export const UpdateService = {
   /**
