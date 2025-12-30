@@ -1,4 +1,4 @@
-import { useEffect, useState } from '@lynx-js/react';
+import { useEffect, useState, useRef } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
 import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService } from '../services/storage';
@@ -175,6 +175,7 @@ export function Reader({
   );
   const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [showControls, setShowControls] = useState(true);
+  const lastKeyDownTime = useRef<number>(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -256,12 +257,16 @@ export function Reader({
     // For vertical mode, we want to scroll down exactly one viewport height
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
+      // Try to get screen height for a better scroll distance
+      const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
+      const scrollDistance = si?.screenHeight ? Math.floor(si.screenHeight * 0.7) : 450;
+      
       runtime.createSelectorQuery()
         .select('#reader-list')
         .invoke({
           method: 'scrollBy',
           params: {
-            offset: 600, // Approximate viewport height, Lynx scrollBy is often pixels
+            offset: scrollDistance,
             animated: true
           }
         })
@@ -272,12 +277,15 @@ export function Reader({
   const scrollUp = () => {
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
+      const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
+      const scrollDistance = si?.screenHeight ? Math.floor(si.screenHeight * 0.7) : 450;
+
       runtime.createSelectorQuery()
         .select('#reader-list')
         .invoke({
           method: 'scrollBy',
           params: {
-            offset: -600,
+            offset: -scrollDistance,
             animated: true
           }
         })
@@ -286,6 +294,14 @@ export function Reader({
   };
 
   const handleKeyDown = (e: any) => {
+    // Throttle key events to prevent over-scrolling (HID rings often send multiple events)
+    const now = Date.now();
+    if (now - lastKeyDownTime.current < 300) {
+      console.log('[Reader] Throttling KeyDown');
+      return;
+    }
+    lastKeyDownTime.current = now;
+
     const keyCode = e.detail?.keyCode || e.keyCode;
     console.log('[Reader] KeyDown:', keyCode);
 
