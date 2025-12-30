@@ -371,9 +371,19 @@ export function Reader({
       }
     };
 
+    const onGlobalTouch = (data: any) => {
+      console.log('[Reader] GlobalTouchEvent received:', JSON.stringify(data));
+      // payload structure matches Native: [{x, y}] or {data: [{x, y}]}
+      const payload = data?.data?.[0] || data?.data || data;
+      if (payload && typeof payload.x === 'number') {
+        console.log(`[Reader] Raw Touch at: (${payload.x}, ${payload.y})`);
+      }
+    };
+
     if (typeof lynx !== 'undefined') {
       console.log('[Reader] Registering global event listeners...');
       (lynx as any).on('GlobalKeyEvent', onGlobalKey);
+      (lynx as any).on('GlobalTouchEvent', onGlobalTouch);
       // Fallback for some Lynx versions where all global events come through a single channel
       (lynx as any).on('GlobalEvent', onGenericEvent);
     }
@@ -381,6 +391,7 @@ export function Reader({
     return () => {
       if (typeof lynx !== 'undefined') {
         (lynx as any).off('GlobalKeyEvent', onGlobalKey);
+        (lynx as any).off('GlobalTouchEvent', onGlobalTouch);
         (lynx as any).off('GlobalEvent', onGenericEvent);
       }
     };
