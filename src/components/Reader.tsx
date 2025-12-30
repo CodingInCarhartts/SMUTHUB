@@ -257,9 +257,11 @@ export function Reader({
     // For vertical mode, we want to scroll down exactly one viewport height
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
-      // Try to get screen height for a better scroll distance
+      // SystemInfo dimensions are typically physical pixels, but scrollBy expects logical units (px/dp)
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
-      const scrollDistance = si?.screenHeight ? Math.floor(si.screenHeight * 0.7) : 450;
+      const pixelRatio = si?.pixelRatio || 1;
+      const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
+      const scrollDistance = Math.floor(screenHeightLogical * 0.4); // Scroll 40% of logical screen per press
       
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -278,7 +280,9 @@ export function Reader({
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
-      const scrollDistance = si?.screenHeight ? Math.floor(si.screenHeight * 0.7) : 450;
+      const pixelRatio = si?.pixelRatio || 1;
+      const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
+      const scrollDistance = Math.floor(screenHeightLogical * 0.4);
 
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -294,10 +298,11 @@ export function Reader({
   };
 
   const handleKeyDown = (e: any) => {
-    // Throttle key events to prevent over-scrolling (HID rings often send multiple events)
+    // Throttle key events significantly to prevent over-scrolling/rapid page turns
+    // HID rings often send many repeat events or have high sensitivity
     const now = Date.now();
-    if (now - lastKeyDownTime.current < 300) {
-      console.log('[Reader] Throttling KeyDown');
+    if (now - lastKeyDownTime.current < 800) {
+      console.log('[Reader] Throttling KeyDown (800ms debounce)');
       return;
     }
     lastKeyDownTime.current = now;
