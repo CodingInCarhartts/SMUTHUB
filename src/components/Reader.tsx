@@ -343,33 +343,48 @@ export function Reader({
 
   // Listen for Native GlobalKeyEvents (from MainActivity.kt)
   useEffect(() => {
-    const onGlobalKey = (e: any) => {
-      console.log('[Reader] GlobalKeyEvent RAW:', JSON.stringify(e));
+    const onGlobalKey = (data: any) => {
+      console.log('[Reader] GlobalKeyEvent received:', JSON.stringify(data));
       
-      // e.data might be an array (based on our native Fix) or object
+      // Handle both cases: data is the raw payload, or it's wrapped in an event object
+      const payload = data?.data || data;
       let keyCode: number | undefined;
 
-      if (Array.isArray(e.data) && e.data.length > 0) {
-        keyCode = e.data[0].keyCode;
-      } else if (e.data && e.data.keyCode) {
-        keyCode = e.data.keyCode;
+      if (Array.isArray(payload) && payload.length > 0) {
+        keyCode = payload[0].keyCode;
+      } else if (payload && typeof payload === 'object') {
+        keyCode = payload.keyCode;
+      } else if (typeof payload === 'number') {
+        keyCode = payload;
       }
 
       if (keyCode) {
-        console.log('[Reader] Received GlobalKeyEvent:', keyCode);
+        console.log('[Reader] Processing Key:', keyCode);
         handleKeyDown({ keyCode });
       }
     };
 
-    if (typeof lynx !== 'undefined') {
-      (lynx as any).on('GlobalKeyEvent', onGlobalKey);
-    }
-    return () => {
-        if (typeof lynx !== 'undefined') {
-            (lynx as any).off('GlobalKeyEvent', onGlobalKey);
-        }
+    const onGenericEvent = (name: string, data: any) => {
+      console.log(`[Reader] Generic GlobalEvent: ${name}`, JSON.stringify(data));
+      if (name === 'GlobalKeyEvent') {
+        onGlobalKey(data);
+      }
     };
-  }, [readingMode, currentPage, panels.length]); // Dependencies for closure stability
+
+    if (typeof lynx !== 'undefined') {
+      console.log('[Reader] Registering global event listeners...');
+      (lynx as any).on('GlobalKeyEvent', onGlobalKey);
+      // Fallback for some Lynx versions where all global events come through a single channel
+      (lynx as any).on('GlobalEvent', onGenericEvent);
+    }
+
+    return () => {
+      if (typeof lynx !== 'undefined') {
+        (lynx as any).off('GlobalKeyEvent', onGlobalKey);
+        (lynx as any).off('GlobalEvent', onGenericEvent);
+      }
+    };
+  }, [readingMode, currentPage, panels.length]);
 
   // Save position when page changes (debounced)
   useEffect(() => {
