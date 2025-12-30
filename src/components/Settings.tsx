@@ -16,7 +16,7 @@ export function Settings({ onBack, onNavigate }: Props) {
   );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
-  // Removed remoteMode
+  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -32,10 +32,7 @@ export function Settings({ onBack, onNavigate }: Props) {
       setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
-      setReadingMode(SettingsStore.getReadingMode());
-      setDarkMode(SettingsStore.getDarkMode());
-      setDevMode(SettingsStore.getDevMode());
-      // Removed setRemoteMode
+      setRemoteMode(SettingsStore.getRemoteMode());
       setScrollSpeed(SettingsStore.getScrollSpeed());
     });
 
@@ -73,8 +70,9 @@ export function Settings({ onBack, onNavigate }: Props) {
     SettingsStore.setDarkMode(!darkMode);
   };
 
-
-  // Removed handleRemoteModeToggle
+  const handleRemoteModeToggle = () => {
+    SettingsStore.setRemoteMode(!remoteMode);
+  };
 
   const handleScrollSpeedChange = (speed: number) => {
     SettingsStore.setScrollSpeed(speed);
@@ -135,8 +133,27 @@ export function Settings({ onBack, onNavigate }: Props) {
             <text className="Settings-item-chevron">›</text>
           </view>
 
-          {/* Removed Remote Mode Toggle */}
+          {/* Remote Mode (Controller Support) */}
+          <view className="Settings-item" bindtap={handleRemoteModeToggle}>
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">🎮</text>
+              <view className="Settings-item-text">
+                <text className="Settings-item-label">Controller Mode</text>
+                <text className="Settings-item-description">
+                  Enable for Bluetooth ring/controller
+                </text>
+              </view>
+            </view>
+            <view
+              className={
+                remoteMode ? 'Settings-toggle active' : 'Settings-toggle'
+              }
+            >
+              <view className="Settings-toggle-knob" />
+            </view>
+          </view>
 
+          {/* Scroll Speed Setting */}
           <view className="Settings-item">
             <view className="Settings-item-left">
               <text className="Settings-item-icon">⚡</text>

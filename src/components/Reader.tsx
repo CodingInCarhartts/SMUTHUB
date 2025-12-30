@@ -192,13 +192,15 @@ export function Reader({
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
-  // Removed remoteMode
+  // Restore remoteMode for handling global ring events
+  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [showControls, setShowControls] = useState(true);
   const lastKeyDownTime = useRef<number>(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       setReadingMode(SettingsStore.getReadingMode());
+      setRemoteMode(SettingsStore.getRemoteMode());
     });
     return unsubscribe;
   }, []);
@@ -401,6 +403,9 @@ export function Reader({
       log('[Reader] GlobalTouchEvent received:', JSON.stringify(data));
       const payload = data?.data?.[0] || (Array.isArray(data) ? data[0] : data?.data || data);
       if (payload && typeof payload.x === 'number') {
+        // Only handle specific touch coordinate mappings if Remote Mode is enabled
+        if (!remoteMode) return;
+
         const tx = payload.x;
         log(`[Reader] Remote Touch Mapping: x=${tx}`);
         
