@@ -1,5 +1,4 @@
 import { BatotoClient } from './client';
-import { BatotoParsers } from './parsers';
 import type { Chapter, Manga, MangaDetails, SearchFilters } from './types';
 import { GENRE_API_MAPPING, mapGenreToApi } from './types';
 
@@ -343,36 +342,22 @@ export const BatotoService = {
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     const client = BatotoClient.getInstance();
     try {
-      const response = await client.fetch('/');
-      const html = await response.text();
+      console.log('[Service] getHomeFeed started (GraphQL)');
+      
+      // We'll fetch Popular and Latest using the browse logic but optimized
+      const [popularResponse, latestResponse] = await Promise.all([
+        this.browse({ sort: 'views_d030', page: 1 }), // Trending/Popular
+        this.browse({ sort: 'update', page: 1 })      // Latest Updates
+      ]);
 
-      if (html.includes('HANG ON') || html.includes('trust this link')) {
-        console.warn(
-          '[Service] Encountered Batoto authorization page on homepage. Session might be restricted.',
-        );
-      }
-
-      const allManga = BatotoParsers.parsePopularManga(
-        html,
-        client.getBaseUrl(),
-      );
-      console.log(`[Service] Parsed ${allManga.length} manga items total`);
-
-      // Split loosely based on logic: Popular usually come first and marked with "Popular" genre in our parser
-      const popular = allManga.filter((m) => m.genres?.includes('Popular'));
-      const latest = allManga.filter((m) => !m.genres?.includes('Popular'));
-
-      return { popular, latest };
+      return { 
+        popular: popularResponse.slice(0, 14), 
+        latest: latestResponse 
+      };
     } catch (e) {
-      console.error('Home feed failed', e);
+      console.error('[Service] getHomeFeed (GraphQL) failed', e);
       return { popular: [], latest: [] };
     }
-  },
-
-  // Keep back-compat for now if needed, or remove
-  async getPopularManga(): Promise<Manga[]> {
-    const feed = await this.getHomeFeed();
-    return [...feed.popular, ...feed.latest];
   },
 
   getMirror(): string {

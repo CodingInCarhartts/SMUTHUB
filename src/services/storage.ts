@@ -94,8 +94,7 @@ function getNativeItem(key: string): Promise<string | null> {
 }
 
 // Sync setter using native module (fire and forget)
-// Sync setter using native module (fire and forget)
-function setNativeItem(key: string, value: string): void {
+export function setNativeItem(key: string, value: string): void {
   try {
     const nativeModule = NativeModules?.NativeLocalStorageModule;
     if (nativeModule && typeof nativeModule.setStorageItem === 'function') {
@@ -105,6 +104,14 @@ function setNativeItem(key: string, value: string): void {
   } catch (e) {
     logError('[setNativeItem] Error:', e);
   }
+}
+
+// Export for SyncEngine
+export async function getNativeItemSync(key: string): Promise<string | null> {
+  return await getNativeItem(key);
+}
+export function setNativeItemSync(key: string, value: string): void {
+  setNativeItem(key, value);
 }
 
 // Helper for storage - tries localStorage first, then memory cache
@@ -230,9 +237,24 @@ async function initializeFromNativeStorage(): Promise<void> {
 }
 
 // Export initialization promise so other modules can wait
-export const storageReady = initializeFromNativeStorage().catch((e) => {
-  logError('[Storage] Initialization failed:', e);
-});
+export const storageReady = (async () => {
+  try {
+    // 1. Core Native Init
+    await initializeFromNativeStorage();
+    
+    // 2. Data Migration (Legacy -> Cloud)
+    const { MigrationService } = await import('./migration');
+    await MigrationService.run();
+    
+    // 3. Initial Cloud Sync
+    // We do one quick fetch of settings to ensure we have terbaru
+    await StorageService.getSettings();
+    
+    log('[Storage] System is READY');
+  } catch (e) {
+    logError('[Storage] Initialization sequence failed:', e);
+  }
+})();
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
@@ -317,59 +339,64 @@ export const StorageService = {
   // ============ FAVORITES ============
 
   async getFavorites(): Promise<Manga[]> {
-    const deviceId = this.getDeviceId();
-    const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>(
-      'favorites',
-      `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`,
-    );
+    // 1. Immediate Return from Cache
+    const local = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    
+    // 2. Background Sync
+    (async () => {
+      const deviceId = this.getDeviceId();
+      const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>(
+        'favorites',
+        `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`,
+      );
+      if (cloudData.length > 0) {
+        const favorites = cloudData.map((row) => row.manga_data);
+        setLocal(STORAGE_KEYS.FAVORITES, favorites);
+        // We could trigger a listener here if needed
+      }
+    })();
 
-    if (cloudData.length > 0) {
-      const favorites = cloudData.map((row) => row.manga_data);
-      setLocal(STORAGE_KEYS.FAVORITES, favorites);
-      return favorites;
-    }
-
-    return getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    return local;
   },
 
   async addFavorite(manga: Manga): Promise<void> {
-    // Optimistic Update
     const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
     if (!favorites.find((m) => m.id === manga.id)) {
       favorites.unshift(manga);
       setLocal(STORAGE_KEYS.FAVORITES, favorites);
     }
 
-    // Sync to Cloud
-    await SupabaseService.upsert(
-      'favorites',
-      {
+    const { SyncEngine } = await import('./sync');
+    await SyncEngine.enqueue({
+      type: 'UPSERT',
+      table: 'favorites',
+      payload: {
         device_id: this.getDeviceId(),
         manga_id: manga.id,
         manga_data: manga,
+        created_at: new Date().toISOString()
       },
-      'device_id,manga_id',
-    );
-    log('[Storage] Synced favorite to cloud:', manga.title);
+      timestamp: Date.now()
+    });
   },
 
   async removeFavorite(mangaId: string): Promise<void> {
-    // Optimistic Update
     const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
     setLocal(
       STORAGE_KEYS.FAVORITES,
       favorites.filter((m) => m.id !== mangaId),
     );
 
-    // Sync to Cloud
-    const deviceId = this.getDeviceId();
-    await SupabaseService.request(
-      `/favorites?device_id=eq.${deviceId}&manga_id=eq.${mangaId}`,
-      {
-        method: 'DELETE',
+    const { SyncEngine } = await import('./sync');
+    await SyncEngine.enqueue({
+      type: 'DELETE',
+      table: 'favorites',
+      payload: {
+        device_id: this.getDeviceId(),
+        manga_id: mangaId
       },
-    );
-    log('[Storage] Removed favorite from cloud:', mangaId);
+      timestamp: Date.now()
+    });
   },
 
   isFavoriteSync(mangaId: string): boolean {
@@ -384,30 +411,26 @@ export const StorageService = {
   // ============ HISTORY ============
 
   async getHistory(): Promise<ViewedManga[]> {
-    const deviceId = this.getDeviceId();
-    // Try Cloud
-    const cloudData = await SupabaseService.getAll<{
-      manga_data: Manga;
-      last_chapter_id: string;
-      last_chapter_title: string;
-      viewed_at: string;
-    }>(
-      'history',
-      `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&device_id=eq.${deviceId}&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`,
-    );
+    const local = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+    
+    (async () => {
+      const deviceId = this.getDeviceId();
+      const cloudData = await SupabaseService.getAll<any>(
+        'history',
+        `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&device_id=eq.${deviceId}&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`,
+      );
+      if (cloudData.length > 0) {
+        const history = cloudData.map((row: any) => ({
+          manga: row.manga_data,
+          lastChapterId: row.last_chapter_id,
+          lastChapterTitle: row.last_chapter_title,
+          viewedAt: row.viewed_at,
+        }));
+        setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
+      }
+    })();
 
-    if (cloudData.length > 0) {
-      const history = cloudData.map((row) => ({
-        manga: row.manga_data,
-        lastChapterId: row.last_chapter_id,
-        lastChapterTitle: row.last_chapter_title,
-        viewedAt: row.viewed_at,
-      }));
-      setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL)); // Cache only recent part locally
-      return history;
-    }
-
-    return getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+    return local;
   },
 
   async addToHistory(
@@ -415,7 +438,6 @@ export const StorageService = {
     chapterId?: string,
     chapterTitle?: string,
   ): Promise<void> {
-    // Optimistic Update
     let history = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
     history = history.filter((h) => h.manga.id !== manga.id);
     history.unshift({
@@ -424,15 +446,13 @@ export const StorageService = {
       lastChapterTitle: chapterTitle,
       viewedAt: new Date().toISOString(),
     });
-    if (history.length > HISTORY_LIMIT_LOCAL) {
-      history = history.slice(0, HISTORY_LIMIT_LOCAL);
-    }
-    setLocal(STORAGE_KEYS.HISTORY, history);
+    setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
 
-    // Sync to Cloud
-    await SupabaseService.upsert(
-      'history',
-      {
+    const { SyncEngine } = await import('./sync');
+    await SyncEngine.enqueue({
+      type: 'UPSERT',
+      table: 'history',
+      payload: {
         device_id: this.getDeviceId(),
         manga_id: manga.id,
         manga_data: manga,
@@ -440,74 +460,68 @@ export const StorageService = {
         last_chapter_title: chapterTitle,
         viewed_at: new Date().toISOString(),
       },
-      'device_id,manga_id',
-    );
+      timestamp: Date.now()
+    });
   },
 
   async clearHistory(): Promise<void> {
     const deviceId = this.getDeviceId();
     setLocal(STORAGE_KEYS.HISTORY, []);
-    // Delete only this device's history
-    await SupabaseService.delete('history', 'device_id', `eq.${deviceId}`);
+    
+    const { SyncEngine } = await import('./sync');
+    await SyncEngine.enqueue({
+      type: 'DELETE',
+      table: 'history',
+      payload: { device_id: deviceId },
+      timestamp: Date.now()
+    });
   },
 
   // ============ SETTINGS ============
 
   async getSettings(): Promise<AppSettings> {
-    const deviceHash = this.getDeviceId();
-
-    // First, try fetching with dev_mode (the newer schema)
-    let cloudData = await SupabaseService.getAll<any>(
-      'settings',
-      `?select=reading_mode,dark_mode,dev_mode,remote_mode&device_id=eq.${deviceHash}`,
-    );
-
-    // If that fails (likely 400 because dev_mode column missing), try basic fetch
-    if (!cloudData || cloudData.length === 0) {
-      cloudData = await SupabaseService.getAll<any>(
+    const local = getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    
+    (async () => {
+      const deviceId = this.getDeviceId();
+      const cloudData = await SupabaseService.getAll<any>(
         'settings',
-        `?select=reading_mode,dark_mode&device_id=eq.${deviceHash}`,
+        `?select=reading_mode,dark_mode,dev_mode,remote_mode&device_id=eq.${deviceId}`,
       );
-    }
+      if (cloudData && cloudData.length > 0) {
+        const row = cloudData[0];
+        const settings: AppSettings = {
+          readingMode: (row.reading_mode as any) || DEFAULT_SETTINGS.readingMode,
+          darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
+          devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
+          remoteMode: row.remote_mode ?? DEFAULT_SETTINGS.remoteMode,
+        };
+        setLocal(STORAGE_KEYS.SETTINGS, settings);
+      }
+    })();
 
-    if (cloudData && cloudData.length > 0) {
-      const row = cloudData[0];
-      const settings: AppSettings = {
-        readingMode: (row.reading_mode as any) || DEFAULT_SETTINGS.readingMode,
-        darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
-        devMode:
-          row.dev_mode ??
-          getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
-            .devMode,
-        remoteMode: row.remote_mode ?? DEFAULT_SETTINGS.remoteMode,
-      };
-      setLocal(STORAGE_KEYS.SETTINGS, settings);
-      return settings;
-    }
-    return getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    return local;
   },
 
   async saveSettings(settings: Partial<AppSettings>): Promise<void> {
-    const current = getLocal<AppSettings>(
-      STORAGE_KEYS.SETTINGS,
-      DEFAULT_SETTINGS,
-    );
+    const current = getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
     const updated = { ...current, ...settings };
     setLocal(STORAGE_KEYS.SETTINGS, updated);
 
-    // Sync to Cloud
-    await SupabaseService.upsert(
-      'settings',
-      {
+    const { SyncEngine } = await import('./sync');
+    await SyncEngine.enqueue({
+      type: 'UPSERT',
+      table: 'settings',
+      payload: {
         device_id: this.getDeviceId(),
         reading_mode: updated.readingMode,
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
         remote_mode: updated.remoteMode,
+        updated_at: new Date().toISOString()
       },
-      'device_id',
-    );
-    log('[Storage] Saved device-specific settings');
+      timestamp: Date.now()
+    });
   },
 
   getSettingsSync(): AppSettings {
@@ -525,11 +539,8 @@ export const StorageService = {
   },
 
   clearFilters(): void {
-    try {
-      if (typeof localStorage !== 'undefined')
-        localStorage.removeItem(STORAGE_KEYS.FILTERS);
-      memoryStorage.delete(STORAGE_KEYS.FILTERS);
-    } catch (e) {}
+    memoryStorage.delete(STORAGE_KEYS.FILTERS);
+    setNativeItem(STORAGE_KEYS.FILTERS, '');
   },
 
   // ============ READER POSITION ============
@@ -549,26 +560,27 @@ export const StorageService = {
     };
     setLocal(STORAGE_KEYS.READER_POSITION, position);
     
-    // Sync to Cloud
-    SupabaseService.upsert('reader_positions', {
-      device_id: this.getDeviceId(),
-      manga_id: mangaId,
-      chapter_url: chapterUrl,
-      panel_index: panelIndex,
-      updated_at: position.timestamp,
-    }, 'device_id,manga_id');
-    
-    log('[Storage] Saved reader position:', { mangaId, panelIndex });
+    (async () => {
+      const { SyncEngine } = await import('./sync');
+      await SyncEngine.enqueue({
+        type: 'UPSERT',
+        table: 'reader_positions',
+        payload: {
+          device_id: this.getDeviceId(),
+          manga_id: mangaId,
+          chapter_url: chapterUrl,
+          panel_index: panelIndex,
+          updated_at: position.timestamp,
+        },
+        timestamp: Date.now()
+      });
+    })();
   },
 
   async getReaderPositionForManga(mangaId: string): Promise<ReaderPosition | null> {
-    // 1. Check local first
     const local = this.getReaderPosition();
-    if (local && local.mangaId === mangaId) {
-      return local;
-    }
+    if (local && local.mangaId === mangaId) return local;
 
-    // 2. Fallback to Cloud
     try {
       const deviceId = this.getDeviceId();
       const data = await SupabaseService.getAll<any>(
@@ -597,13 +609,8 @@ export const StorageService = {
   },
 
   clearReaderPosition(): void {
-    try {
-      if (typeof localStorage !== 'undefined')
-        localStorage.removeItem(STORAGE_KEYS.READER_POSITION);
-      memoryStorage.delete(STORAGE_KEYS.READER_POSITION);
-      setNativeItem(STORAGE_KEYS.READER_POSITION, '');
-      log('[Storage] Cleared reader position');
-    } catch (e) {}
+    memoryStorage.delete(STORAGE_KEYS.READER_POSITION);
+    setNativeItem(STORAGE_KEYS.READER_POSITION, '');
   },
 
   // ============ CLEAR ALL ============
@@ -611,16 +618,16 @@ export const StorageService = {
   async clearAllData(): Promise<void> {
     try {
       const deviceId = this.getDeviceId();
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEYS.FAVORITES);
-        localStorage.removeItem(STORAGE_KEYS.HISTORY);
-        localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-        localStorage.removeItem(STORAGE_KEYS.FILTERS);
-      }
       memoryStorage.clear();
-
       await this.clearHistory();
-      await SupabaseService.delete('favorites', 'device_id', `eq.${deviceId}`);
+      
+      const { SyncEngine } = await import('./sync');
+      await SyncEngine.enqueue({
+        type: 'DELETE',
+        table: 'favorites',
+        payload: { device_id: deviceId },
+        timestamp: Date.now()
+      });
     } catch (e) {
       logWarn('[Storage] clearAllData failed:', e);
     }
