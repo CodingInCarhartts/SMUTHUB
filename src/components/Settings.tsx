@@ -240,7 +240,7 @@ export function Settings({ onBack, onNavigate }: Props) {
               <view className="Settings-item-text">
                 <text className="Settings-item-label">SMUTHUB</text>
                 <text className="Settings-item-description">Version {APP_VERSION}</text>
-                <text className="Settings-item-description">🖤 Daddy.</text>
+                <text className="Settings-item-description">🖤 Daddy..</text>
               </view>
             </view>
           </view>
