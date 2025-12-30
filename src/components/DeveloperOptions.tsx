@@ -203,7 +203,26 @@ export function DeveloperOptions() {
             )}
 
             <scroll-view className="DebugConsole-content" scroll-y>
-              <text className="DebugConsole-text">{debugReport}</text>
+              {debugReport.split('\n').map((line, i) => {
+                let color = '#ccc'; // Default text color
+                if (line.startsWith('=')) color = '#666';
+                else if (line.startsWith('---')) color = '#00e676';
+                else if (line.includes('[ERROR]')) color = '#ff5252';
+                else if (line.includes('[WARN]')) color = '#ffab40';
+                else if (line.includes('[INFO]')) color = '#40c4ff';
+                else if (line.includes('[DEBUG]')) color = '#b0bec5';
+                else if (line.startsWith('[UpdateService]')) color = '#e040fb'; // Special color for update service
+
+                return (
+                  <text
+                    key={i}
+                    className="DebugConsole-line"
+                    style={{ color, fontSize: '10px', fontFamily: 'monospace' }}
+                  >
+                    {line}
+                  </text>
+                );
+              })}
             </scroll-view>
           </view>
         </view>

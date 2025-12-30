@@ -309,18 +309,17 @@
 
 .DebugConsole-content {
   flex: 1;
-  background-color: var(--bg-main);
-  padding: 20px;
+  background-color: #1e1e1e; /* Force dark background for logs */
+  padding: 16px;
 }
 
 .DebugConsole-text {
-  font-family: monospace;
-  font-size: 12px;
-  color: var(--text-primary);
-  line-height: 1.6;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: #e0e0e0;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;
-  opacity: 0.9;
 }
 
 .RestoreInput {

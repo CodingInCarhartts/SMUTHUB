@@ -25,7 +25,6 @@ import {
   type AppUpdate,
   type NativeAppUpdate,
   UpdateService,
-  APP_VERSION,
 } from './services/update';
 import './App.css';
 
@@ -374,7 +373,6 @@ export function App() {
                   <Sparkles>
                     <text className="HomeTitle">{randomHeaderTitle}</text>
                   </Sparkles>
-                  <text className="DebugVersion">v{APP_VERSION}</text>
                 </view>
                 <scroll-view
                   className="MangaList"
