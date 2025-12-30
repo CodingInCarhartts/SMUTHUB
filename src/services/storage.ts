@@ -26,7 +26,6 @@ export interface ViewedManga {
 }
 
 export interface AppSettings {
-  readingMode: 'vertical' | 'horizontal';
   darkMode: boolean;
   devMode: boolean;
   scrollSpeed: number; // 0.1 = 10%, 0.2 = 20%, etc.
@@ -51,7 +50,6 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
-  readingMode: 'vertical',
   darkMode: false,
   devMode: false,
   scrollSpeed: 0.15, // 15% of screen per scroll
@@ -454,12 +452,11 @@ export const StorageService = {
       const deviceId = this.getDeviceId();
       const cloudData = await SupabaseService.getAll<any>(
         'settings',
-        `?select=reading_mode,dark_mode,dev_mode,scroll_speed&device_id=eq.${deviceId}`,
+        `?select=dark_mode,dev_mode,scroll_speed&device_id=eq.${deviceId}`,
       );
       if (cloudData && cloudData.length > 0) {
         const row = cloudData[0];
         const settings: AppSettings = {
-          readingMode: (row.reading_mode as any) || DEFAULT_SETTINGS.readingMode,
           darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
           devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
@@ -481,7 +478,6 @@ export const StorageService = {
       table: 'settings',
       payload: {
         device_id: this.getDeviceId(),
-        reading_mode: updated.readingMode,
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
         scroll_speed: updated.scrollSpeed,

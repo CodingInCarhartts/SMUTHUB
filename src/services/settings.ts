@@ -1,8 +1,6 @@
 // Settings store with Supabase sync
 import { type AppSettings, StorageService, storageReady } from './storage';
 
-export type ReadingMode = 'vertical' | 'horizontal';
-
 let settings: AppSettings = StorageService.getSettingsSync();
 
 const listeners: Set<() => void> = new Set();
@@ -32,10 +30,6 @@ export const SettingsStore = {
     return { ...settings };
   },
 
-  getReadingMode(): ReadingMode {
-    return settings.readingMode;
-  },
-
   getDarkMode(): boolean {
     return settings.darkMode;
   },
@@ -44,17 +38,8 @@ export const SettingsStore = {
     return settings.devMode;
   },
 
-
-
   getScrollSpeed(): number {
     return settings.scrollSpeed ?? 0.15;
-  },
-
-  setReadingMode(mode: ReadingMode): void {
-    settings.readingMode = mode;
-    console.log('[SettingsStore] Reading mode set to:', mode);
-    StorageService.saveSettings({ readingMode: mode });
-    listeners.forEach((fn) => fn());
   },
 
   setDarkMode(enabled: boolean): void {
@@ -70,11 +55,6 @@ export const SettingsStore = {
     StorageService.saveSettings({ devMode: enabled });
     listeners.forEach((fn) => fn());
   },
-
-
-
-
-
 
   setScrollSpeed(speed: number): void {
     console.log('[SettingsStore] Scroll speed set to:', speed);

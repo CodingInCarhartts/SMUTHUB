@@ -63,7 +63,7 @@ export const MigrationService = {
         console.log('[Migration] Migrating settings...');
         await SupabaseService.upsert('settings', {
           device_id: deviceId,
-          reading_mode: settings.readingMode,
+
           dark_mode: settings.darkMode,
           dev_mode: settings.devMode,
           scroll_speed: settings.scrollSpeed,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
-import { type ReadingMode, SettingsStore } from '../services/settings';
+import { SettingsStore } from '../services/settings';
 import { StorageService, normalizeUrl } from '../services/storage';
 import { logCapture } from '../services/debugLog';
 import {
@@ -125,49 +125,6 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-// Horizontal mode panel - fixed size for swiping
-function HorizontalPanel({ url, index }: { url: string; index: number }) {
-  const [failed, setFailed] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const currentUrl =
-    retryCount > 0
-      ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
-      : url;
-
-  const handleError = () => {
-    if (retryCount < PANEL_MAX_RETRIES - 1) {
-      setTimeout(() => setRetryCount((prev) => prev + 1), RETRY_DELAY_BASE);
-    } else {
-      setFailed(true);
-    }
-  };
-
-  const handleRetryTap = () => {
-    setRetryCount(0);
-    setFailed(false);
-  };
-
-  return (
-    <view className="Reader-horizontal-panel">
-      {failed ? (
-        <view className="Reader-panel-error" bindtap={handleRetryTap}>
-          <text className="Reader-panel-error-text">Failed - Tap to retry</text>
-        </view>
-      ) : (
-        <image
-          src={currentUrl}
-          className="Reader-horizontal-image"
-          mode="aspectFit"
-          binderror={handleError}
-        />
-      )}
-      <view className="Reader-page-indicator">
-        <text className="Reader-page-number">{index + 1}</text>
-      </view>
-    </view>
-  );
-}
 
 export function Reader({
   chapterUrl,
@@ -181,12 +138,8 @@ export function Reader({
 
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [readingMode, setReadingMode] = useState<ReadingMode>(
-    SettingsStore.getReadingMode(),
-  );
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0); // In vertical mode, specific page tracking is less precise but used for restoration
   const [restoredPageIndex, setRestoredPageIndex] = useState<number | undefined>(undefined);
-  const [touchStartX, setTouchStartX] = useState(0);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
   const [isFavorite, setIsFavorite] = useState(() =>
@@ -197,7 +150,7 @@ export function Reader({
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
-      setReadingMode(SettingsStore.getReadingMode());
+      // Just for scroll speed or other future settings
     });
     return unsubscribe;
   }, []);
@@ -236,33 +189,6 @@ export function Reader({
     };
     loadPanels();
   }, [chapterUrl, manga?.id]);
-
-  const handleTouchStart = (e: any) => {
-    setTouchStartX(e.detail.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: any) => {
-    const touchEndX = e.detail.changedTouches[0].clientX;
-    const deltaX = touchEndX - touchStartX;
-    const threshold = SWIPE_THRESHOLD_PX;
-
-    if (Math.abs(deltaX) > threshold) {
-      if (deltaX < 0 && currentPage < panels.length - 1) {
-        log('[Reader] Swipe Left detected');
-        setCurrentPage((prev) => prev + 1);
-      } else if (deltaX > 0 && currentPage > 0) {
-        log('[Reader] Swipe Right detected');
-        setCurrentPage((prev) => prev - 1);
-      }
-    }
-  };
-
-  const goToPage = (delta: number) => {
-    const newPage = currentPage + delta;
-    if (newPage >= 0 && newPage < panels.length) {
-      setCurrentPage(newPage);
-    }
-  };
 
   const toggleControls = () => {
     setShowControls((prev) => !prev);
@@ -329,26 +255,18 @@ export function Reader({
 
     // Handle both event structures (native override vs standard bindkeydown)
     const keyCode = e.keyCode || e.detail?.keyCode;
-    log(`[Reader] KeyDown: ${keyCode} (Mode: ${readingMode}, Page: ${currentPage})`);
+    log(`[Reader] KeyDown: ${keyCode}`);
 
     switch (keyCode) {
       case 19: // DPAD_UP
       case 21: // DPAD_LEFT
       case 24: // VOLUME_UP
-        if (readingMode === 'vertical') {
-          scrollUp();
-        } else {
-          goToPage(-1);
-        }
+        scrollUp();
         break;
       case 20: // DPAD_DOWN
       case 22: // DPAD_RIGHT
       case 25: // VOLUME_DOWN
-        if (readingMode === 'vertical') {
-          scrollDown();
-        } else {
-          goToPage(1);
-        }
+        scrollDown();
         break;
       case 23: // DPAD_CENTER
       case 66: // ENTER
@@ -430,7 +348,7 @@ export function Reader({
         (lynx as any).off('GlobalKeyEvent', onGlobalKey);
       }
     };
-  }, [readingMode, currentPage, panels.length]);
+  }, [currentPage, panels.length]);
 
   // Save position when page changes (debounced)
   useEffect(() => {
@@ -474,9 +392,7 @@ export function Reader({
             {chapterTitle || 'Reading Chapter'}
           </text>
           <text className="Reader-header-subtitle">
-            {readingMode === 'horizontal'
-              ? `Panel ${currentPage + 1} of ${panels.length}`
-              : `${panels.length} panels total`}
+            {`${panels.length} panels total`}
           </text>
         </view>
 
@@ -485,121 +401,64 @@ export function Reader({
         </view>
       </view>
 
-      {readingMode === 'vertical' ? (
-        // Vertical scroll mode (Webtoon)
-        <list
-          id="reader-list"
-          className="Reader-content"
-          scroll-y
-          initial-scroll-index={restoredPageIndex}
-        >
-          {loading ? (
-            <list-item item-key="loading" full-span>
-              <view className="Reader-loading-container">
-                <text className="Reader-loading">Loading panels...</text>
-              </view>
-            </list-item>
-          ) : panels.length === 0 ? (
-            <list-item item-key="empty" full-span>
-              <view className="Reader-loading-container">
-                <text className="Reader-loading">No panels found</text>
-              </view>
-            </list-item>
-          ) : (
-            [
-              ...panels.map((url, index) => (
-                <list-item
-                  key={`panel-${index}`}
-                  item-key={`panel-${index}`}
-                  full-span
-                  binduiappear={() => {
-                    // Only update currentPage if we are NOT in the middle of restoration
-                    if (!isRestoring && !loading && positionRestored) {
-                      setCurrentPage(index);
-                    }
-                  }}
-                >
-                  <ReaderPanel url={url} index={index} />
-                </list-item>
-              )),
-              ...(hasNextChapter && onNextChapter
-                ? [
-                  <list-item
-                    key="next-chapter"
-                    item-key="next-chapter"
-                    full-span
-                  >
-                    <view className="Reader-footer-nav">
-                      <view
-                        className="Reader-next-btn"
-                        bindtap={onNextChapter}
-                      >
-                        <text className="Reader-next-text">
-                          Next Chapter ›
-                        </text>
-                      </view>
-                    </view>
-                  </list-item>,
-                ]
-                : []),
-            ]
-          )}
-        </list>
-      ) : (
-        // Horizontal swipe mode (Manga)
-        <view
-          className="Reader-horizontal-container"
-          bindtouchstart={handleTouchStart}
-          bindtouchend={handleTouchEnd}
-          bindtap={toggleControls}
-        >
-          {loading ? (
+      <list
+        id="reader-list"
+        className="Reader-content"
+        scroll-y
+        initial-scroll-index={restoredPageIndex}
+      >
+        {loading ? (
+          <list-item item-key="loading" full-span>
             <view className="Reader-loading-container">
               <text className="Reader-loading">Loading panels...</text>
             </view>
-          ) : panels.length === 0 ? (
+          </list-item>
+        ) : panels.length === 0 ? (
+          <list-item item-key="empty" full-span>
             <view className="Reader-loading-container">
               <text className="Reader-loading">No panels found</text>
             </view>
-          ) : (
-            <>
-              <HorizontalPanel url={panels[currentPage]} index={currentPage} />
-
-              {/* Navigation buttons: shown when controls are visible */}
-              {showControls && (
-                <view className="Reader-nav-buttons">
-                  <view
-                    className={
-                      currentPage > 0
-                        ? 'Reader-nav-btn'
-                        : 'Reader-nav-btn disabled'
-                    }
-                    bindtap={() => goToPage(-1)}
-                  >
-                    <text className="Reader-nav-text">‹ Prev</text>
+          </list-item>
+        ) : (
+          [
+            ...panels.map((url, index) => (
+              <list-item
+                key={`panel-${index}`}
+                item-key={`panel-${index}`}
+                full-span
+                binduiappear={() => {
+                  // Only update currentPage if we are NOT in the middle of restoration
+                  if (!isRestoring && !loading && positionRestored) {
+                    setCurrentPage(index);
+                  }
+                }}
+              >
+                <ReaderPanel url={url} index={index} />
+              </list-item>
+            )),
+            ...(hasNextChapter && onNextChapter
+              ? [
+                <list-item
+                  key="next-chapter"
+                  item-key="next-chapter"
+                  full-span
+                >
+                  <view className="Reader-footer-nav">
+                    <view
+                      className="Reader-next-btn"
+                      bindtap={onNextChapter}
+                    >
+                      <text className="Reader-next-text">
+                        Next Chapter ›
+                      </text>
+                    </view>
                   </view>
-
-                  {currentPage < panels.length - 1 ? (
-                    <view className="Reader-nav-btn" bindtap={() => goToPage(1)}>
-                      <text className="Reader-nav-text">Next ›</text>
-                    </view>
-                  ) : hasNextChapter && onNextChapter ? (
-                    <view className="Reader-next-btn" bindtap={onNextChapter}>
-                      <text className="Reader-next-text">Next Chapter ›</text>
-                    </view>
-                  ) : (
-                    <view className="Reader-nav-btn disabled">
-                      <text className="Reader-nav-text">Next ›</text>
-                    </view>
-                  )}
-                </view>
-              )}
-            </>
-          )}
-        </view>
-      )}
-
-      {/* Removed Tap Zones */}
+                </list-item>,
+              ]
+              : []),
+          ]
+        )}
+      </list>
     </view>
   );
 }

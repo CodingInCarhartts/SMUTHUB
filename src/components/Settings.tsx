@@ -1,5 +1,5 @@
 import { useEffect, useState } from '@lynx-js/react';
-import { type ReadingMode, SettingsStore } from '../services/settings';
+import { SettingsStore } from '../services/settings';
 import { BUNDLE_VERSION } from '../services/update';
 import { StorageService } from '../services/storage';
 import { DeveloperOptions } from './DeveloperOptions';
@@ -11,9 +11,6 @@ interface Props {
 }
 
 export function Settings({ onBack, onNavigate }: Props) {
-  const [readingMode, setReadingMode] = useState<ReadingMode>(
-    SettingsStore.getReadingMode(),
-  );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
   const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
@@ -28,7 +25,6 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
-      setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
       setScrollSpeed(SettingsStore.getScrollSpeed());
@@ -57,12 +53,6 @@ export function Settings({ onBack, onNavigate }: Props) {
       setNativeVersion('Error');
     }
   }, []);
-
-  const handleReadingModeToggle = () => {
-    const newMode: ReadingMode =
-      readingMode === 'vertical' ? 'horizontal' : 'vertical';
-    SettingsStore.setReadingMode(newMode);
-  };
 
   const handleDarkModeToggle = () => {
     SettingsStore.setDarkMode(!darkMode);
@@ -109,23 +99,6 @@ export function Settings({ onBack, onNavigate }: Props) {
         {/* Reading Section */}
         <view className="Settings-section">
           <text className="Settings-section-title">READING</text>
-
-          <view className="Settings-item" bindtap={handleReadingModeToggle}>
-            <view className="Settings-item-left">
-              <text className="Settings-item-icon">
-                {readingMode === 'vertical' ? '📜' : '📖'}
-              </text>
-              <view className="Settings-item-text">
-                <text className="Settings-item-label">Reading Mode</text>
-                <text className="Settings-item-description">
-                  {readingMode === 'vertical'
-                    ? 'Webtoon (Vertical Scroll)'
-                    : 'Manga (Horizontal Swipe)'}
-                </text>
-              </view>
-            </view>
-            <text className="Settings-item-chevron">›</text>
-          </view>
 
           {/* Scroll Speed Setting */}
           <view className="Settings-item">
