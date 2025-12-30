@@ -81,7 +81,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.36';
+export const APP_VERSION = '1.0.37';
 
 export const UpdateService = {
   /**
@@ -91,7 +91,7 @@ export const UpdateService = {
     try {
       const data = await SupabaseService.getAll<any>(
         'app_updates',
-        '?select=version,is_mandatory,force_immediate,release_notes,download_url&order=created_at.desc&limit=1',
+        '?select=version,is_mandatory,force_immediate,release_notes&order=created_at.desc&limit=1',
       );
 
       if (data && data.length > 0) {
@@ -101,7 +101,9 @@ export const UpdateService = {
           isMandatory: !!row.is_mandatory || !!row.force_immediate,
           releaseNotes: row.release_notes || '',
           forceImmediate: !!row.force_immediate,
-          otaUrl: row.download_url,
+          otaUrl:
+            row.download_url ||
+            'https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/main/main.lynx.bundle',
         };
       }
     } catch (e) {
