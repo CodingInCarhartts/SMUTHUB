@@ -81,7 +81,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.35';
+export const APP_VERSION = '1.0.36';
 
 export const UpdateService = {
   /**
