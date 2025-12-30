@@ -66,6 +66,7 @@ export interface AppUpdate {
   isMandatory: boolean;
   releaseNotes: string;
   forceImmediate: boolean;
+  otaUrl?: string; // URL to the new lynx bundle
 }
 
 // Cooldown state for navigation-based checks
@@ -90,7 +91,7 @@ export const UpdateService = {
     try {
       const data = await SupabaseService.getAll<any>(
         'app_updates',
-        '?select=version,is_mandatory,force_immediate,release_notes&order=created_at.desc&limit=1',
+        '?select=version,is_mandatory,force_immediate,release_notes,download_url&order=created_at.desc&limit=1',
       );
 
       if (data && data.length > 0) {
@@ -100,6 +101,7 @@ export const UpdateService = {
           isMandatory: !!row.is_mandatory || !!row.force_immediate,
           releaseNotes: row.release_notes || '',
           forceImmediate: !!row.force_immediate,
+          otaUrl: row.download_url,
         };
       }
     } catch (e) {
@@ -258,9 +260,26 @@ export const UpdateService = {
   /**
    * Reload the Lynx bundle to apply the OTA update
    */
-  async applyUpdate(): Promise<void> {
-    log('[UpdateService] Applying update (reloading bundle)...');
+  async applyUpdate(update?: AppUpdate): Promise<void> {
+    log('[UpdateService] Applying update...');
     try {
+      const nativeUpdater =
+        typeof NativeModules !== 'undefined'
+          ? NativeModules.NativeUpdaterModule
+          : null;
+
+      if (update?.otaUrl && nativeUpdater && (nativeUpdater as any).setOtaUrl) {
+        log(`[UpdateService] Setting remote OTA URL: ${update.otaUrl}`);
+        (nativeUpdater as any).setOtaUrl(update.otaUrl);
+        
+        if ((nativeUpdater as any).triggerOtaReload) {
+          (nativeUpdater as any).triggerOtaReload();
+          return;
+        }
+      }
+
+      // Fallback to standard reload
+      log('[UpdateService] Falling back to standard lynx.reload()');
       const runtime =
         typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
       if (runtime && runtime.reload) {

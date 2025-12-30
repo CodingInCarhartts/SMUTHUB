@@ -16,7 +16,7 @@ export function UpdateModal({ update, nativeUrl, onDismiss }: Props) {
     if (nativeUrl) {
       UpdateService.installNativeUpdate(nativeUrl);
     } else {
-      UpdateService.applyUpdate();
+      UpdateService.applyUpdate(update);
     }
   };
 

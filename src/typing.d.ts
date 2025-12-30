@@ -54,5 +54,8 @@ declare let NativeModules: {
   NativeUpdaterModule: {
     getNativeVersion(): string;
     installUpdate(url: string): void;
+    setOtaUrl(url: string): void;
+    triggerOtaReload(): void;
+    clearOta(): void;
   };
 };
