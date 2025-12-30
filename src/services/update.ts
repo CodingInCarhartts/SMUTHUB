@@ -53,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.46';
+export const APP_VERSION = '1.0.47';
 
 export const UpdateService = {
   /**
