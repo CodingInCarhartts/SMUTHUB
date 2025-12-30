@@ -2,7 +2,15 @@ import { useEffect, useState, useRef } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
 import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService, normalizeUrl } from '../services/storage';
+import { logCapture } from '../services/debugLog';
 import './Reader.css';
+
+// Helper for debug logging
+const log = (...args: any[]) => logCapture('log', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
+
+// Log immediately when Reader module loads
+log('[Reader] ========== READER MODULE LOADED ==========');
 
 interface Props {
   chapterUrl: string;
@@ -25,13 +33,13 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
       : url;
 
   useEffect(() => {
-    console.log(`[ReaderPanel #${index}] URL: ${url} (retry: ${retryCount})`);
+    log(`[ReaderPanel #${index}] URL: ${url} (retry: ${retryCount})`);
   }, [url, index, retryCount]);
 
   const handleLoad = (e: any) => {
     const { width, height } = e.detail;
     const calcRatio = width / height;
-    console.log(
+    log(
       `[ReaderPanel #${index}] LOADED: ${width}x${height} (ratio: ${calcRatio.toFixed(3)})`,
     );
     if (width && height) {
@@ -41,7 +49,7 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   };
 
   const handleError = (e: any) => {
-    console.error(
+    logError(
       `[ReaderPanel #${index}] ERROR (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
       e.detail?.errMsg,
     );
@@ -160,6 +168,8 @@ export function Reader({
   hasNextChapter,
   onNextChapter,
 }: Props) {
+  log('[Reader] COMPONENT RENDERING - chapterUrl:', chapterUrl?.substring(0, 50));
+  
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>(
@@ -189,9 +199,9 @@ export function Reader({
     const loadPanels = async () => {
       setLoading(true);
       setIsRestoring(true);
-      console.log('[Reader] Loading panels for:', chapterUrl);
+      log('[Reader] Loading panels for:', chapterUrl);
       const urls = await BatotoService.getChapterPanels(chapterUrl);
-      console.log('[Reader] Received panels:', urls.length);
+      log('[Reader] Received panels:', urls.length);
       setPanels(urls);
       
       if (manga) {
@@ -199,11 +209,11 @@ export function Reader({
 
         if (savedPosition && normalizeUrl(savedPosition.chapterUrl) === normalizeUrl(chapterUrl)) {
            const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
-           console.log('[Reader] Found position to restore:', restoredPage);
+           log('[Reader] Found position to restore:', restoredPage);
            setCurrentPage(restoredPage);
            setRestoredPageIndex(restoredPage);
         } else {
-           console.log('[Reader] No matching position found for this chapter');
+           log('[Reader] No matching position found for this chapter');
            setCurrentPage(0);
            setRestoredPageIndex(0);
         }
@@ -214,7 +224,7 @@ export function Reader({
         setPositionRestored(true);
         setIsRestoring(false);
         setLoading(false);
-        console.log('[Reader] Restoration window closed. Tracking active.');
+        log('[Reader] Restoration window closed. Tracking active.');
       }, 100);
     };
     loadPanels();
@@ -231,10 +241,10 @@ export function Reader({
 
     if (Math.abs(deltaX) > threshold) {
       if (deltaX < 0 && currentPage < panels.length - 1) {
-        console.log('[Reader] Swipe Left detected');
+        log('[Reader] Swipe Left detected');
         setCurrentPage((prev) => prev + 1);
       } else if (deltaX > 0 && currentPage > 0) {
-        console.log('[Reader] Swipe Right detected');
+        log('[Reader] Swipe Right detected');
         setCurrentPage((prev) => prev - 1);
       }
     }
@@ -261,7 +271,7 @@ export function Reader({
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
       const scrollDistance = Math.floor(screenHeightLogical * 0.1); // Scroll 10% of logical screen per press
       
-      console.log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
       
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -284,7 +294,7 @@ export function Reader({
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
       const scrollDistance = Math.floor(screenHeightLogical * 0.1);
 
-      console.log(`[Reader] Scroll UP: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll UP: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
 
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -303,14 +313,14 @@ export function Reader({
     // Throttle key events significantly to prevent over-scrolling/rapid page turns
     const now = Date.now();
     if (now - lastKeyDownTime.current < 400) { // Reduced debounce to 400ms since native is cleaner
-      console.log('[Reader] Throttling KeyDown (400ms debounce)');
+      log('[Reader] Throttling KeyDown (400ms debounce)');
       return;
     }
     lastKeyDownTime.current = now;
 
     // Handle both event structures (native override vs standard bindkeydown)
     const keyCode = e.keyCode || e.detail?.keyCode;
-    console.log(`[Reader] KeyDown: ${keyCode} (Mode: ${readingMode}, Page: ${currentPage})`);
+    log(`[Reader] KeyDown: ${keyCode} (Mode: ${readingMode}, Page: ${currentPage})`);
 
     switch (keyCode) {
       case 19: // DPAD_UP
@@ -342,7 +352,7 @@ export function Reader({
   // Listen for Native GlobalKeyEvents (from MainActivity.kt)
   useEffect(() => {
     const onGlobalKey = (data: any) => {
-      console.log('[Reader] GlobalKeyEvent received:', JSON.stringify(data));
+      log('[Reader] GlobalKeyEvent received:', JSON.stringify(data));
       
       // Handle both cases: data is the raw payload, or it's wrapped in an event object
       const payload = data?.data || data;
@@ -357,13 +367,13 @@ export function Reader({
       }
 
       if (keyCode) {
-        console.log('[Reader] Processing Key:', keyCode);
+        log('[Reader] Processing Key:', keyCode);
         handleKeyDown({ keyCode });
       }
     };
 
     const onGenericEvent = (name: string, data: any) => {
-      console.log(`[Reader] Generic GlobalEvent: ${name}`, JSON.stringify(data));
+      log(`[Reader] Generic GlobalEvent: ${name}`, JSON.stringify(data));
       if (name === 'GlobalKeyEvent') {
         onGlobalKey(data);
       }
@@ -374,23 +384,23 @@ export function Reader({
       const payload = data?.data?.[0] || data?.data || data;
       if (payload && typeof payload.x === 'number') {
         const tx = payload.x;
-        console.log(`[Reader] Remote Touch Mapping: x=${tx}`);
+        log(`[Reader] Remote Touch Mapping: x=${tx}`);
         
         // Based on user feedback:
         // Up (719, 1119) -> x > 500
         // Down (283, 1119) -> x < 500
         if (tx > 500) {
-          console.log('[Reader] Remote UP detected via touch coordinate');
+          log('[Reader] Remote UP detected via touch coordinate');
           if (readingMode === 'vertical') scrollUp(); else goToPage(-1);
         } else {
-          console.log('[Reader] Remote DOWN detected via touch coordinate');
+          log('[Reader] Remote DOWN detected via touch coordinate');
           if (readingMode === 'vertical') scrollDown(); else goToPage(1);
         }
       }
     };
 
     if (typeof lynx !== 'undefined') {
-      console.log('[Reader] Registering global event listeners...');
+      log('[Reader] Registering global event listeners...');
       (lynx as any).on('GlobalKeyEvent', onGlobalKey);
       (lynx as any).on('GlobalTouchEvent', onGlobalTouch);
       // Fallback for some Lynx versions where all global events come through a single channel
@@ -412,7 +422,7 @@ export function Reader({
     if (isRestoring || !positionRestored || !manga || loading || panels.length === 0) return;
 
     const timeoutId = setTimeout(() => {
-      console.log('[Reader] SYNCING: Saving current position:', currentPage);
+      log('[Reader] SYNCING: Saving current position:', currentPage);
       StorageService.saveReaderPosition(manga.id, chapterUrl, currentPage);
     }, 1000);
 
