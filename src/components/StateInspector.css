@@ -2,15 +2,15 @@
     display: flex;
     flex-direction: column;
     height: 400px;
-    background-color: #1a1a1a;
+    background-color: var(--surface);
     border-radius: 8px;
     overflow: hidden;
 }
 
 .StateInspector-header {
     padding: 12px;
-    background-color: #252525;
-    border-bottom: 1px solid #333;
+    background-color: var(--glass);
+    border-bottom: 1px solid var(--accent-border);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -18,7 +18,7 @@
 }
 
 .StateInspector-title {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
     font-size: 16px;
 }
@@ -32,11 +32,11 @@
     padding: 6px 12px;
     border-radius: 4px;
     margin-left: 8px;
-    background-color: #333;
+    background-color: var(--accent-soft);
 }
 
 .StateInspector-btn.primary {
-    background-color: #007aff;
+    background-color: var(--text-accent);
 }
 
 .StateInspector-btn.danger {
@@ -53,9 +53,14 @@
 }
 
 .StateInspector-btn-text {
-    color: #fff;
+    color: var(--text-accent);
     font-size: 12px;
     font-weight: bold;
+}
+
+.StateInspector-btn.primary .StateInspector-btn-text,
+.StateInspector-btn.danger .StateInspector-btn-text {
+    color: #fff;
 }
 
 .StateInspector-split {
@@ -65,22 +70,22 @@
 
 .StateInspector-list {
     flex: 1;
-    background-color: #121212;
+    background-color: var(--bg-main);
     padding: 8px;
     height: 100%;
 }
 
 .StateInspector-item {
-    background-color: #1e1e1e;
+    background-color: var(--surface);
     border-radius: 4px;
     padding: 10px;
     margin-bottom: 8px;
-    border: 1px solid #333;
+    border: 1px solid var(--accent-border);
 }
 
 .StateInspector-item.selected {
-    border-color: #007aff;
-    background-color: #252525;
+    border-color: var(--text-accent);
+    background-color: var(--accent-soft);
 }
 
 .StateInspector-item-row {
@@ -92,25 +97,25 @@
 }
 
 .StateInspector-key {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
     font-size: 14px;
 }
 
 .StateInspector-size {
-    color: #888;
+    color: var(--text-secondary);
     font-size: 10px;
     font-family: monospace;
 }
 
 .StateInspector-empty-label {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 10px;
     font-style: italic;
 }
 
 .StateInspector-raw-key {
-    color: #555;
+    color: var(--text-secondary);
     font-size: 10px;
     font-family: monospace;
 }
@@ -129,27 +134,28 @@
 }
 
 .StateInspector-detail-modal {
-    background-color: #252525;
+    background-color: var(--surface);
     border-radius: 8px;
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
-    border: 1px solid #444;
+    border: 1px solid var(--accent-border);
     overflow: hidden;
 }
 
 .StateInspector-detail-header {
     padding: 10px;
-    background-color: #333;
+    background-color: var(--glass);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid var(--accent-border);
 }
 
 .StateInspector-detail-title {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
     font-size: 14px;
 }
@@ -157,11 +163,11 @@
 .StateInspector-detail-content {
     flex: 1;
     padding: 10px;
-    background-color: #121212;
+    background-color: var(--bg-main);
 }
 
 .StateInspector-json {
-    color: #bbb;
+    color: var(--text-primary);
     font-family: monospace;
     font-size: 12px;
     white-space: pre-wrap;

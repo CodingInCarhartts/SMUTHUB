@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 400px;
-    background-color: #1a1a1a;
+    background-color: var(--surface);
     border-radius: 8px;
     overflow: hidden;
     margin-top: 10px;
@@ -14,48 +14,49 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background-color: #252525;
-    border-bottom: 1px solid #333;
+    background-color: var(--glass);
+    border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-title {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
     font-size: 14px;
 }
 
 .NetworkInspector-btn {
     padding: 4px 8px;
-    background-color: #333;
+    background-color: var(--accent-soft);
     border-radius: 4px;
 }
 
 .NetworkInspector-btn:active {
-    background-color: #444;
+    background-color: var(--accent-border);
 }
 
 .NetworkInspector-btn-text {
-    color: #fff;
+    color: var(--text-accent);
     font-size: 12px;
+    font-weight: bold;
 }
 
 .NetworkInspector-list {
     flex: 1;
-    background-color: #1a1a1a;
+    background-color: var(--bg-main);
 }
 
 .NetworkInspector-item {
     padding: 8px 12px;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-item:active {
-    background-color: #2a2a2a;
+    background-color: var(--accent-soft);
 }
 
 .NetworkInspector-item.selected {
-    background-color: #333;
-    border-left: 3px solid #007aff;
+    background-color: var(--accent-soft);
+    border-left: 3px solid var(--text-accent);
 }
 
 .NetworkInspector-item-row {
@@ -85,23 +86,24 @@
 .NetworkInspector-status {
     font-size: 11px;
     font-weight: bold;
+    color: var(--text-primary);
 }
 
 .NetworkInspector-duration {
     font-size: 10px;
-    color: #888;
+    color: var(--text-secondary);
 }
 
 .NetworkInspector-url {
     font-size: 11px;
-    color: #ccc;
+    color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .NetworkInspector-empty {
-    color: #666;
+    color: var(--text-secondary);
     text-align: center;
     margin-top: 20px;
     font-size: 12px;
@@ -124,11 +126,12 @@
 .NetworkInspector-details {
     width: 90%;
     height: 80%;
-    background-color: #222;
+    background-color: var(--surface);
     border-radius: 8px;
     padding: 16px;
     display: flex;
     flex-direction: column;
+    border: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-details-header {
@@ -137,23 +140,23 @@
     justify-content: space-between;
     margin-bottom: 12px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-details-title {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
     font-size: 16px;
 }
 
 .NetworkInspector-close {
-    color: #aaa;
+    color: var(--text-secondary);
     font-size: 20px;
     padding: 4px;
 }
 
 .NetworkInspector-section {
-    color: #007aff;
+    color: var(--text-accent);
     font-size: 12px;
     font-weight: bold;
     margin-top: 12px;
@@ -166,7 +169,7 @@
 }
 
 .NetworkInspector-kv {
-    color: #ddd;
+    color: var(--text-primary);
     font-size: 11px;
     margin-bottom: 4px;
     font-family: monospace;
