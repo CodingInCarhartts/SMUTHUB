@@ -48,26 +48,27 @@ export function DeveloperOptions() {
     setCopyStatus('');
   };
 
-  const handleSendReport = async () => {
-    try {
-      const nativeUtils =
-        typeof NativeModules !== 'undefined'
-          ? NativeModules.NativeUtilsModule
-          : null;
 
-      if (nativeUtils && nativeUtils.shareText) {
-        // Use shareText to send to email
-        nativeUtils.shareText(debugReport, 'SMUTHUB Debug Report');
-        setCopyStatus('✅ Share sheet opened!');
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(debugReport);
-        setCopyStatus('✅ Copied to clipboard (Fallback)!');
+  const handleSaveToDb = async () => {
+    setCopyStatus('⏳ Saving to database...');
+    try {
+      const { SupabaseService } = await import('../services/supabase');
+      const deviceId = StorageService.getDeviceId();
+      
+      const success = await SupabaseService.upsert('debug_logs', {
+        device_id: deviceId,
+        report: debugReport,
+        created_at: new Date().toISOString(),
+      }, 'device_id');
+
+      if (success) {
+        setCopyStatus('✅ Debug log saved to database!');
       } else {
-        setCopyStatus('⚠️ Sharing not available');
+        setCopyStatus('❌ Failed to save to database');
       }
-    } catch (e) {
-      console.error('[DeveloperOptions] Send failed:', e);
-      setCopyStatus('❌ Send failed');
+    } catch (e: any) {
+      console.error('[DeveloperOptions] Save to DB failed:', e);
+      setCopyStatus(`❌ Save failed: ${e?.message || 'Unknown error'}`);
     }
 
     // Clear status after 3s
@@ -183,9 +184,9 @@ export function DeveloperOptions() {
                 </view>
                 <view
                   className="DebugConsole-button primary"
-                  bindtap={handleSendReport}
+                  bindtap={handleSaveToDb}
                 >
-                  <text className="DebugConsole-button-text">📧 Send Logs</text>
+                  <text className="DebugConsole-button-text">💾 Save to DB</text>
                 </view>
                 <view
                   className="DebugConsole-button"

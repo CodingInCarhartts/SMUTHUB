@@ -640,7 +640,7 @@ export const storageReady = (async () => {
     await StorageService.getSettings();
     
     log('[Storage] System is READY');
-  } catch (e) {
-    logError('[Storage] Initialization sequence failed:', e);
+  } catch (e: any) {
+    logError('[Storage] Initialization sequence failed:', e?.message || e?.toString?.() || JSON.stringify(e) || e);
   }
 })();

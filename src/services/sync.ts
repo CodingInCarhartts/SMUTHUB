@@ -21,10 +21,11 @@ export const SyncEngine = {
    * Add an operation to the persistent queue
    */
   async enqueue(op: Operation): Promise<void> {
-    console.log(`[SyncEngine] Enqueueing ${op.type} for ${op.table}`);
+    console.log(`[SyncEngine] Enqueueing ${op.type} for ${op.table}:`, JSON.stringify(op.payload).substring(0, 200));
     const queue = await this.getQueue();
     queue.push(op);
     await this.saveQueue(queue);
+    console.log(`[SyncEngine] Queue size after enqueue: ${queue.length}`);
     
     // Trigger background sync attempt
     this.processQueue();
@@ -34,10 +35,16 @@ export const SyncEngine = {
    * Process the pending operations in the queue
    */
   async processQueue(): Promise<void> {
-    if (isSyncing) return;
+    if (isSyncing) {
+      console.log('[SyncEngine] Already syncing, skipping...');
+      return;
+    }
     
     const queue = await this.getQueue();
-    if (queue.length === 0) return;
+    if (queue.length === 0) {
+      console.log('[SyncEngine] Queue is empty, nothing to process');
+      return;
+    }
 
     console.log(`[SyncEngine] Processing queue (${queue.length} items)...`);
     isSyncing = true;
@@ -46,9 +53,11 @@ export const SyncEngine = {
       // Processes operations sequentially to maintain order and validity
       while (queue.length > 0) {
         const op = queue[0];
+        console.log(`[SyncEngine] Executing: ${op.type} on ${op.table}...`);
         const success = await this.executeOperation(op);
         
         if (success) {
+          console.log(`[SyncEngine] SUCCESS: ${op.type} on ${op.table}`);
           queue.shift(); // Remove processed
           await this.saveQueue(queue);
         } else {
@@ -57,8 +66,8 @@ export const SyncEngine = {
           break;
         }
       }
-    } catch (e) {
-      console.error('[SyncEngine] Critical error during queue processing:', e);
+    } catch (e: any) {
+      console.error('[SyncEngine] Critical error during queue processing:', e?.message || e);
     } finally {
       isSyncing = false;
       console.log(`[SyncEngine] Finished processing. Remaining: ${queue.length}`);
