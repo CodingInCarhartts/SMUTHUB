@@ -66,7 +66,7 @@ export const MigrationService = {
           reading_mode: settings.readingMode,
           dark_mode: settings.darkMode,
           dev_mode: settings.devMode,
-          remote_mode: settings.remoteMode,
+          scroll_speed: settings.scrollSpeed,
           updated_at: new Date().toISOString()
         }, 'device_id');
       }

@@ -44,8 +44,8 @@ export const SettingsStore = {
     return settings.devMode;
   },
 
-  getRemoteMode(): boolean {
-    return settings.remoteMode;
+  getScrollSpeed(): number {
+    return settings.scrollSpeed ?? 0.15;
   },
 
   setReadingMode(mode: ReadingMode): void {
@@ -69,16 +69,8 @@ export const SettingsStore = {
     listeners.forEach((fn) => fn());
   },
 
-  setRemoteMode(enabled: boolean): void {
-    console.log('[SettingsStore] Remote mode set to:', enabled);
-    settings.remoteMode = enabled;
-    StorageService.saveSettings({ remoteMode: enabled });
-    listeners.forEach((fn) => fn());
-  },
 
-  getScrollSpeed(): number {
-    return settings.scrollSpeed ?? 0.15;
-  },
+
 
   setScrollSpeed(speed: number): void {
     console.log('[SettingsStore] Scroll speed set to:', speed);

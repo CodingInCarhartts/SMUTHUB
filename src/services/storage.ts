@@ -29,7 +29,6 @@ export interface AppSettings {
   readingMode: 'vertical' | 'horizontal';
   darkMode: boolean;
   devMode: boolean;
-  remoteMode: boolean;
   scrollSpeed: number; // 0.1 = 10%, 0.2 = 20%, etc.
 }
 
@@ -55,7 +54,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   readingMode: 'vertical',
   darkMode: false,
   devMode: false,
-  remoteMode: false,
   scrollSpeed: 0.15, // 15% of screen per scroll
 };
 
@@ -456,7 +454,7 @@ export const StorageService = {
       const deviceId = this.getDeviceId();
       const cloudData = await SupabaseService.getAll<any>(
         'settings',
-        `?select=reading_mode,dark_mode,dev_mode,remote_mode&device_id=eq.${deviceId}`,
+        `?select=reading_mode,dark_mode,dev_mode,scroll_speed&device_id=eq.${deviceId}`,
       );
       if (cloudData && cloudData.length > 0) {
         const row = cloudData[0];
@@ -464,7 +462,6 @@ export const StorageService = {
           readingMode: (row.reading_mode as any) || DEFAULT_SETTINGS.readingMode,
           darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
           devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
-          remoteMode: row.remote_mode ?? DEFAULT_SETTINGS.remoteMode,
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
         };
         setLocal(STORAGE_KEYS.SETTINGS, settings);
@@ -487,7 +484,7 @@ export const StorageService = {
         reading_mode: updated.readingMode,
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
-        remote_mode: updated.remoteMode,
+        scroll_speed: updated.scrollSpeed,
         updated_at: new Date().toISOString()
       },
       timestamp: Date.now()

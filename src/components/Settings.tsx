@@ -16,7 +16,7 @@ export function Settings({ onBack, onNavigate }: Props) {
   );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
-  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
+  // Removed remoteMode
   const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -32,7 +32,10 @@ export function Settings({ onBack, onNavigate }: Props) {
       setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
-      setRemoteMode(SettingsStore.getRemoteMode());
+      setReadingMode(SettingsStore.getReadingMode());
+      setDarkMode(SettingsStore.getDarkMode());
+      setDevMode(SettingsStore.getDevMode());
+      // Removed setRemoteMode
       setScrollSpeed(SettingsStore.getScrollSpeed());
     });
 
@@ -70,9 +73,8 @@ export function Settings({ onBack, onNavigate }: Props) {
     SettingsStore.setDarkMode(!darkMode);
   };
 
-  const handleRemoteModeToggle = () => {
-    SettingsStore.setRemoteMode(!remoteMode);
-  };
+
+  // Removed handleRemoteModeToggle
 
   const handleScrollSpeedChange = (speed: number) => {
     SettingsStore.setScrollSpeed(speed);
@@ -133,24 +135,7 @@ export function Settings({ onBack, onNavigate }: Props) {
             <text className="Settings-item-chevron">›</text>
           </view>
 
-          <view className="Settings-item" bindtap={handleRemoteModeToggle}>
-            <view className="Settings-item-left">
-              <text className="Settings-item-icon">🎮</text>
-              <view className="Settings-item-text">
-                <text className="Settings-item-label">Remote Mode</text>
-                <text className="Settings-item-description">
-                  Tap zones for page turners
-                </text>
-              </view>
-            </view>
-            <view
-              className={
-                remoteMode ? 'Settings-toggle active' : 'Settings-toggle'
-              }
-            >
-              <view className="Settings-toggle-knob" />
-            </view>
-          </view>
+          {/* Removed Remote Mode Toggle */}
 
           <view className="Settings-item">
             <view className="Settings-item-left">

@@ -3,6 +3,17 @@ import { BatotoService, type Manga } from '../services/batoto';
 import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService, normalizeUrl } from '../services/storage';
 import { logCapture } from '../services/debugLog';
+import { 
+  DEFAULT_ASPECT_RATIO, 
+  BG_COLOR_DARK, 
+  MIN_PANEL_HEIGHT, 
+  PANEL_MAX_RETRIES,
+  RETRY_DELAY_BASE,
+  RETRY_DELAY_INCREMENT,
+  KEY_DEBOUNCE_MS,
+  REMOTE_TOUCH_DIVIDER_X,
+  SWIPE_THRESHOLD_PX
+} from '../config';
 import './Reader.css';
 
 // Helper for debug logging
@@ -25,7 +36,6 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
-  const MAX_RETRIES = 5;
 
   const currentUrl =
     retryCount > 0
@@ -50,15 +60,15 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
 
   const handleError = (e: any) => {
     logError(
-      `[ReaderPanel #${index}] ERROR (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
+      `[ReaderPanel #${index}] ERROR (attempt ${retryCount + 1}/${PANEL_MAX_RETRIES}):`,
       e.detail?.errMsg,
     );
-    if (retryCount < MAX_RETRIES - 1) {
+    if (retryCount < PANEL_MAX_RETRIES - 1) {
       setTimeout(
         () => {
           setRetryCount((prev) => prev + 1);
         },
-        500 + (index % 5) * 200,
+        RETRY_DELAY_BASE + (index % 5) * RETRY_DELAY_INCREMENT,
       );
     } else {
       setFailed(true);
@@ -66,21 +76,21 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   };
 
   const handleRetryTap = () => {
-    if (retryCount >= MAX_RETRIES - 1) {
+    if (retryCount >= PANEL_MAX_RETRIES - 1) {
       setRetryCount(0);
       setFailed(false);
     }
   };
 
-  const displayRatio = ratio ? `${ratio}` : '0.6';
+  const displayRatio = ratio ? `${ratio}` : `${DEFAULT_ASPECT_RATIO}`;
 
   return (
     <view
       className="Reader-panel-wrapper"
       style={{
         aspectRatio: displayRatio,
-        backgroundColor: ratio ? 'transparent' : '#1a1a1a',
-        minHeight: ratio ? 'auto' : '400px',
+        backgroundColor: ratio ? 'transparent' : BG_COLOR_DARK,
+        minHeight: ratio ? 'auto' : MIN_PANEL_HEIGHT,
       }}
     >
       {failed ? (
@@ -106,7 +116,7 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
         <view className="Reader-panel-loader">
           <text className="Reader-panel-loader-text">
             {retryCount > 0
-              ? `Retrying (${retryCount}/${MAX_RETRIES})...`
+              ? `Retrying (${retryCount}/${PANEL_MAX_RETRIES})...`
               : 'Loading...'}
           </text>
         </view>
@@ -119,7 +129,6 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
 function HorizontalPanel({ url, index }: { url: string; index: number }) {
   const [failed, setFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 5;
 
   const currentUrl =
     retryCount > 0
@@ -127,8 +136,8 @@ function HorizontalPanel({ url, index }: { url: string; index: number }) {
       : url;
 
   const handleError = () => {
-    if (retryCount < MAX_RETRIES - 1) {
-      setTimeout(() => setRetryCount((prev) => prev + 1), 500);
+    if (retryCount < PANEL_MAX_RETRIES - 1) {
+      setTimeout(() => setRetryCount((prev) => prev + 1), RETRY_DELAY_BASE);
     } else {
       setFailed(true);
     }
@@ -183,14 +192,13 @@ export function Reader({
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
-  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
+  // Removed remoteMode
   const [showControls, setShowControls] = useState(true);
   const lastKeyDownTime = useRef<number>(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       setReadingMode(SettingsStore.getReadingMode());
-      setRemoteMode(SettingsStore.getRemoteMode());
     });
     return unsubscribe;
   }, []);
@@ -237,7 +245,7 @@ export function Reader({
   const handleTouchEnd = (e: any) => {
     const touchEndX = e.detail.changedTouches[0].clientX;
     const deltaX = touchEndX - touchStartX;
-    const threshold = 50; // pixels
+    const threshold = SWIPE_THRESHOLD_PX;
 
     if (Math.abs(deltaX) > threshold) {
       if (deltaX < 0 && currentPage < panels.length - 1) {
@@ -314,8 +322,8 @@ export function Reader({
   const handleKeyDown = (e: any) => {
     // Throttle key events significantly to prevent over-scrolling/rapid page turns
     const now = Date.now();
-    if (now - lastKeyDownTime.current < 400) { // Reduced debounce to 400ms since native is cleaner
-      log('[Reader] Throttling KeyDown (400ms debounce)');
+    if (now - lastKeyDownTime.current < KEY_DEBOUNCE_MS) { 
+      log(`[Reader] Throttling KeyDown (${KEY_DEBOUNCE_MS}ms debounce)`);
       return;
     }
     lastKeyDownTime.current = now;
@@ -396,7 +404,7 @@ export function Reader({
         const tx = payload.x;
         log(`[Reader] Remote Touch Mapping: x=${tx}`);
         
-        if (tx > 500) {
+        if (tx > REMOTE_TOUCH_DIVIDER_X) {
           log('[Reader] Remote UP detected via touch coordinate');
           if (readingMode === 'vertical') scrollUp(); else goToPage(-1);
         } else {
@@ -470,7 +478,7 @@ export function Reader({
   return (
     <view 
       className="Reader" 
-      bindtap={!remoteMode ? toggleControls : undefined}
+      bindtap={toggleControls}
       bindkeydown={handleKeyDown}
       focusable={true}
       focus-index="0"
@@ -562,7 +570,7 @@ export function Reader({
           className="Reader-horizontal-container"
           bindtouchstart={handleTouchStart}
           bindtouchend={handleTouchEnd}
-          bindtap={!remoteMode ? toggleControls : undefined}
+          bindtap={toggleControls}
         >
           {loading ? (
             <view className="Reader-loading-container">
@@ -576,8 +584,8 @@ export function Reader({
             <>
               <HorizontalPanel url={panels[currentPage]} index={currentPage} />
 
-              {/* Navigation buttons: hidden in remoteMode unless controls are shown */}
-              {(!remoteMode || showControls) && (
+              {/* Navigation buttons: shown when controls are visible */}
+              {showControls && (
                 <view className="Reader-nav-buttons">
                   <view
                     className={
@@ -610,14 +618,7 @@ export function Reader({
         </view>
       )}
 
-      {/* Tap Zones for Remote Mode */}
-      {remoteMode && (
-        <view className="Reader-tap-zones">
-          <view className="Reader-tap-zone prev" bindtap={() => goToPage(-1)} />
-          <view className="Reader-tap-zone center" bindtap={toggleControls} />
-          <view className="Reader-tap-zone next" bindtap={readingMode === 'vertical' ? scrollDown : () => goToPage(1)} />
-        </view>
-      )}
+      {/* Removed Tap Zones */}
     </view>
   );
 }
