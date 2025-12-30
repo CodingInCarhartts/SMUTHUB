@@ -113,17 +113,11 @@ class MainActivity : AppCompatActivity() {
             lynxView?.sendGlobalEvent("GlobalKeyEvent", array)
         }
 
-        // Only consume specific keys to avoid breaking system navigation entirely
+        // Keys to ALWAYS consume in remote mode (to prevent system conflict)
         val keysToConsume = setOf(
-            android.view.KeyEvent.KEYCODE_VOLUME_UP,
-            android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-            android.view.KeyEvent.KEYCODE_DPAD_UP,
-            android.view.KeyEvent.KEYCODE_DPAD_DOWN,
-            android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-            android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
-            android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-            android.view.KeyEvent.KEYCODE_ENTER,
-            android.view.KeyEvent.KEYCODE_SPACE
+            24, 25, // Volume Up/Down
+            19, 20, 21, 22, // DPAD
+            23, 66, 62 // Center/Enter/Space
         )
 
         if (keysToConsume.contains(keyCode)) {
@@ -134,11 +128,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean {
-        Log.d(TAG, "Generic Motion: ${event.action}")
-        runOnUiThread {
-          Toast.makeText(this@MainActivity, "Motion: ${event.action}", Toast.LENGTH_SHORT).show()
+        val action = event.action
+        val axisX = event.getAxisValue(android.view.MotionEvent.AXIS_X)
+        val axisY = event.getAxisValue(android.view.MotionEvent.AXIS_Y)
+        val vScroll = event.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL)
+        val hScroll = event.getAxisValue(android.view.MotionEvent.AXIS_HSCROLL)
+
+        Log.d(TAG, "Generic Motion: act=$action, X=$axisX, Y=$axisY, V=$vScroll, H=$hScroll")
+        
+        if (action != android.view.MotionEvent.ACTION_HOVER_MOVE) {
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, "Motion: $action (V:$vScroll)", Toast.LENGTH_SHORT).show()
+            }
         }
         return super.dispatchGenericMotionEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        // Only log touch down to avoid spam
+        if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+            Log.d(TAG, "Touch Down at: ${event.x}, ${event.y}")
+        }
+        return super.dispatchTouchEvent(event)
     }
 
     override fun onDestroy() {
