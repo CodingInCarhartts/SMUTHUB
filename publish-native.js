@@ -15,7 +15,6 @@ const BUNDLE_DEST = join(ASSETS_DIR, "main.lynx.bundle");
 const SUPABASE_URL = "https://exymyvbkjsttqsnifedq.supabase.co/rest/v1/app_native_updates";
 // Note: Using the same key as found in existing publish.js
 const SUPABASE_KEY = "sb_publishable_tyLE5ronU6B5LAGta5GBjA_ZSqpzHyz";
-const REPO_URL = "https://github.com/CodingInCarhartts/SMUTHUB";
 
 function run(command, options = {}) {
   console.log(`> ${command}`);
@@ -23,7 +22,11 @@ function run(command, options = {}) {
 }
 
 async function publish() {
+  const customMsg = process.argv[2];
   console.log("🦁 Starting Native Update Process...\n");
+  if (customMsg) {
+    console.log(`📝 Using custom message: "${customMsg}"\n`);
+  }
 
   // 1. Bump Versions
   console.log("📦 Version Bump:");
@@ -92,7 +95,10 @@ async function publish() {
   console.log("\nrw Committing and pushing...");
   try {
     run("git add -f SMUTHUB/app/build.gradle.kts src/services/update.ts SMUTHUB.apk");
-    run(`git commit -m "🔖 native: release v${newVer} (code ${newCode})"`);
+    const commitMsg = customMsg 
+      ? `🔖 native: ${customMsg} (v${newVer}, code ${newCode})`
+      : `🔖 native: release v${newVer} (code ${newCode})`;
+    run(`git commit -m "${commitMsg}"`);
     run("git push origin main");
     console.log("✅ Pushed to repository");
   } catch (e) {
@@ -117,7 +123,7 @@ async function publish() {
         version: newVer,
         download_url: downloadUrl,
         is_mandatory: false,
-        release_notes: `Native update v${newVer}`
+        release_notes: customMsg || `Native update v${newVer}`
       })
     });
 
