@@ -372,11 +372,22 @@ export function Reader({
     };
 
     const onGlobalTouch = (data: any) => {
-      console.log('[Reader] GlobalTouchEvent received:', JSON.stringify(data));
       // payload structure matches Native: [{x, y}] or {data: [{x, y}]}
       const payload = data?.data?.[0] || data?.data || data;
       if (payload && typeof payload.x === 'number') {
-        console.log(`[Reader] Raw Touch at: (${payload.x}, ${payload.y})`);
+        const tx = payload.x;
+        console.log(`[Reader] Remote Touch Mapping: x=${tx}`);
+        
+        // Based on user feedback:
+        // Up (719, 1119) -> x > 500
+        // Down (283, 1119) -> x < 500
+        if (tx > 500) {
+          console.log('[Reader] Remote UP detected via touch coordinate');
+          if (readingMode === 'vertical') scrollUp(); else goToPage(-1);
+        } else {
+          console.log('[Reader] Remote DOWN detected via touch coordinate');
+          if (readingMode === 'vertical') scrollDown(); else goToPage(1);
+        }
       }
     };
 
