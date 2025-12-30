@@ -54,7 +54,8 @@ async function publish() {
   // 3. Commit and Push
   console.log("\n🔄 Committing and pushing...");
   try {
-    run("git add src main.lynx.bundle");
+    run("git add src");
+    run("git add -f main.lynx.bundle");
     const commitMsg = customMsg 
       ? `🚀 ota: ${customMsg} (v${newVer})`
       : `🚀 ota: bundle update v${newVer}`;
@@ -68,7 +69,10 @@ async function publish() {
 
   // 4. Update Supabase
   console.log(`\n📡 Registering OTA in Supabase (v${newVer})...`);
-  const bundleUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/main/main.lynx.bundle`;
+  
+  // Use specific commit hash to avoid caching delays
+  const commitHash = execSync("git rev-parse HEAD").toString().trim();
+  const bundleUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/${commitHash}/main.lynx.bundle`;
 
   try {
     const response = await fetch(SUPABASE_URL, {
@@ -82,7 +86,8 @@ async function publish() {
       body: JSON.stringify({
         version: newVer,
         is_mandatory: false,
-        release_notes: customMsg || `OTA update v${newVer}`
+        release_notes: customMsg || `OTA update v${newVer}`,
+        download_url: bundleUrl
       })
     });
 
