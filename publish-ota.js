@@ -54,7 +54,7 @@ async function publish() {
   // 3. Commit and Push
   console.log("\n🔄 Committing and pushing...");
   try {
-    run("git add src/services/update.ts main.lynx.bundle");
+    run("git add src main.lynx.bundle");
     const commitMsg = customMsg 
       ? `🚀 ota: ${customMsg} (v${newVer})`
       : `🚀 ota: bundle update v${newVer}`;
@@ -81,7 +81,6 @@ async function publish() {
       },
       body: JSON.stringify({
         version: newVer,
-        download_url: bundleUrl,
         is_mandatory: false,
         release_notes: customMsg || `OTA update v${newVer}`
       })

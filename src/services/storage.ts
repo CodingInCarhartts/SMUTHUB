@@ -39,6 +39,7 @@ const STORAGE_KEYS = {
   FILTERS: 'batoto:filters',
   DEVICE_ID: 'batoto:device_id',
   READER_POSITION: 'batoto:reader_position',
+  SKIPPED_VERSION: 'batoto:skipped_version',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -594,6 +595,16 @@ export const StorageService = {
   clearReaderPosition(): void {
     memoryStorage.delete(STORAGE_KEYS.READER_POSITION);
     setNativeItem(STORAGE_KEYS.READER_POSITION, '');
+  },
+
+  // ============ UPDATE SKIP ============
+
+  getSkippedVersion(): string | null {
+    return getLocal<string | null>(STORAGE_KEYS.SKIPPED_VERSION, null);
+  },
+
+  setSkippedVersion(version: string): void {
+    setLocal(STORAGE_KEYS.SKIPPED_VERSION, version);
   },
 
   // ============ CLEAR ALL ============

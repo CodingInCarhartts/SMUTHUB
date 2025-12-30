@@ -61,6 +61,13 @@
   color: var(--text-accent);
 }
 
+.DebugVersion {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  margin-top: 4px;
+}
+
 .MangaList {
   flex: 1;
 }

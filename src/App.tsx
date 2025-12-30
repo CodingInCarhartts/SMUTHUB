@@ -1,5 +1,6 @@
 // Initialize debug log capture FIRST so all logs are captured
 import './services/debugLog';
+import { Sparkles } from './components/Sparkles';
 import { useCallback, useEffect, useMemo, useState } from '@lynx-js/react';
 import { BottomNav } from './components/BottomNav';
 import { FavoritesView } from './components/FavoritesView';
@@ -24,6 +25,7 @@ import {
   type AppUpdate,
   type NativeAppUpdate,
   UpdateService,
+  APP_VERSION,
 } from './services/update';
 import './App.css';
 
@@ -369,7 +371,10 @@ export function App() {
             {tab === 'home' && (
               <view className="Home">
                 <view className="HomeHeader">
-                  <text className="HomeTitle">{randomHeaderTitle}</text>
+                  <Sparkles>
+                    <text className="HomeTitle">{randomHeaderTitle}</text>
+                  </Sparkles>
+                  <text className="DebugVersion">v{APP_VERSION}</text>
                 </view>
                 <scroll-view
                   className="MangaList"

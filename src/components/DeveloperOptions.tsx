@@ -2,7 +2,7 @@ import { useState } from '@lynx-js/react';
 import { DebugLogService } from '../services/debugLog';
 import { StorageService } from '../services/storage';
 import { SettingsStore } from '../services/settings';
-import { APP_VERSION } from '../services/update';
+import { UpdateService, APP_VERSION } from '../services/update';
 import './Settings.css';
 
 export function DeveloperOptions() {
@@ -72,6 +72,30 @@ export function DeveloperOptions() {
 
     // Clear status after 3s
     setTimeout(() => setCopyStatus(''), 3000);
+  };
+
+  const handleForceUpdateCheck = async () => {
+    setCopyStatus('🔍 Checking for updates...');
+    try {
+      const update = await UpdateService.checkUpdate();
+      if (update) {
+        setCopyStatus(`🚀 Update v${update.version} found! Check Home page.`);
+      } else {
+        setCopyStatus('✅ App is up to date.');
+      }
+      // Refresh report to show new logs
+      const report = DebugLogService.getDebugReport({
+        settings: SettingsStore.get(),
+        deviceId: StorageService.getDeviceId(),
+        version: APP_VERSION,
+        storageValues: {
+          skippedVersion: StorageService.getSkippedVersion() || 'None',
+        },
+      });
+      setDebugReport(report);
+    } catch (e: any) {
+      setCopyStatus(`❌ Check failed: ${e.message}`);
+    }
   };
 
   const handleRefreshReport = async () => {
@@ -150,6 +174,12 @@ export function DeveloperOptions() {
                   bindtap={handleRefreshReport}
                 >
                   <text className="DebugConsole-button-text">🔄</text>
+                </view>
+                <view
+                  className="DebugConsole-button"
+                  bindtap={handleForceUpdateCheck}
+                >
+                  <text className="DebugConsole-button-text">🆙 Check Update</text>
                 </view>
                 <view
                   className="DebugConsole-button primary"
