@@ -345,7 +345,7 @@ export function Reader({
       bindtap={!remoteMode ? toggleControls : undefined}
       bindkeydown={handleKeyDown}
       focusable={true}
-      tabIndex={0}
+      focus-index="0"
     >
       <view className={showControls ? "Reader-header" : "Reader-header hidden"}>
         <view className="Reader-header-left" bindtap={onBack}>
