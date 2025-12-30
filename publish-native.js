@@ -56,15 +56,6 @@ async function publish() {
   writeFileSync(GRADLE_FILE, gradleContent);
   console.log("✅ Updated build.gradle.kts");
 
-  // Update src/services/update.ts
-  let tsContent = readFileSync(UPDATE_FILE, "utf-8");
-  tsContent = tsContent.replace(
-    /export const APP_VERSION = '[\d\.]+';/,
-    `export const APP_VERSION = '${newVer}';`
-  );
-  writeFileSync(UPDATE_FILE, tsContent);
-  console.log("✅ Updated src/services/update.ts");
-
   // 2. Build Lynx Bundle
   console.log("\n📦 Building Lynx Bundle...");
   try {
@@ -94,7 +85,7 @@ async function publish() {
   // 4. Commit and Push
   console.log("\nrw Committing and pushing...");
   try {
-    run("git add -f SMUTHUB/app/build.gradle.kts SMUTHUB/app/src src/services/update.ts SMUTHUB.apk");
+    run("git add -f SMUTHUB/app/build.gradle.kts SMUTHUB/app/src SMUTHUB.apk");
     const commitMsg = customMsg 
       ? `🔖 native: ${customMsg} (v${newVer}, code ${newCode})`
       : `🔖 native: release v${newVer} (code ${newCode})`;

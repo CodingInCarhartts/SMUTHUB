@@ -25,16 +25,16 @@ async function publish() {
 
   // 1. Get Current Version & Bump
   let tsContent = readFileSync(UPDATE_FILE, "utf-8");
-  const versionMatch = tsContent.match(/export const APP_VERSION = '(\d+\.\d+\.(\d+))'/);
-  if (!versionMatch) throw new Error("Could not find APP_VERSION in update.ts");
+  const versionMatch = tsContent.match(/export const BUNDLE_VERSION = '(\d+\.\d+\.(\d+))'/);
+  if (!versionMatch) throw new Error("Could not find BUNDLE_VERSION in update.ts");
   
   const oldVer = versionMatch[1];
   const oldPatch = parseInt(versionMatch[2]);
   const newVer = oldVer.replace(/\.\d+$/, `.${oldPatch + 1}`);
   
   tsContent = tsContent.replace(
-    `export const APP_VERSION = '${oldVer}';`,
-    `export const APP_VERSION = '${newVer}';`
+    `export const BUNDLE_VERSION = '${oldVer}';`,
+    `export const BUNDLE_VERSION = '${newVer}';`
   );
   
   writeFileSync(UPDATE_FILE, tsContent);
