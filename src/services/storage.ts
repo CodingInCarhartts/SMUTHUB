@@ -1,6 +1,8 @@
 import type { Manga, SearchFilters } from './batoto/types';
 import { logCapture } from './debugLog';
 import { SupabaseService } from './supabase';
+import { SyncEngine } from './sync';
+import { MigrationService } from './migration';
 
 // Helper to log with capture (console override doesn't work in Lynx)
 const log = (...args: any[]) => logCapture('log', ...args);
@@ -336,7 +338,6 @@ export const StorageService = {
       setLocal(STORAGE_KEYS.FAVORITES, favorites);
     }
 
-    const { SyncEngine } = await import('./sync');
     await SyncEngine.enqueue({
       type: 'UPSERT',
       table: 'favorites',
@@ -357,7 +358,6 @@ export const StorageService = {
       favorites.filter((m) => m.id !== mangaId),
     );
 
-    const { SyncEngine } = await import('./sync');
     await SyncEngine.enqueue({
       type: 'DELETE',
       table: 'favorites',
@@ -418,7 +418,6 @@ export const StorageService = {
     });
     setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
 
-    const { SyncEngine } = await import('./sync');
     await SyncEngine.enqueue({
       type: 'UPSERT',
       table: 'history',
@@ -438,7 +437,6 @@ export const StorageService = {
     const deviceId = this.getDeviceId();
     setLocal(STORAGE_KEYS.HISTORY, []);
     
-    const { SyncEngine } = await import('./sync');
     await SyncEngine.enqueue({
       type: 'DELETE',
       table: 'history',
@@ -478,7 +476,6 @@ export const StorageService = {
     const updated = { ...current, ...settings };
     setLocal(STORAGE_KEYS.SETTINGS, updated);
 
-    const { SyncEngine } = await import('./sync');
     await SyncEngine.enqueue({
       type: 'UPSERT',
       table: 'settings',
@@ -533,8 +530,7 @@ export const StorageService = {
     setLocal(STORAGE_KEYS.READER_POSITION, position);
     
     (async () => {
-      const { SyncEngine } = await import('./sync');
-      await SyncEngine.enqueue({
+        await SyncEngine.enqueue({
         type: 'UPSERT',
         table: 'reader_positions',
         payload: {
@@ -603,8 +599,7 @@ export const StorageService = {
       memoryStorage.clear();
       await this.clearHistory();
       
-      const { SyncEngine } = await import('./sync');
-      await SyncEngine.enqueue({
+        await SyncEngine.enqueue({
         type: 'DELETE',
         table: 'favorites',
         payload: { device_id: deviceId },
@@ -633,7 +628,6 @@ export const storageReady = (async () => {
     await initializeFromNativeStorage();
     
     // 2. Data Migration (Legacy -> Cloud)
-    const { MigrationService } = await import('./migration');
     await MigrationService.run();
     
     // 3. Initial Cloud Sync
