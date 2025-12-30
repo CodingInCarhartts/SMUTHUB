@@ -53,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const APP_VERSION = '1.0.44';
+export const BUNDLE_VERSION = '1.0.45';
 
 export const UpdateService = {
   /**
@@ -138,9 +138,9 @@ export const UpdateService = {
       return null;
     }
 
-    const comparison = this.compareVersions(latest.version, APP_VERSION);
+    const comparison = this.compareVersions(latest.version, BUNDLE_VERSION);
     console.log(
-      `[UpdateService] Comparing ${latest.version} vs current ${APP_VERSION} => Result: ${comparison}`,
+      `[UpdateService] Comparing ${latest.version} vs current ${BUNDLE_VERSION} => Result: ${comparison}`,
     );
 
     if (comparison > 0) {

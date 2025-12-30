@@ -2,7 +2,7 @@ import { useState } from '@lynx-js/react';
 import { DebugLogService } from '../services/debugLog';
 import { StorageService } from '../services/storage';
 import { SettingsStore } from '../services/settings';
-import { UpdateService, APP_VERSION } from '../services/update';
+import { UpdateService, BUNDLE_VERSION } from '../services/update';
 import './Settings.css';
 
 export function DeveloperOptions() {
@@ -35,7 +35,7 @@ export function DeveloperOptions() {
     const report = DebugLogService.getDebugReport({
       settings,
       deviceId,
-      version: APP_VERSION,
+      version: BUNDLE_VERSION,
       storageValues,
       supabaseStatus: {
         lastSync: 'See console logs',
@@ -87,7 +87,7 @@ export function DeveloperOptions() {
       const report = DebugLogService.getDebugReport({
         settings: SettingsStore.get(),
         deviceId: StorageService.getDeviceId(),
-        version: APP_VERSION,
+        version: BUNDLE_VERSION,
         storageValues: {
           skippedVersion: StorageService.getSkippedVersion() || 'None',
         },
@@ -110,7 +110,7 @@ export function DeveloperOptions() {
     const report = DebugLogService.getDebugReport({
       settings,
       deviceId,
-      version: APP_VERSION,
+      version: BUNDLE_VERSION,
       storageValues
     });
     setDebugReport(report);
