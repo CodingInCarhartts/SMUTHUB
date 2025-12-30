@@ -312,7 +312,7 @@ export function Reader({
 
     // Handle both event structures (native override vs standard bindkeydown)
     const keyCode = e.keyCode || e.detail?.keyCode;
-    console.log('[Reader] KeyDown processing:', keyCode);
+    console.log(`[Reader] KeyDown: ${keyCode} (Mode: ${readingMode}, Page: ${currentPage})`);
 
     switch (keyCode) {
       case 19: // DPAD_UP
