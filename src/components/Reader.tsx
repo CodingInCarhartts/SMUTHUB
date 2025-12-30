@@ -344,6 +344,8 @@ export function Reader({
   // Listen for Native GlobalKeyEvents (from MainActivity.kt)
   useEffect(() => {
     const onGlobalKey = (e: any) => {
+      console.log('[Reader] GlobalKeyEvent RAW:', JSON.stringify(e));
+      
       // e.data might be an array (based on our native Fix) or object
       let keyCode: number | undefined;
 
