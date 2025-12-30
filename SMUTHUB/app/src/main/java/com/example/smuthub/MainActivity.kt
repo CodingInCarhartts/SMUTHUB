@@ -160,10 +160,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
         if (event.action == android.view.MotionEvent.ACTION_DOWN) {
-            Log.d(TAG, "Touch Down: ${event.x}, ${event.y}")
+            val tx = event.x.toInt()
+            val ty = event.y.toInt()
+            Log.d(TAG, "Touch Down: $tx, $ty")
             runOnUiThread {
-                Toast.makeText(this@MainActivity, "Touch: ${event.action}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Touch: $tx, $ty", Toast.LENGTH_SHORT).show()
             }
+
+            // Also broadcast touch to JS
+            val map = com.lynx.react.bridge.JavaOnlyMap()
+            map.putInt("x", tx)
+            map.putInt("y", ty)
+            val array = com.lynx.react.bridge.JavaOnlyArray()
+            array.pushMap(map)
+            lynxView?.sendGlobalEvent("GlobalTouchEvent", array)
         }
         return super.dispatchTouchEvent(event)
     }
