@@ -53,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const BUNDLE_VERSION = '1.0.66';
+export const BUNDLE_VERSION = '1.0.69';
 
 export const UpdateService = {
   /**
@@ -257,7 +257,7 @@ export const UpdateService = {
       if (update?.otaUrl && nativeUpdater && (nativeUpdater as any).setOtaUrl) {
         log(`[UpdateService] Setting remote OTA URL: ${update.otaUrl}`);
         (nativeUpdater as any).setOtaUrl(update.otaUrl);
-        
+
         if ((nativeUpdater as any).triggerOtaReload) {
           (nativeUpdater as any).triggerOtaReload();
           return;
