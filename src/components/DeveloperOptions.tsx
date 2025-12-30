@@ -161,8 +161,8 @@ export function DeveloperOptions() {
 
 
         <view className="Settings-card">
-          <view className="Settings-item-left" style={{ marginBottom: '16px' }}>
-            <text className="Settings-item-icon">🎭</text>
+          <view className="Settings-item-left" style={{ marginBottom: '16px', flexDirection: 'row', alignItems: 'center' }}>
+            <text className="Settings-item-icon" style={{ marginRight: '16px' }}>🎭</text>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Override User Persona</text>
               <text className="Settings-item-description">Simulate a different user</text>
@@ -189,10 +189,10 @@ export function DeveloperOptions() {
             </view>
             <view
               className={deviceIdOverrideInput ? 'Settings-button primary' : 'Settings-button primary disabled'}
-              style={{ opacity: deviceIdOverrideInput ? 1 : 0.5 }}
+              style={{ opacity: deviceIdOverrideInput ? 1 : 0.5, marginLeft: '12px' }}
               bindtap={handleSetDeviceOverride}
             >
-              <text className="Settings-button-text">APPLY OVERRIDE</text>
+              <text className="Settings-button-text">APPLY</text>
             </view>
           </view>
         </view>
