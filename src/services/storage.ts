@@ -12,7 +12,9 @@ export interface ViewedManga {
   manga: Manga;
   lastChapterId?: string;
   lastChapterTitle?: string;
+  lastPageIndex?: number;
   viewedAt: string;
+  timestamp?: number; // legacy support for migration
 }
 
 export interface AppSettings {
@@ -236,25 +238,6 @@ async function initializeFromNativeStorage(): Promise<void> {
   log('[Storage] Native storage initialization complete');
 }
 
-// Export initialization promise so other modules can wait
-export const storageReady = (async () => {
-  try {
-    // 1. Core Native Init
-    await initializeFromNativeStorage();
-    
-    // 2. Data Migration (Legacy -> Cloud)
-    const { MigrationService } = await import('./migration');
-    await MigrationService.run();
-    
-    // 3. Initial Cloud Sync
-    // We do one quick fetch of settings to ensure we have terbaru
-    await StorageService.getSettings();
-    
-    log('[Storage] System is READY');
-  } catch (e) {
-    logError('[Storage] Initialization sequence failed:', e);
-  }
-})();
 
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
@@ -632,4 +615,33 @@ export const StorageService = {
       logWarn('[Storage] clearAllData failed:', e);
     }
   },
+
+  // ============ NATIVE ACCESSORS ============
+  
+  async getNativeItemSync(key: string): Promise<string | null> {
+    return await getNativeItem(key);
+  },
+  
+  setNativeItemSync(key: string, value: string): void {
+    setNativeItem(key, value);
+  }
 };
+
+// Export initialization promise so other modules can wait
+export const storageReady = (async () => {
+  try {
+    // 1. Core Native Init
+    await initializeFromNativeStorage();
+    
+    // 2. Data Migration (Legacy -> Cloud)
+    const { MigrationService } = await import('./migration');
+    await MigrationService.run();
+    
+    // 3. Initial Cloud Sync
+    await StorageService.getSettings();
+    
+    log('[Storage] System is READY');
+  } catch (e) {
+    logError('[Storage] Initialization sequence failed:', e);
+  }
+})();

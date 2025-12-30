@@ -48,11 +48,11 @@ export const MigrationService = {
           device_id: deviceId,
           manga_id: h.manga.id,
           manga_data: h.manga,
-          chapter_id: h.chapterId,
-          chapter_title: h.chapterTitle,
-          page_index: h.pageIndex,
+          chapter_id: h.lastChapterId,
+          chapter_title: h.lastChapterTitle,
+          page_index: h.lastPageIndex,
           timestamp: h.timestamp,
-          updated_at: new Date(h.timestamp).toISOString()
+          updated_at: h.viewedAt
         }));
         await SupabaseService.upsert('history', payload, 'device_id,manga_id');
       }
