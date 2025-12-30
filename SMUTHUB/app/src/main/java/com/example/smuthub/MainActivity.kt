@@ -18,6 +18,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
     private val TAG = "SMUTHUB"
     private var lynxView: LynxView? = null
+    private var mediaSession: android.media.session.MediaSession? = null
     
     private val reloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -28,6 +29,27 @@ class MainActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Setup MediaSession to capture Media Keys
+        try {
+            mediaSession = android.media.session.MediaSession(this, "SMUTHUB")
+            mediaSession?.setCallback(object : android.media.session.MediaSession.Callback() {
+                override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                    val event = mediaButtonIntent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                    if (event != null && event.action == android.view.KeyEvent.ACTION_DOWN) {
+                        val mKey = event.keyCode
+                        Log.d(TAG, "Media Button: $mKey")
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "Media: $mKey", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return super.onMediaButtonEvent(mediaButtonIntent)
+                }
+            })
+            mediaSession?.isActive = true
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaSession setup failed: ${e.message}")
+        }
 
         val viewBuilder = LynxViewBuilder()
         
@@ -113,12 +135,8 @@ class MainActivity : AppCompatActivity() {
             lynxView?.sendGlobalEvent("GlobalKeyEvent", array)
         }
 
-        // Keys to ALWAYS consume in remote mode (to prevent system conflict)
-        val keysToConsume = setOf(
-            24, 25, // Volume Up/Down
-            19, 20, 21, 22, // DPAD
-            23, 66, 62 // Center/Enter/Space
-        )
+        // Keys to ALWAYS consume to prevent system conflict
+        val keysToConsume = setOf(24, 25, 19, 20, 21, 22, 23, 66, 62)
 
         if (keysToConsume.contains(keyCode)) {
             return true
@@ -129,31 +147,38 @@ class MainActivity : AppCompatActivity() {
 
     override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean {
         val action = event.action
-        val axisX = event.getAxisValue(android.view.MotionEvent.AXIS_X)
-        val axisY = event.getAxisValue(android.view.MotionEvent.AXIS_Y)
         val vScroll = event.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL)
-        val hScroll = event.getAxisValue(android.view.MotionEvent.AXIS_HSCROLL)
-
-        Log.d(TAG, "Generic Motion: act=$action, X=$axisX, Y=$axisY, V=$vScroll, H=$hScroll")
         
-        if (action != android.view.MotionEvent.ACTION_HOVER_MOVE) {
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, "Motion: $action (V:$vScroll)", Toast.LENGTH_SHORT).show()
-            }
+        Log.d(TAG, "Generic Motion: act=$action, V=$vScroll")
+        
+        // Toast EVERYTHING in this debug build
+        runOnUiThread {
+            Toast.makeText(this@MainActivity, "Motion: $action (V:$vScroll)", Toast.LENGTH_SHORT).show()
         }
         return super.dispatchGenericMotionEvent(event)
     }
 
     override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
-        // Only log touch down to avoid spam
         if (event.action == android.view.MotionEvent.ACTION_DOWN) {
-            Log.d(TAG, "Touch Down at: ${event.x}, ${event.y}")
+            Log.d(TAG, "Touch Down: ${event.x}, ${event.y}")
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, "Touch: ${event.action}", Toast.LENGTH_SHORT).show()
+            }
         }
         return super.dispatchTouchEvent(event)
     }
 
+    override fun onTrackballEvent(event: android.view.MotionEvent): Boolean {
+        Log.d(TAG, "Trackball: ${event.action}")
+        runOnUiThread {
+            Toast.makeText(this@MainActivity, "Trackball: ${event.action}", Toast.LENGTH_SHORT).show()
+        }
+        return super.onTrackballEvent(event)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        mediaSession?.release()
         try {
             unregisterReceiver(reloadReceiver)
         } catch (e: Exception) {
