@@ -269,6 +269,52 @@ export function Reader({
     }
   };
 
+  const scrollUp = () => {
+    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    if (runtime) {
+      runtime.createSelectorQuery()
+        .select('#reader-list')
+        .invoke({
+          method: 'scrollBy',
+          params: {
+            offset: -600,
+            animated: true
+          }
+        })
+        .exec();
+    }
+  };
+
+  const handleKeyDown = (e: any) => {
+    const keyCode = e.detail?.keyCode || e.keyCode;
+    console.log('[Reader] KeyDown:', keyCode);
+
+    switch (keyCode) {
+      case 19: // DPAD_UP
+      case 21: // DPAD_LEFT
+      case 24: // VOLUME_UP
+        if (readingMode === 'vertical') {
+          scrollUp();
+        } else {
+          goToPage(-1);
+        }
+        break;
+      case 20: // DPAD_DOWN
+      case 22: // DPAD_RIGHT
+      case 25: // VOLUME_DOWN
+        if (readingMode === 'vertical') {
+          scrollDown();
+        } else {
+          goToPage(1);
+        }
+        break;
+      case 23: // DPAD_CENTER
+      case 66: // ENTER
+        toggleControls();
+        break;
+    }
+  };
+
   // Save position when page changes (debounced)
   useEffect(() => {
     // CRITICAL: Block all saves until we are 100% sure we are in "tracking" mode
@@ -294,7 +340,13 @@ export function Reader({
   };
 
   return (
-    <view className="Reader" bindtap={!remoteMode ? toggleControls : undefined}>
+    <view 
+      className="Reader" 
+      bindtap={!remoteMode ? toggleControls : undefined}
+      bindkeydown={handleKeyDown}
+      focusable={true}
+      tabindex={0}
+    >
       <view className={showControls ? "Reader-header" : "Reader-header hidden"}>
         <view className="Reader-header-left" bindtap={onBack}>
           <text className="Reader-back">{'‹ Back'}</text>
