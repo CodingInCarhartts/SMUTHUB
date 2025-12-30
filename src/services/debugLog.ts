@@ -7,7 +7,7 @@ interface LogEntry {
   args: string;
 }
 
-const MAX_LOGS = 500;
+const MAX_LOGS = 1000;
 
 // Store logs on globalThis so they persist across module instances (Lynx can isolate modules)
 const globalLogs = ((globalThis as any).__DEBUG_LOGS__ =
@@ -104,6 +104,14 @@ captureLog('info', [
   new Date().toISOString(),
 ]);
 
+export interface DebugReportContext {
+  settings?: any;
+  storageValues?: Record<string, string | null>;
+  supabaseStatus?: any;
+  version?: string;
+  deviceId?: string;
+}
+
 export const DebugLogService = {
   getLogs(): LogEntry[] {
     return [...logs];
@@ -118,13 +126,20 @@ export const DebugLogService = {
       .join('\n');
   },
 
-  getDebugReport(): string {
+  getDebugReport(context?: DebugReportContext): string {
     const report: string[] = [];
 
     report.push('='.repeat(60));
     report.push('SMUTHUB DEBUG REPORT');
     report.push(`Generated: ${new Date().toISOString()}`);
+    report.push(`Send to: yumlabs.team@gmail.com`);
     report.push('='.repeat(60));
+    report.push('');
+
+    // App Info
+    report.push('--- APP INFO ---');
+    report.push(`Version: ${context?.version || 'Unknown'}`);
+    report.push(`Device ID: ${context?.deviceId || 'Unknown'}`);
     report.push('');
 
     // Environment info
@@ -136,10 +151,7 @@ export const DebugLogService = {
       `localStorage available: ${typeof localStorage !== 'undefined'}`,
     );
     report.push(`crypto available: ${typeof crypto !== 'undefined'}`);
-    report.push(
-      `crypto.randomUUID available: ${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'}`,
-    );
-
+    
     // SystemInfo check
     try {
       const si =
@@ -160,6 +172,7 @@ export const DebugLogService = {
       const hasNative = typeof NativeModules !== 'undefined';
       report.push(`NativeModules available: ${hasNative}`);
       if (hasNative) {
+        report.push(`NativeModules keys: ${Object.keys(NativeModules).join(', ')}`);
         const hasStorage = NativeModules.NativeLocalStorageModule !== undefined;
         report.push(`NativeLocalStorageModule available: ${hasStorage}`);
       }
@@ -168,25 +181,34 @@ export const DebugLogService = {
     }
     report.push('');
 
+    // Supabase Status
+    report.push('--- SUPABASE STATUS ---');
+    if (context?.supabaseStatus) {
+      report.push(JSON.stringify(context.supabaseStatus, null, 2));
+    } else {
+      report.push('No specific status provided');
+    }
+    report.push('');
+
+    // Settings
+    report.push('--- SETTINGS ---');
+    if (context?.settings) {
+      report.push(JSON.stringify(context.settings, null, 2));
+    } else {
+      report.push('Settings not provided');
+    }
+    report.push('');
+
     // LocalStorage dump
     report.push('--- LOCALSTORAGE ---');
     if (typeof localStorage !== 'undefined') {
       try {
-        const keys = [
-          'batoto:device_id',
-          'batoto:settings',
-          'batoto:favorites',
-          'batoto:history',
-          'batoto:filters',
-        ];
-        for (const key of keys) {
-          const val = localStorage.getItem(key);
-          if (val) {
-            const preview =
-              val.length > 200 ? val.substring(0, 200) + '...' : val;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            const val = localStorage.getItem(key);
+            const preview = val && val.length > 200 ? val.substring(0, 200) + '...' : val;
             report.push(`${key}: ${preview}`);
-          } else {
-            report.push(`${key}: (not set)`);
           }
         }
         report.push(`Total localStorage keys: ${localStorage.length}`);
@@ -198,13 +220,25 @@ export const DebugLogService = {
     }
     report.push('');
 
+    // Native Storage Values
+    report.push('--- NATIVE STORAGE ---');
+    if (context?.storageValues) {
+      for (const [key, val] of Object.entries(context.storageValues)) {
+        const preview = val && val.length > 200 ? val.substring(0, 200) + '...' : val;
+        report.push(`${key}: ${preview || '(null/empty)'}`);
+      }
+    } else {
+      report.push('Native storage values not provided');
+    }
+    report.push('');
+
     // Console logs
     report.push('--- CONSOLE LOGS ---');
     report.push(`Total captured: ${logs.length}`);
     report.push('');
 
-    // Show last 100 logs
-    const recentLogs = logs.slice(-100);
+    // Show last 500 logs
+    const recentLogs = logs.slice(-500);
     for (const entry of recentLogs) {
       const time = entry.timestamp.split('T')[1].split('.')[0];
       report.push(

@@ -1,6 +1,8 @@
 import { useState } from '@lynx-js/react';
 import { DebugLogService } from '../services/debugLog';
 import { StorageService } from '../services/storage';
+import { SettingsStore } from '../services/settings';
+import { APP_VERSION } from '../services/update';
 import './Settings.css';
 
 export function DeveloperOptions() {
@@ -10,42 +12,83 @@ export function DeveloperOptions() {
   const [copyStatus, setCopyStatus] = useState('');
 
 
-  const handleOpenDebugConsole = () => {
-    // Generate fresh report
-    const report = DebugLogService.getDebugReport();
+  const handleOpenDebugConsole = async () => {
+    // Gather context for the report
+    const settings = SettingsStore.get();
+    const deviceId = StorageService.getDeviceId();
+    
+    // Fetch all known native storage keys
+    const storageValues: Record<string, string | null> = {};
+    const keys = [
+      'batoto:favorites',
+      'batoto:history',
+      'batoto:settings',
+      'batoto:filters',
+      'batoto:device_id',
+      'batoto:reader_position',
+    ];
+    
+    for (const key of keys) {
+      storageValues[key] = await StorageService.getNativeItemSync(key);
+    }
+
+    const report = DebugLogService.getDebugReport({
+      settings,
+      deviceId,
+      version: APP_VERSION,
+      storageValues,
+      supabaseStatus: {
+        lastSync: 'See console logs',
+        note: 'Supabase sync runs in background via SyncEngine'
+      }
+    });
+
     setDebugReport(report);
     setShowDebugConsole(true);
     setCopyStatus('');
   };
 
-  const handleCopyReport = async () => {
+  const handleSendReport = async () => {
     try {
       const nativeUtils =
         typeof NativeModules !== 'undefined'
           ? NativeModules.NativeUtilsModule
           : null;
 
-      if (nativeUtils && nativeUtils.copyToClipboard) {
-        nativeUtils.copyToClipboard(debugReport);
-        setCopyStatus('✅ Copied to clipboard (Native)!');
+      if (nativeUtils && nativeUtils.shareText) {
+        // Use shareText to send to email
+        nativeUtils.shareText(debugReport, 'SMUTHUB Debug Report');
+        setCopyStatus('✅ Share sheet opened!');
       } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(debugReport);
-        setCopyStatus('✅ Copied to clipboard!');
+        setCopyStatus('✅ Copied to clipboard (Fallback)!');
       } else {
-        // Fallback: show "select all" instruction
-        setCopyStatus('⚠️ Manual copy needed - text is selected');
+        setCopyStatus('⚠️ Sharing not available');
       }
     } catch (e) {
-      console.error('[DeveloperOptions] Copy failed:', e);
-      setCopyStatus('❌ Copy failed');
+      console.error('[DeveloperOptions] Send failed:', e);
+      setCopyStatus('❌ Send failed');
     }
 
     // Clear status after 3s
     setTimeout(() => setCopyStatus(''), 3000);
   };
 
-  const handleRefreshReport = () => {
-    const report = DebugLogService.getDebugReport();
+  const handleRefreshReport = async () => {
+    const settings = SettingsStore.get();
+    const deviceId = StorageService.getDeviceId();
+    const storageValues: Record<string, string | null> = {};
+    const keys = ['batoto:favorites', 'batoto:history', 'batoto:settings', 'batoto:filters', 'batoto:device_id', 'batoto:reader_position'];
+    for (const key of keys) {
+      storageValues[key] = await StorageService.getNativeItemSync(key);
+    }
+
+    const report = DebugLogService.getDebugReport({
+      settings,
+      deviceId,
+      version: APP_VERSION,
+      storageValues
+    });
     setDebugReport(report);
     setCopyStatus('🔄 Refreshed');
     setTimeout(() => setCopyStatus(''), 2000);
@@ -110,9 +153,9 @@ export function DeveloperOptions() {
                 </view>
                 <view
                   className="DebugConsole-button primary"
-                  bindtap={handleCopyReport}
+                  bindtap={handleSendReport}
                 >
-                  <text className="DebugConsole-button-text">📋 Copy All</text>
+                  <text className="DebugConsole-button-text">📧 Send Logs</text>
                 </view>
                 <view
                   className="DebugConsole-button"
