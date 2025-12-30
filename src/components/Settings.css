@@ -92,6 +92,37 @@
   font-weight: 300;
 }
 
+/* Scroll Speed Buttons */
+.Settings-speed-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.Settings-speed-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background-color: var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Settings-speed-btn text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.Settings-speed-btn.active {
+  background-color: var(--text-accent);
+}
+
+.Settings-speed-btn.active text {
+  color: #000;
+}
+
 /* Footer */
 .Settings-footer {
   padding: 24px;

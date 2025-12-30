@@ -76,6 +76,17 @@ export const SettingsStore = {
     listeners.forEach((fn) => fn());
   },
 
+  getScrollSpeed(): number {
+    return settings.scrollSpeed ?? 0.15;
+  },
+
+  setScrollSpeed(speed: number): void {
+    console.log('[SettingsStore] Scroll speed set to:', speed);
+    settings.scrollSpeed = speed;
+    StorageService.saveSettings({ scrollSpeed: speed });
+    listeners.forEach((fn) => fn());
+  },
+
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);

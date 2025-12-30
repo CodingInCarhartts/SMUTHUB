@@ -269,9 +269,10 @@ export function Reader({
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      const scrollDistance = Math.floor(screenHeightLogical * 0.1); // Scroll 10% of logical screen per press
+      const scrollSpeed = SettingsStore.getScrollSpeed();
+      const scrollDistance = Math.floor(screenHeightLogical * scrollSpeed);
       
-      log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, speed=${scrollSpeed}, dist=${scrollDistance}`);
       
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -292,9 +293,10 @@ export function Reader({
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      const scrollDistance = Math.floor(screenHeightLogical * 0.1);
+      const scrollSpeed = SettingsStore.getScrollSpeed();
+      const scrollDistance = Math.floor(screenHeightLogical * scrollSpeed);
 
-      log(`[Reader] Scroll UP: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll UP: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, speed=${scrollSpeed}, dist=${scrollDistance}`);
 
       runtime.createSelectorQuery()
         .select('#reader-list')

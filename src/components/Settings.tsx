@@ -17,6 +17,7 @@ export function Settings({ onBack, onNavigate }: Props) {
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
   const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
+  const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [showClearConfirm, setShowClearConfirm] = useState<
@@ -32,6 +33,7 @@ export function Settings({ onBack, onNavigate }: Props) {
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
       setRemoteMode(SettingsStore.getRemoteMode());
+      setScrollSpeed(SettingsStore.getScrollSpeed());
     });
 
     // Load counts
@@ -70,6 +72,10 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   const handleRemoteModeToggle = () => {
     SettingsStore.setRemoteMode(!remoteMode);
+  };
+
+  const handleScrollSpeedChange = (speed: number) => {
+    SettingsStore.setScrollSpeed(speed);
   };
 
   const handleAboutTap = () => {
@@ -143,6 +149,44 @@ export function Settings({ onBack, onNavigate }: Props) {
               }
             >
               <view className="Settings-toggle-knob" />
+            </view>
+          </view>
+
+          <view className="Settings-item">
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">⚡</text>
+              <view className="Settings-item-text">
+                <text className="Settings-item-label">Scroll Speed</text>
+                <text className="Settings-item-description">
+                  {scrollSpeed <= 0.1 ? 'Slow' : scrollSpeed <= 0.2 ? 'Normal' : scrollSpeed <= 0.3 ? 'Fast' : 'Very Fast'} ({Math.round(scrollSpeed * 100)}%)
+                </text>
+              </view>
+            </view>
+            <view className="Settings-speed-buttons">
+              <view 
+                className={scrollSpeed === 0.1 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.1)}
+              >
+                <text>S</text>
+              </view>
+              <view 
+                className={scrollSpeed === 0.15 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.15)}
+              >
+                <text>N</text>
+              </view>
+              <view 
+                className={scrollSpeed === 0.25 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.25)}
+              >
+                <text>F</text>
+              </view>
+              <view 
+                className={scrollSpeed === 0.4 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                bindtap={() => handleScrollSpeedChange(0.4)}
+              >
+                <text>VF</text>
+              </view>
             </view>
           </view>
         </view>
