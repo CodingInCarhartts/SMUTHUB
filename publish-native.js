@@ -94,7 +94,7 @@ async function publish() {
   // 4. Commit and Push
   console.log("\nrw Committing and pushing...");
   try {
-    run("git add -f SMUTHUB/app/build.gradle.kts src/services/update.ts SMUTHUB.apk");
+    run("git add -f SMUTHUB/app/build.gradle.kts SMUTHUB/app/src src/services/update.ts SMUTHUB.apk");
     const commitMsg = customMsg 
       ? `🔖 native: ${customMsg} (v${newVer}, code ${newCode})`
       : `🔖 native: release v${newVer} (code ${newCode})`;

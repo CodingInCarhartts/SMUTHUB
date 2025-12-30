@@ -16,7 +16,13 @@ dist/
 *.tsbuildinfo
 
 lynx-devtool
-SMUTHUB
+# Android
+SMUTHUB/app/build/
+SMUTHUB/build/
+SMUTHUB/.gradle/
+SMUTHUB/local.properties
+SMUTHUB/.idea/
+SMUTHUB/*.apk
 .osgrep
 
 backup.sql
