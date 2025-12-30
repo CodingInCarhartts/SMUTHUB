@@ -23,6 +23,7 @@
     "@lynx-js/types": "3.4.11",
     "@rsbuild/plugin-type-check": "1.3.1",
     "@types/react": "^18.3.25",
+    "supabase": "^2.70.5",
     "typescript": "~5.9.3"
   },
   "engines": {
