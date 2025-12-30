@@ -1,5 +1,6 @@
 import { StorageService } from './storage';
 import { SupabaseService } from './supabase';
+import { SYNC_HEARTBEAT_INTERVAL_MS } from '../config';
 
 export type OperationType = 'UPSERT' | 'DELETE';
 
@@ -131,8 +132,8 @@ export const SyncEngine = {
 
 // Initialize network heartbeat for background sync
 if (typeof lynx !== 'undefined' || typeof globalThis !== 'undefined') {
-  // Attempt sync every 30 seconds if queue is not empty
+  // Attempt sync at configured interval if queue is not empty
   setInterval(() => {
     SyncEngine.processQueue();
-  }, 30000);
+  }, SYNC_HEARTBEAT_INTERVAL_MS);
 }

@@ -1,9 +1,7 @@
 // Supabase REST Client
 // Bypasses the official client to avoid WebSocket/Runtime issues in Lynx
 
-const SUPABASE_URL = 'https://exymyvbkjsttqsnifedq.supabase.co';
-const REST_URL = `${SUPABASE_URL}/rest/v1`;
-const SUPABASE_ANON_KEY = 'sb_publishable_tyLE5ronU6B5LAGta5GBjA_ZSqpzHyz';
+import { SUPABASE_REST_URL, SUPABASE_ANON_KEY } from '../config';
 
 const HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -26,7 +24,7 @@ export const SupabaseService = {
         return null;
       }
 
-      const response = await fetch(`${REST_URL}${endpoint}`, {
+      const response = await fetch(`${SUPABASE_REST_URL}${endpoint}`, {
         ...options,
         headers: {
           ...HEADERS,

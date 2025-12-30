@@ -1,6 +1,7 @@
 import { logCapture } from './debugLog';
 import { SupabaseService } from './supabase';
 import { StorageService, storageReady } from './storage';
+import { STORAGE_INIT_TIMEOUT_MS, UPDATE_CHECK_COOLDOWN_MS, DEFAULT_OTA_BUNDLE_URL } from '../config';
 
 let storageInitialized = false;
 let resolveStorageReady: () => void;
@@ -21,13 +22,13 @@ storageReady.then(() => {
   markStorageReady();
 });
 
-// Safety timeout: don't wait for storage more than 5 seconds
+// Safety timeout: don't wait for storage more than configured time
 setTimeout(() => {
   if (!storageInitialized) {
     console.warn('[UpdateService] Storage init timed out, proceeding anyway');
     markStorageReady();
   }
-}, 5000);
+}, STORAGE_INIT_TIMEOUT_MS);
 
 const log = (...args: any[]) => logCapture('log', ...args);
 const logWarn = (...args: any[]) => logCapture('warn', ...args);
@@ -43,7 +44,6 @@ export interface AppUpdate {
 
 // Cooldown state for navigation-based checks
 let lastCheckTimestamp = 0;
-const CHECK_COOLDOWN_MS = 30 * 1000; // 30 seconds
 
 export interface NativeAppUpdate {
   version: string;
@@ -53,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const BUNDLE_VERSION = '1.0.52';
+export const BUNDLE_VERSION = '1.0.53';
 
 export const UpdateService = {
   /**
@@ -115,9 +115,9 @@ export const UpdateService = {
     console.log('[UpdateService] Starting update check...');
 
     const now = Date.now();
-    if (now - lastCheckTimestamp < CHECK_COOLDOWN_MS) {
+    if (now - lastCheckTimestamp < UPDATE_CHECK_COOLDOWN_MS) {
       console.log(
-        `[UpdateService] Skipping check (cooldown active: ${Math.round((CHECK_COOLDOWN_MS - (now - lastCheckTimestamp)) / 1000)}s left).`,
+        `[UpdateService] Skipping check (cooldown active: ${Math.round((UPDATE_CHECK_COOLDOWN_MS - (now - lastCheckTimestamp)) / 1000)}s left).`,
       );
       return null;
     }

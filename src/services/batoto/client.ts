@@ -1,24 +1,6 @@
 // src/services/batoto/client.ts
 
-// bato.si is the primary working mirror
-const BATO_MIRRORS = [
-  'https://bato.si',
-  'https://mto.to',
-  'https://dto.to',
-  'https://mangatoto.com',
-  'https://battwo.com',
-  'https://wto.to',
-  'https://hto.to',
-  'https://xbato.com',
-  'https://zbato.com',
-  'https://comiko.net',
-];
-
-const USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-];
+import { BATO_MIRRORS, USER_AGENTS, MIRROR_TIMEOUT_MS } from '../../config';
 
 export class BatotoClient {
   private static instance: BatotoClient;
@@ -76,7 +58,7 @@ export class BatotoClient {
       try {
         console.log(`[SmutHub] Checking mirror: ${mirror}`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per mirror
+        const timeoutId = setTimeout(() => controller.abort(), MIRROR_TIMEOUT_MS);
 
         const res = await fetch(mirror, {
           method: 'GET',

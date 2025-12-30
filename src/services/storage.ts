@@ -3,6 +3,7 @@ import { logCapture } from './debugLog';
 import { SupabaseService } from './supabase';
 import { SyncEngine } from './sync';
 import { MigrationService } from './migration';
+import { HISTORY_LIMIT_LOCAL, HISTORY_LIMIT_CLOUD, NATIVE_DEVICE_ID_TIMEOUT_MS } from '../config';
 
 // Helper to log with capture (console override doesn't work in Lynx)
 const log = (...args: any[]) => logCapture('log', ...args);
@@ -56,8 +57,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   remoteMode: false,
 };
 
-const HISTORY_LIMIT_LOCAL = 50;
-const HISTORY_LIMIT_CLOUD = 999;
+
 
 // In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
@@ -201,9 +201,9 @@ async function initializeFromNativeStorage(): Promise<void> {
         });
         // Timeout just in case
         setTimeout(() => {
-          logWarn('[Storage] Native getDeviceId timed out after 2s');
+          logWarn(`[Storage] Native getDeviceId timed out after ${NATIVE_DEVICE_ID_TIMEOUT_MS}ms`);
           resolve(null);
-        }, 2000);
+        }, NATIVE_DEVICE_ID_TIMEOUT_MS);
       });
 
       if (nativeId && nativeId.length > 5 && nativeId !== 'android' && nativeId !== 'undefined') {
