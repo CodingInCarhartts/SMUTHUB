@@ -3,10 +3,10 @@ import { BatotoService, type Manga } from '../services/batoto';
 import { type ReadingMode, SettingsStore } from '../services/settings';
 import { StorageService, normalizeUrl } from '../services/storage';
 import { logCapture } from '../services/debugLog';
-import { 
-  DEFAULT_ASPECT_RATIO, 
-  BG_COLOR_DARK, 
-  MIN_PANEL_HEIGHT, 
+import {
+  DEFAULT_ASPECT_RATIO,
+  BG_COLOR_DARK,
+  MIN_PANEL_HEIGHT,
   PANEL_MAX_RETRIES,
   RETRY_DELAY_BASE,
   RETRY_DELAY_INCREMENT,
@@ -178,7 +178,7 @@ export function Reader({
   onNextChapter,
 }: Props) {
   log('[Reader] COMPONENT RENDERING - chapterUrl:', chapterUrl?.substring(0, 50));
-  
+
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>(
@@ -192,15 +192,12 @@ export function Reader({
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
-  // Restore remoteMode for handling global ring events
-  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [showControls, setShowControls] = useState(true);
   const lastKeyDownTime = useRef<number>(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
       setReadingMode(SettingsStore.getReadingMode());
-      setRemoteMode(SettingsStore.getRemoteMode());
     });
     return unsubscribe;
   }, []);
@@ -213,19 +210,19 @@ export function Reader({
       const urls = await BatotoService.getChapterPanels(chapterUrl);
       log('[Reader] Received panels:', urls.length);
       setPanels(urls);
-      
+
       if (manga) {
         const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
 
         if (savedPosition && normalizeUrl(savedPosition.chapterUrl) === normalizeUrl(chapterUrl)) {
-           const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
-           log('[Reader] Found position to restore:', restoredPage);
-           setCurrentPage(restoredPage);
-           setRestoredPageIndex(restoredPage);
+          const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
+          log('[Reader] Found position to restore:', restoredPage);
+          setCurrentPage(restoredPage);
+          setRestoredPageIndex(restoredPage);
         } else {
-           log('[Reader] No matching position found for this chapter');
-           setCurrentPage(0);
-           setRestoredPageIndex(0);
+          log('[Reader] No matching position found for this chapter');
+          setCurrentPage(0);
+          setRestoredPageIndex(0);
         }
       }
 
@@ -281,9 +278,9 @@ export function Reader({
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
       const scrollSpeed = SettingsStore.getScrollSpeed();
       const scrollDistance = Math.floor(screenHeightLogical * scrollSpeed);
-      
+
       log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, speed=${scrollSpeed}, dist=${scrollDistance}`);
-      
+
       runtime.createSelectorQuery()
         .select('#reader-list')
         .invoke({
@@ -324,7 +321,7 @@ export function Reader({
   const handleKeyDown = (e: any) => {
     // Throttle key events significantly to prevent over-scrolling/rapid page turns
     const now = Date.now();
-    if (now - lastKeyDownTime.current < KEY_DEBOUNCE_MS) { 
+    if (now - lastKeyDownTime.current < KEY_DEBOUNCE_MS) {
       log(`[Reader] Throttling KeyDown (${KEY_DEBOUNCE_MS}ms debounce)`);
       return;
     }
@@ -364,7 +361,7 @@ export function Reader({
   // Listen for Native GlobalKeyEvents (from MainActivity.kt)
   useEffect(() => {
     log('[Reader] Setting up global event listeners...');
-    
+
     // Get GlobalEventEmitter from Lynx
     let globalEventEmitter: any = null;
     try {
@@ -380,7 +377,7 @@ export function Reader({
 
     const onGlobalKey = (data: any) => {
       log('[Reader] GlobalKeyEvent received:', JSON.stringify(data));
-      
+
       // Handle both cases: data is the raw payload, or it's wrapped in an event object
       const payload = data?.data || data;
       let keyCode: number | undefined;
@@ -399,33 +396,14 @@ export function Reader({
       }
     };
 
-    const onGlobalTouch = (data: any) => {
-      log('[Reader] GlobalTouchEvent received:', JSON.stringify(data));
-      const payload = data?.data?.[0] || (Array.isArray(data) ? data[0] : data?.data || data);
-      if (payload && typeof payload.x === 'number') {
-        // Only handle specific touch coordinate mappings if Remote Mode is enabled
-        if (!remoteMode) return;
-
-        const tx = payload.x;
-        log(`[Reader] Remote Touch Mapping: x=${tx}`);
-        
-        if (tx > REMOTE_TOUCH_DIVIDER_X) {
-          log('[Reader] Remote UP detected via touch coordinate');
-          if (readingMode === 'vertical') scrollUp(); else goToPage(-1);
-        } else {
-          log('[Reader] Remote DOWN detected via touch coordinate');
-          if (readingMode === 'vertical') scrollDown(); else goToPage(1);
-        }
-      }
-    };
 
     // Try to register with GlobalEventEmitter (correct Lynx API)
     if (globalEventEmitter && globalEventEmitter.addListener) {
       try {
         log('[Reader] Using GlobalEventEmitter.addListener...');
         globalEventEmitter.addListener('GlobalKeyEvent', onGlobalKey);
-        globalEventEmitter.addListener('GlobalTouchEvent', onGlobalTouch);
-        log('[Reader] All listeners registered via GlobalEventEmitter!');
+        // Removed GlobalTouchEvent listener to prevent conflict with screen touches
+        log('[Reader] GlobalKeyEvent registered via GlobalEventEmitter!');
       } catch (e: any) {
         logError('[Reader] GlobalEventEmitter.addListener failed:', e?.message);
       }
@@ -435,7 +413,7 @@ export function Reader({
       try {
         if (typeof lynx !== 'undefined' && (lynx as any).on) {
           (lynx as any).on('GlobalKeyEvent', onGlobalKey);
-          (lynx as any).on('GlobalTouchEvent', onGlobalTouch);
+          // Removed GlobalTouchEvent listener
           log('[Reader] Registered via lynx.on fallback');
         } else {
           logError('[Reader] No event listening API available!');
@@ -448,10 +426,8 @@ export function Reader({
     return () => {
       if (globalEventEmitter && globalEventEmitter.removeListener) {
         globalEventEmitter.removeListener('GlobalKeyEvent', onGlobalKey);
-        globalEventEmitter.removeListener('GlobalTouchEvent', onGlobalTouch);
       } else if (typeof lynx !== 'undefined' && (lynx as any).off) {
         (lynx as any).off('GlobalKeyEvent', onGlobalKey);
-        (lynx as any).off('GlobalTouchEvent', onGlobalTouch);
       }
     };
   }, [readingMode, currentPage, panels.length]);
@@ -481,8 +457,8 @@ export function Reader({
   };
 
   return (
-    <view 
-      className="Reader" 
+    <view
+      className="Reader"
       bindtap={toggleControls}
       bindkeydown={handleKeyDown}
       focusable={true}
@@ -511,10 +487,10 @@ export function Reader({
 
       {readingMode === 'vertical' ? (
         // Vertical scroll mode (Webtoon)
-        <list 
+        <list
           id="reader-list"
-          className="Reader-content" 
-          scroll-y 
+          className="Reader-content"
+          scroll-y
           initial-scroll-index={restoredPageIndex}
         >
           {loading ? (
@@ -548,30 +524,30 @@ export function Reader({
               )),
               ...(hasNextChapter && onNextChapter
                 ? [
-                    <list-item
-                      key="next-chapter"
-                      item-key="next-chapter"
-                      full-span
-                    >
-                      <view className="Reader-footer-nav">
-                        <view
-                          className="Reader-next-btn"
-                          bindtap={onNextChapter}
-                        >
-                          <text className="Reader-next-text">
-                            Next Chapter ›
-                          </text>
-                        </view>
+                  <list-item
+                    key="next-chapter"
+                    item-key="next-chapter"
+                    full-span
+                  >
+                    <view className="Reader-footer-nav">
+                      <view
+                        className="Reader-next-btn"
+                        bindtap={onNextChapter}
+                      >
+                        <text className="Reader-next-text">
+                          Next Chapter ›
+                        </text>
                       </view>
-                    </list-item>,
-                  ]
+                    </view>
+                  </list-item>,
+                ]
                 : []),
             ]
           )}
         </list>
       ) : (
         // Horizontal swipe mode (Manga)
-        <view 
+        <view
           className="Reader-horizontal-container"
           bindtouchstart={handleTouchStart}
           bindtouchend={handleTouchEnd}

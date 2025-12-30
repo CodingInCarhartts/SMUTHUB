@@ -29,7 +29,6 @@ export interface AppSettings {
   readingMode: 'vertical' | 'horizontal';
   darkMode: boolean;
   devMode: boolean;
-  remoteMode: boolean;
   scrollSpeed: number; // 0.1 = 10%, 0.2 = 20%, etc.
 }
 
@@ -55,7 +54,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   readingMode: 'vertical',
   darkMode: false,
   devMode: false,
-  remoteMode: false,
   scrollSpeed: 0.15, // 15% of screen per scroll
 };
 
@@ -189,9 +187,9 @@ async function initializeFromNativeStorage(): Promise<void> {
   try {
     const modules = (NativeModules as any);
     const utilsModule = modules?.NativeUtilsModule;
-    log('[Storage] Checking NativeUtilsModule:', { 
-      exists: !!utilsModule, 
-      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function' 
+    log('[Storage] Checking NativeUtilsModule:', {
+      exists: !!utilsModule,
+      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function'
     });
 
     if (utilsModule && typeof utilsModule.getDeviceId === 'function') {
@@ -285,18 +283,18 @@ export const StorageService = {
     }
 
     // 5. Generate Fallback strictly for web/local dev if no ID exists at all
-    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-      ? crypto.randomUUID() 
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
       : 'xxxx-xxxx-xxxx-xxxx'.replace(/[xy]/g, (c) => {
-          const r = (Math.random() * 16) | 0;
-          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
 
     // Only save permanently if we aren't likely to fetch a native ID later (not hardware capable)
     if (!hasNativeStorage()) {
       setLocal(STORAGE_KEYS.DEVICE_ID, newId);
     }
-    
+
     SESSION_DEVICE_ID = newId;
     return newId;
   },
@@ -313,7 +311,7 @@ export const StorageService = {
   async getFavorites(): Promise<Manga[]> {
     // 1. Immediate Return from Cache
     const local = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
-    
+
     // 2. Background Sync
     (async () => {
       const deviceId = this.getDeviceId();
@@ -384,7 +382,7 @@ export const StorageService = {
 
   async getHistory(): Promise<ViewedManga[]> {
     const local = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
-    
+
     (async () => {
       const deviceId = this.getDeviceId();
       const cloudData = await SupabaseService.getAll<any>(
@@ -438,7 +436,7 @@ export const StorageService = {
   async clearHistory(): Promise<void> {
     const deviceId = this.getDeviceId();
     setLocal(STORAGE_KEYS.HISTORY, []);
-    
+
     await SyncEngine.enqueue({
       type: 'DELETE',
       table: 'history',
@@ -451,7 +449,7 @@ export const StorageService = {
 
   async getSettings(): Promise<AppSettings> {
     const local = getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-    
+
     (async () => {
       const deviceId = this.getDeviceId();
       const cloudData = await SupabaseService.getAll<any>(
@@ -464,7 +462,6 @@ export const StorageService = {
           readingMode: (row.reading_mode as any) || DEFAULT_SETTINGS.readingMode,
           darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
           devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
-          remoteMode: row.remote_mode ?? DEFAULT_SETTINGS.remoteMode,
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
         };
         setLocal(STORAGE_KEYS.SETTINGS, settings);
@@ -487,7 +484,6 @@ export const StorageService = {
         reading_mode: updated.readingMode,
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
-        remote_mode: updated.remoteMode,
         scroll_speed: updated.scrollSpeed,
         updated_at: new Date().toISOString()
       },
@@ -532,9 +528,9 @@ export const StorageService = {
     };
     console.log(`[Storage] Saving reader position: manga=${mangaId}, panel=${panelIndex}, device=${deviceId}`);
     setLocal(STORAGE_KEYS.READER_POSITION, position);
-    
+
     (async () => {
-        await SyncEngine.enqueue({
+      await SyncEngine.enqueue({
         type: 'UPSERT',
         table: 'reader_positions',
         payload: {
@@ -602,8 +598,8 @@ export const StorageService = {
       const deviceId = this.getDeviceId();
       memoryStorage.clear();
       await this.clearHistory();
-      
-        await SyncEngine.enqueue({
+
+      await SyncEngine.enqueue({
         type: 'DELETE',
         table: 'favorites',
         payload: { device_id: deviceId },
@@ -615,11 +611,11 @@ export const StorageService = {
   },
 
   // ============ NATIVE ACCESSORS ============
-  
+
   async getNativeItemSync(key: string): Promise<string | null> {
     return await getNativeItem(key);
   },
-  
+
   setNativeItemSync(key: string, value: string): void {
     setNativeItem(key, value);
   }
@@ -630,13 +626,13 @@ export const storageReady = (async () => {
   try {
     // 1. Core Native Init
     await initializeFromNativeStorage();
-    
+
     // 2. Data Migration (Legacy -> Cloud)
     await MigrationService.run();
-    
+
     // 3. Initial Cloud Sync
     await StorageService.getSettings();
-    
+
     log('[Storage] System is READY');
   } catch (e: any) {
     logError('[Storage] Initialization sequence failed:', e?.message || e?.toString?.() || JSON.stringify(e) || e);

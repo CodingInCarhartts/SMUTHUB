@@ -53,7 +53,7 @@ export interface NativeAppUpdate {
   forceImmediate: boolean;
 }
 
-export const BUNDLE_VERSION = '1.0.61';
+export const BUNDLE_VERSION = '1.0.62';
 
 export const UpdateService = {
   /**

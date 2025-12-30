@@ -16,7 +16,6 @@ export function Settings({ onBack, onNavigate }: Props) {
   );
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
-  const [remoteMode, setRemoteMode] = useState(SettingsStore.getRemoteMode());
   const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -32,7 +31,6 @@ export function Settings({ onBack, onNavigate }: Props) {
       setReadingMode(SettingsStore.getReadingMode());
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
-      setRemoteMode(SettingsStore.getRemoteMode());
       setScrollSpeed(SettingsStore.getScrollSpeed());
     });
 
@@ -68,10 +66,6 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   const handleDarkModeToggle = () => {
     SettingsStore.setDarkMode(!darkMode);
-  };
-
-  const handleRemoteModeToggle = () => {
-    SettingsStore.setRemoteMode(!remoteMode);
   };
 
   const handleScrollSpeedChange = (speed: number) => {
@@ -133,26 +127,6 @@ export function Settings({ onBack, onNavigate }: Props) {
             <text className="Settings-item-chevron">›</text>
           </view>
 
-          {/* Remote Mode (Controller Support) */}
-          <view className="Settings-item" bindtap={handleRemoteModeToggle}>
-            <view className="Settings-item-left">
-              <text className="Settings-item-icon">🎮</text>
-              <view className="Settings-item-text">
-                <text className="Settings-item-label">Controller Mode</text>
-                <text className="Settings-item-description">
-                  Enable for Bluetooth ring/controller
-                </text>
-              </view>
-            </view>
-            <view
-              className={
-                remoteMode ? 'Settings-toggle active' : 'Settings-toggle'
-              }
-            >
-              <view className="Settings-toggle-knob" />
-            </view>
-          </view>
-
           {/* Scroll Speed Setting */}
           <view className="Settings-item">
             <view className="Settings-item-left">
@@ -165,25 +139,25 @@ export function Settings({ onBack, onNavigate }: Props) {
               </view>
             </view>
             <view className="Settings-speed-buttons">
-              <view 
+              <view
                 className={scrollSpeed === 0.1 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
                 bindtap={() => handleScrollSpeedChange(0.1)}
               >
                 <text>S</text>
               </view>
-              <view 
+              <view
                 className={scrollSpeed === 0.15 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
                 bindtap={() => handleScrollSpeedChange(0.15)}
               >
                 <text>N</text>
               </view>
-              <view 
+              <view
                 className={scrollSpeed === 0.25 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
                 bindtap={() => handleScrollSpeedChange(0.25)}
               >
                 <text>F</text>
               </view>
-              <view 
+              <view
                 className={scrollSpeed === 0.4 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
                 bindtap={() => handleScrollSpeedChange(0.4)}
               >
@@ -319,7 +293,7 @@ export function Settings({ onBack, onNavigate }: Props) {
           className="ConfirmOverlay"
           bindtap={() => setShowClearConfirm(null)}
         >
-          <view className="ConfirmDialog" catchtap={() => {}}>
+          <view className="ConfirmDialog" catchtap={() => { }}>
             <text className="ConfirmTitle">
               {showClearConfirm === 'history'
                 ? 'Clear History?'
