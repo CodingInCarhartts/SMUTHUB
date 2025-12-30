@@ -7,6 +7,11 @@ const log = (...args: any[]) => logCapture('log', ...args);
 const logError = (...args: any[]) => logCapture('error', ...args);
 const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
+export function normalizeUrl(url: string | undefined): string {
+  if (!url) return '';
+  return url.replace(/\/+$/, '').toLowerCase();
+}
+
 // Types
 export interface ViewedManga {
   manga: Manga;
@@ -55,6 +60,7 @@ const HISTORY_LIMIT_CLOUD = 999;
 // In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
 let NATIVE_DEVICE_ID: string | null = null;
+let SESSION_DEVICE_ID: string | null = null;
 
 // Immediate startup log
 // log('[Storage] Module loading, checking native storage...');
@@ -185,15 +191,10 @@ async function initializeFromNativeStorage(): Promise<void> {
     });
 
     if (utilsModule && typeof utilsModule.getDeviceId === 'function') {
-      NATIVE_DEVICE_ID = await new Promise((resolve) => {
+      const nativeId: string | null = await new Promise((resolve) => {
         log('[Storage] Calling native getDeviceId...');
         utilsModule.getDeviceId((id: string) => {
           log('[Storage] Fetched native device ID success:', id);
-          // If we previously generated a temp UUID, we should overwrite it in SharedPreferences
-          // but ONLY if the native ID is valid.
-          if (id && id.length > 5) {
-            setNativeItem(STORAGE_KEYS.DEVICE_ID, id);
-          }
           resolve(id);
         });
         // Timeout just in case
@@ -202,6 +203,12 @@ async function initializeFromNativeStorage(): Promise<void> {
           resolve(null);
         }, 2000);
       });
+
+      if (nativeId && nativeId.length > 5 && nativeId !== 'android' && nativeId !== 'undefined') {
+        NATIVE_DEVICE_ID = nativeId;
+        // Also ensure it is saved locally to avoid regeneration if hardware ID fetch is slow next time
+        setLocal(STORAGE_KEYS.DEVICE_ID, nativeId);
+      }
     }
   } catch (e) {
     logError('[Storage] Failed to fetch native device ID:', e);
@@ -245,71 +252,48 @@ export const StorageService = {
   // ============ DEVICE ID ============
 
   getDeviceId(): string {
-    // 1. Prioritize Real Native Device ID (fetched during init)
+    // 1. Session Cache
+    if (SESSION_DEVICE_ID) return SESSION_DEVICE_ID;
+
+    // 2. Prioritize Real Native Device ID (fetched during init)
     if (NATIVE_DEVICE_ID && NATIVE_DEVICE_ID.length > 5 && NATIVE_DEVICE_ID !== 'android') {
+      SESSION_DEVICE_ID = NATIVE_DEVICE_ID;
       return NATIVE_DEVICE_ID;
     }
 
-    // 2. Check LocalStorage next for a persistent ID
+    // 3. Check Memory Storage (via getLocal)
     const id = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID, null);
-    log('[Storage] getDeviceId - LocalStorage check:', {
-      key: STORAGE_KEYS.DEVICE_ID,
-      found: id,
-      type: typeof id,
-    });
-
-    if (id && typeof id === 'string' && id.length > 5) {
-      log('[Storage] getDeviceId - Using stored ID:', id);
+    if (id && typeof id === 'string' && id.length > 5 && id !== 'android') {
+      SESSION_DEVICE_ID = id;
       return id;
     }
 
-    // 2. Check SystemInfo, but only use it if it's not a generic/malformed ID
+    // 4. Fallback to SystemInfo
     try {
-      const si =
-        typeof SystemInfo !== 'undefined'
-          ? SystemInfo
-          : (globalThis as any).SystemInfo;
-      log('[Storage] getDeviceId - SystemInfo check:', {
-        available: !!si,
-        deviceId: si?.deviceId,
-      });
-      if (
-        si &&
-        si.deviceId &&
-        si.deviceId.length > 5 &&
-        si.deviceId !== 'undefined' &&
-        si.deviceId !== 'android'
-      ) {
+      const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
+      if (si?.deviceId && si.deviceId.length > 5 && si.deviceId !== 'android') {
         setLocal(STORAGE_KEYS.DEVICE_ID, si.deviceId);
-        log('[Storage] getDeviceId - Using SystemInfo ID:', si.deviceId);
+        SESSION_DEVICE_ID = si.deviceId;
         return si.deviceId;
       }
     } catch (e) {
       logWarn('[Storage] SystemInfo check failed:', e);
     }
 
-    // 3. Generate a fresh UUID if nothing else is found
-    // If we're on a native-capable device, we'd prefer to wait for NATIVE_DEVICE_ID,
-    // but this function is sync. So we generate a temp one but DON'T save it permanently
-    // to Native Storage yet if we are still initializing.
-    const newId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : 'xxxx-xxxx-xxxx-xxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
+    // 5. Generate Fallback strictly for web/local dev if no ID exists at all
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'xxxx-xxxx-xxxx-xxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
 
-    // Only save permanently to LocalStorage/Native if we are NOT on a hardware-capable device
-    // OR if we've determined native ID fetch is truly impossible.
+    // Only save permanently if we aren't likely to fetch a native ID later (not hardware capable)
     if (!hasNativeStorage()) {
       setLocal(STORAGE_KEYS.DEVICE_ID, newId);
-      log('[Storage] Generated & SAVED NEW Device ID (web/fallback):', newId);
-    } else {
-      log('[Storage] ⚠️ Generated TEMPORARY Device ID (still waiting for native?):', newId);
     }
     
+    SESSION_DEVICE_ID = newId;
     return newId;
   },
 
@@ -344,6 +328,8 @@ export const StorageService = {
   },
 
   async addFavorite(manga: Manga): Promise<void> {
+    const deviceId = this.getDeviceId();
+    console.log(`[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`);
     const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
     if (!favorites.find((m) => m.id === manga.id)) {
       favorites.unshift(manga);
@@ -355,7 +341,7 @@ export const StorageService = {
       type: 'UPSERT',
       table: 'favorites',
       payload: {
-        device_id: this.getDeviceId(),
+        device_id: deviceId,
         manga_id: manga.id,
         manga_data: manga,
         created_at: new Date().toISOString()
@@ -535,6 +521,7 @@ export const StorageService = {
     panelIndex: number,
     scrollPosition?: number,
   ): void {
+    const deviceId = this.getDeviceId();
     const position: ReaderPosition = {
       mangaId,
       chapterUrl,
@@ -542,6 +529,7 @@ export const StorageService = {
       scrollPosition,
       timestamp: new Date().toISOString(),
     };
+    console.log(`[Storage] Saving reader position: manga=${mangaId}, panel=${panelIndex}, device=${deviceId}`);
     setLocal(STORAGE_KEYS.READER_POSITION, position);
     
     (async () => {
@@ -550,7 +538,7 @@ export const StorageService = {
         type: 'UPSERT',
         table: 'reader_positions',
         payload: {
-          device_id: this.getDeviceId(),
+          device_id: deviceId,
           manga_id: mangaId,
           chapter_url: chapterUrl,
           panel_index: panelIndex,

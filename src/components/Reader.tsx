@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from '@lynx-js/react';
 import { BatotoService, type Manga } from '../services/batoto';
 import { type ReadingMode, SettingsStore } from '../services/settings';
-import { StorageService } from '../services/storage';
+import { StorageService, normalizeUrl } from '../services/storage';
 import './Reader.css';
 
 interface Props {
@@ -196,10 +196,8 @@ export function Reader({
       
       if (manga) {
         const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
-        const normalizedSavedUrl = savedPosition?.chapterUrl.replace(/\/$/, '');
-        const normalizedCurrentUrl = chapterUrl.replace(/\/$/, '');
 
-        if (savedPosition && normalizedSavedUrl === normalizedCurrentUrl) {
+        if (savedPosition && normalizeUrl(savedPosition.chapterUrl) === normalizeUrl(chapterUrl)) {
            const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
            console.log('[Reader] Found position to restore:', restoredPage);
            setCurrentPage(restoredPage);

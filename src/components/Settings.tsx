@@ -41,6 +41,23 @@ export function Settings({ onBack, onNavigate }: Props) {
     return unsubscribe;
   }, []);
 
+  // Version info
+  const [nativeVersion, setNativeVersion] = useState<string>('Loading...');
+
+  useEffect(() => {
+    // Fetch native version from module
+    try {
+      if (typeof NativeModules !== 'undefined' && NativeModules.NativeUpdaterModule) {
+        const v = NativeModules.NativeUpdaterModule.getNativeVersion();
+        setNativeVersion(v);
+      } else {
+        setNativeVersion('N/A (Web)');
+      }
+    } catch (e) {
+      setNativeVersion('Error');
+    }
+  }, []);
+
   const handleReadingModeToggle = () => {
     const newMode: ReadingMode =
       readingMode === 'vertical' ? 'horizontal' : 'vertical';
@@ -239,7 +256,8 @@ export function Settings({ onBack, onNavigate }: Props) {
               <text className="Settings-item-icon">💜</text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">SMUTHUB</text>
-                <text className="Settings-item-description">Version {BUNDLE_VERSION}</text>
+                <text className="Settings-item-description">APK: v{nativeVersion}</text>
+                <text className="Settings-item-description">JS: v{BUNDLE_VERSION}</text>
                 <text className="Settings-item-description">🖤 Daddy..</text>
               </view>
             </view>

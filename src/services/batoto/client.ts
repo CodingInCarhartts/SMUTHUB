@@ -156,9 +156,7 @@ export class BatotoClient {
 
     try {
       const response = await fetch(url, mergedOptions);
-
-      // Debugging headers
-      console.log(`[SmutHub] Response Status: ${response.status}`);
+      console.log(`[SmutHub] Response Status: ${response.status} (${response.statusText})`);
       response.headers.forEach((value, key) => {
         console.log(`[SmutHub] Header: ${key} = ${value}`);
       });

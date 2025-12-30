@@ -20,7 +20,7 @@ import {
   type SearchFilters,
 } from './services/batoto';
 import { SettingsStore } from './services/settings';
-import { StorageService } from './services/storage';
+import { StorageService, normalizeUrl } from './services/storage';
 import {
   type AppUpdate,
   type NativeAppUpdate,
@@ -256,26 +256,35 @@ export function App() {
   }, [view, triggerUpdateCheck]);
 
   const handleNextChapter = useCallback(() => {
-    if (!mangaDetails || !selectedChapterUrl) return;
+    if (!mangaDetails || !selectedChapterUrl) {
+      console.warn('[App] handleNextChapter failed: No details or selected chapter');
+      return;
+    }
 
-    // Chapters are oldest to newest (0 to length-1)
     const chapters = mangaDetails.chapters;
+    const normalizedSelected = normalizeUrl(selectedChapterUrl);
+    
+    console.log(`[App] Searching for next chapter after: ${normalizedSelected}`);
+    
     const currentIndex = chapters.findIndex(
-      (c: Chapter) => c.url === selectedChapterUrl,
+      (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
     );
 
     if (currentIndex !== -1 && currentIndex < chapters.length - 1) {
       const nextChapter = chapters[currentIndex + 1];
-      console.log(`[App] Navigating to next chapter: ${nextChapter.title}`);
+      console.log(`[App] Found next chapter at index ${currentIndex + 1}: ${nextChapter.title}`);
       handleSelectChapter(nextChapter.url, nextChapter.title);
+    } else {
+      console.warn(`[App] Next chapter not found. Index: ${currentIndex}, Total: ${chapters.length}`);
     }
   }, [mangaDetails, selectedChapterUrl, handleSelectChapter]);
 
   const hasNextChapter = useMemo(() => {
     if (!mangaDetails || !selectedChapterUrl) return false;
     const chapters = mangaDetails.chapters;
+    const normalizedSelected = normalizeUrl(selectedChapterUrl);
     const currentIndex = chapters.findIndex(
-      (c: Chapter) => c.url === selectedChapterUrl,
+      (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
     );
     return currentIndex !== -1 && currentIndex < chapters.length - 1;
   }, [mangaDetails, selectedChapterUrl]);
