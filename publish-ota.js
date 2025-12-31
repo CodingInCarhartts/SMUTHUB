@@ -28,14 +28,20 @@ async function publish() {
     console.log(`📝 Release Notes: "${customMsg}"\n`);
   }
 
-  // 1. Get display version from package.json (for human-readable display only)
+  // 1. Bump version in package.json
   const pkg = JSON.parse(readFileSync(PACKAGE_FILE, "utf-8"));
-  const displayVersion = pkg.version || "1.0.0";
-  console.log(`📦 Display Version: ${displayVersion}`);
+  const oldVersion = pkg.version || "1.0.0";
+  const versionParts = oldVersion.split('.');
+  versionParts[2] = parseInt(versionParts[2] || 0) + 1;
+  const newVersion = versionParts.join('.');
+  pkg.version = newVersion;
+  writeFileSync(PACKAGE_FILE, JSON.stringify(pkg, null, 2) + '\n');
+  console.log(`✅ Version Bump: ${oldVersion} -> ${newVersion}`);
 
   // 2. Stage all source changes FIRST (before we know the hash)
   console.log("\n🔄 Staging source changes...");
   run("git add src");
+  run("git add package.json");
 
   // 3. Create a temporary commit to get the hash
   const commitMsg = customMsg
@@ -67,7 +73,7 @@ async function publish() {
     if (tsContent.includes("export const BUNDLE_VERSION")) {
       tsContent = tsContent.replace(
         /export const BUNDLE_VERSION = '[^']*';/,
-        `export const BUNDLE_VERSION = '${displayVersion}';\nexport const BUNDLE_COMMIT_HASH = '${commitHash}';`
+        `export const BUNDLE_VERSION = '${newVersion}';\nexport const BUNDLE_COMMIT_HASH = '${commitHash}';`
       );
     } else {
       // Add before UpdateService export
@@ -82,7 +88,7 @@ async function publish() {
   if (tsContent.includes("export const BUNDLE_VERSION")) {
     tsContent = tsContent.replace(
       /export const BUNDLE_VERSION = '[^']*';/,
-      `export const BUNDLE_VERSION = '${displayVersion}';`
+      `export const BUNDLE_VERSION = '${newVersion}';`
     );
   }
   
@@ -130,7 +136,7 @@ async function publish() {
         "Prefer": "return=minimal"
       },
       body: JSON.stringify({
-        version: displayVersion,
+        version: newVersion,
         commit_hash: commitHash,
         is_mandatory: false,
         release_notes: customMsg || `OTA update (${commitHash})`,
