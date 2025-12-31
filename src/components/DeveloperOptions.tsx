@@ -170,7 +170,7 @@ export function DeveloperOptions() {
         <view className="Settings-card">
           {/* Persona Override - Refactored Header */}
           <view className="Settings-item-left">
-            <text className="Settings-item-icon">🎭</text>
+            <text className="Settings-item-icon">🤖</text>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Override User Persona</text>
               <text className="Settings-item-description">
