@@ -71,6 +71,29 @@ export const SettingsStore = {
     console.log('[SettingsStore] Debug outlines set to:', enabled);
     settings.debugOutlines = enabled;
     StorageService.saveSettings({ debugOutlines: enabled });
+    StorageService.saveSettings({ debugOutlines: enabled });
+    listeners.forEach((fn) => fn());
+  },
+
+  getPrivacyFilter(): boolean {
+    return settings.privacyFilter ?? false;
+  },
+
+  setPrivacyFilter(enabled: boolean): void {
+    console.log('[SettingsStore] Privacy filter set to:', enabled);
+    settings.privacyFilter = enabled;
+    StorageService.saveSettings({ privacyFilter: enabled });
+    listeners.forEach((fn) => fn());
+  },
+
+  getPrivacyFilterOpacity(): number {
+    return settings.privacyFilterOpacity ?? 0.7;
+  },
+
+  setPrivacyFilterOpacity(opacity: number): void {
+    console.log('[SettingsStore] Privacy filter opacity set to:', opacity);
+    settings.privacyFilterOpacity = opacity;
+    StorageService.saveSettings({ privacyFilterOpacity: opacity });
     listeners.forEach((fn) => fn());
   },
 

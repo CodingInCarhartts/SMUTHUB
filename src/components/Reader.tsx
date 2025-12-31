@@ -146,11 +146,15 @@ export function Reader({
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
   const [showControls, setShowControls] = useState(true);
+  const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
+  const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
   const lastKeyDownTime = useRef<number>(0);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
-      // Just for scroll speed or other future settings
+      // Update settings
+      setPrivacyFilter(SettingsStore.getPrivacyFilter());
+      setFilterOpacity(SettingsStore.getPrivacyFilterOpacity());
     });
     return unsubscribe;
   }, []);
@@ -377,6 +381,11 @@ export function Reader({
     }
   };
 
+  const togglePrivacyFilter = (e?: any) => {
+    e?.stopPropagation(); // Prevent header tap propagation if needed
+    SettingsStore.setPrivacyFilter(!privacyFilter);
+  };
+
   return (
     <view
       className="Reader"
@@ -406,11 +415,17 @@ export function Reader({
 
         <view
           className="Reader-header-right"
-          bindtap={handleToggleFavorite}
           style={{ padding: '10px 0 10px 20px' }}
         >
-          {/* Expanded hit target */}
-          <text className="Reader-back">{isFavorite ? '❤️' : '🤍'}</text>
+           {/* Privacy Toggle */}
+           <view bindtap={togglePrivacyFilter} style={{ marginRight: '15px' }}>
+            <text className="Reader-back">{privacyFilter ? '👁️' : '🔒'}</text>
+          </view>
+
+          {/* Favorite Toggle */}
+          <view bindtap={handleToggleFavorite}>
+            <text className="Reader-back">{isFavorite ? '❤️' : '🤍'}</text>
+          </view>
         </view>
       </view>
 
@@ -472,6 +487,14 @@ export function Reader({
           ]
         )}
       </list>
+
+      {/* Privacy Overlay */}
+      {privacyFilter && (
+        <view
+          className="Reader-privacy-overlay"
+          style={{ opacity: filterOpacity }}
+        />
+      )}
     </view>
   );
 }

@@ -166,8 +166,6 @@
   transform: scale(1.2);
 }
 
-
-
 .Reader-footer-nav {
   width: 100%;
   padding: 60px 20px;
@@ -226,4 +224,16 @@
 
 .Reader-tap-zone.next {
   width: 25%;
+}
+
+.Reader-privacy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000;
+  z-index: 99; /* Below header (100) but above content */
+  pointer-events: none; /* Allow clicks to pass through */
+  transition: opacity 0.3s ease;
 }

@@ -14,6 +14,8 @@ export function Settings({ onBack, onNavigate }: Props) {
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
   const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
+  const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
+  const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [showClearConfirm, setShowClearConfirm] = useState<
@@ -28,6 +30,8 @@ export function Settings({ onBack, onNavigate }: Props) {
       setDarkMode(SettingsStore.getDarkMode());
       setDevMode(SettingsStore.getDevMode());
       setScrollSpeed(SettingsStore.getScrollSpeed());
+      setPrivacyFilter(SettingsStore.getPrivacyFilter());
+      setFilterOpacity(SettingsStore.getPrivacyFilterOpacity());
     });
 
     // Load counts
@@ -60,6 +64,14 @@ export function Settings({ onBack, onNavigate }: Props) {
 
   const handleScrollSpeedChange = (speed: number) => {
     SettingsStore.setScrollSpeed(speed);
+  };
+
+  const handlePrivacyFilterToggle = () => {
+    SettingsStore.setPrivacyFilter(!privacyFilter);
+  };
+
+  const handleOpacityChange = (opacity: number) => {
+    SettingsStore.setPrivacyFilterOpacity(opacity);
   };
 
   const handleAboutTap = () => {
@@ -138,6 +150,53 @@ export function Settings({ onBack, onNavigate }: Props) {
               </view>
             </view>
           </view>
+
+
+          {/* Privacy Filter Setting */}
+          <view className="Settings-item" bindtap={handlePrivacyFilterToggle}>
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">🔒</text>
+              <view className="Settings-item-text">
+                <text className="Settings-item-label">Privacy Filter</text>
+                <text className="Settings-item-description">
+                  {privacyFilter ? 'Enabled' : 'Disabled'}
+                </text>
+              </view>
+            </view>
+            <view
+              className={
+                privacyFilter ? 'Settings-toggle active' : 'Settings-toggle'
+              }
+            >
+              <view className="Settings-toggle-knob" />
+            </view>
+          </view>
+
+          {/* Filter Intensity (Opacity) */}
+          {privacyFilter && (
+            <view className="Settings-item" style={{ marginTop: '-10px', paddingTop: '0' }}>
+              <view className="Settings-item-left" style={{ width: '100%' }}>
+                <view className="Settings-item-text" style={{ width: '100%' }}>
+                  <text className="Settings-item-label" style={{ fontSize: '12px', marginBottom: '8px' }}>
+                    Filter Intensity: {Math.round(filterOpacity * 100)}%
+                  </text>
+                  <view className="Settings-speed-buttons">
+                    {[0.3, 0.5, 0.7, 0.85, 0.95].map((op) => (
+                      <view
+                        key={op}
+                        className={filterOpacity === op ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                        bindtap={() => handleOpacityChange(op)}
+                        style={{ flex: 1, height: '32px' }}
+                      >
+                        <text style={{ fontSize: '11px' }}>{Math.round(op * 100)}%</text>
+                      </view>
+                    ))}
+                  </view>
+                </view>
+              </view>
+            </view>
+          )}
+
         </view>
 
         {/* Appearance Section */}

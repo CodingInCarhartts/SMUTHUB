@@ -38,6 +38,8 @@ export interface AppSettings {
   devMode: boolean;
   scrollSpeed: number; // 0.1 = 10%, 0.2 = 20%, etc.
   debugOutlines?: boolean;
+  privacyFilter?: boolean;
+  privacyFilterOpacity?: number; // 0.0 to 1.0
 }
 
 export interface ReaderPosition {
@@ -64,6 +66,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   devMode: false,
   scrollSpeed: 0.6, // 60% of screen per scroll
+  privacyFilter: false,
+  privacyFilterOpacity: 0.7,
 };
 
 // In-memory fallback and cache
@@ -440,6 +444,8 @@ export const StorageService = {
           darkMode: row.dark_mode ?? DEFAULT_SETTINGS.darkMode,
           devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
+          privacyFilter: row.privacy_filter ?? DEFAULT_SETTINGS.privacyFilter,
+          privacyFilterOpacity: row.privacy_filter_opacity ?? DEFAULT_SETTINGS.privacyFilterOpacity,
         };
         setLocal(STORAGE_KEYS.SETTINGS, settings);
       }
@@ -461,6 +467,8 @@ export const StorageService = {
         dark_mode: updated.darkMode,
         dev_mode: updated.devMode,
         scroll_speed: updated.scrollSpeed,
+        privacy_filter: updated.privacyFilter,
+        privacy_filter_opacity: updated.privacyFilterOpacity,
         updated_at: new Date().toISOString()
       },
       timestamp: Date.now()
