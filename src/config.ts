@@ -55,7 +55,7 @@ export const PANEL_RETRY_DELAY_MS = 500;         // Delay between panel load ret
 // UI / UX CONSTANTS
 // ============================================================
 export const SWIPE_THRESHOLD_PX = 50;            // Minimum pixels for swipe detection
-export const KEY_DEBOUNCE_MS = 400;              // Debounce for keyboard/remote input
+export const KEY_DEBOUNCE_MS = 50;               // Debounce for keyboard/remote input
 export const SCROLL_PERCENT = 0.1;               // Scroll 10% of screen per key press
 export const PANEL_MAX_RETRIES = 5;              // Max retries for loading a panel image
 export const REMOTE_TOUCH_DIVIDER_X = 500;       // X coordinate threshold for up/down detection

@@ -194,7 +194,7 @@ export function Reader({
     setShowControls((prev) => !prev);
   };
 
-  const scrollDown = () => {
+  const scrollDown = (intensity = 1.0) => {
     // For vertical mode, we want to scroll down exactly one viewport height
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
@@ -202,10 +202,12 @@ export function Reader({
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      const scrollSpeed = SettingsStore.getScrollSpeed();
-      const scrollDistance = Math.floor(screenHeightLogical * scrollSpeed);
+      
+      // Use user setting, but scale by intensity (e.g. 0.25 for keys => 15% screen)
+      const baseSpeed = SettingsStore.getScrollSpeed();
+      const scrollDistance = Math.floor(screenHeightLogical * baseSpeed * intensity);
 
-      log(`[Reader] Scroll DOWN: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, speed=${scrollSpeed}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll DOWN: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`);
 
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -220,16 +222,17 @@ export function Reader({
     }
   };
 
-  const scrollUp = () => {
+  const scrollUp = (intensity = 1.0) => {
     const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
       const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
       const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      const scrollSpeed = SettingsStore.getScrollSpeed();
-      const scrollDistance = Math.floor(screenHeightLogical * scrollSpeed);
+      
+      const baseSpeed = SettingsStore.getScrollSpeed();
+      const scrollDistance = Math.floor(screenHeightLogical * baseSpeed * intensity);
 
-      log(`[Reader] Scroll UP: screenH=${si?.screenHeight}, pixelRatio=${pixelRatio}, logicalH=${screenHeightLogical}, speed=${scrollSpeed}, dist=${scrollDistance}`);
+      log(`[Reader] Scroll UP: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`);
 
       runtime.createSelectorQuery()
         .select('#reader-list')
@@ -261,12 +264,12 @@ export function Reader({
       case 19: // DPAD_UP
       case 21: // DPAD_LEFT
       case 24: // VOLUME_UP
-        scrollUp();
+        scrollUp(0.25); // 25% of normal speed (simulates lerp/smooth scroll)
         break;
       case 20: // DPAD_DOWN
       case 22: // DPAD_RIGHT
       case 25: // VOLUME_DOWN
-        scrollDown();
+        scrollDown(0.25); // 25% of normal speed
         break;
       case 23: // DPAD_CENTER
       case 66: // ENTER
