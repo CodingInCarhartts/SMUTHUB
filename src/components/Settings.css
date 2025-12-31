@@ -326,6 +326,10 @@
   color: #e74c3c;
 }
 
+.Settings-button.disabled {
+  opacity: 0.5;
+}
+
 /* Debug Console Modal - Lumina Redesign */
 
 .DebugConsole-overlay {
@@ -376,6 +380,16 @@
   display: flex;
   flex-direction: row;
   gap: 12px;
+}
+
+.DebugConsole-toolbar {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background-color: var(--glass);
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .DebugConsole-button {

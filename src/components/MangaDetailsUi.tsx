@@ -1,5 +1,6 @@
-import { useMemo, useState } from '@lynx-js/react';
+import { useEffect, useMemo, useState } from '@lynx-js/react';
 import type { Chapter, MangaDetails } from '../services/batoto';
+import { StorageService } from '../services/storage';
 import './MangaDetailsUi.css';
 
 interface Props {
@@ -11,6 +12,39 @@ interface Props {
 export function MangaDetailsUi({ details, onBack, onRead }: Props) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [reverseOrder, setReverseOrder] = useState(true);
+
+  // Favorite state
+  const [isFavorite, setIsFavorite] = useState(
+    StorageService.isFavoriteSync(details.id),
+  );
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    StorageService.isFavorite(details.id).then(setIsFavorite);
+  }, [details.id]);
+
+  const handleToggleFavorite = async () => {
+    if (favLoading) return;
+    setFavLoading(true);
+    try {
+      if (isFavorite) {
+        await StorageService.removeFavorite(details.id);
+        setIsFavorite(false);
+      } else {
+        await StorageService.addFavorite({
+          id: details.id,
+          title: details.title,
+          cover: details.cover,
+          url: '', // Will be set by caller context
+        });
+        setIsFavorite(true);
+      }
+    } catch (e) {
+      console.error('[MangaDetailsUi] Favorite toggle failed:', e);
+    } finally {
+      setFavLoading(false);
+    }
+  };
 
   // My wife can only read english, so we should only show english chapters.
   // For now, simple list with sort toggle.
@@ -36,6 +70,14 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
             <text className="BackButton" bindtap={onBack}>
               ← Back
             </text>
+            <view
+              className={isFavorite ? 'DetailsFavorite active' : 'DetailsFavorite'}
+              bindtap={handleToggleFavorite}
+            >
+              <text className="DetailsFavorite-icon">
+                {favLoading ? '⏳' : isFavorite ? '❤️' : '🤍'}
+              </text>
+            </view>
           </view>
           <view className="HeaderContent">
             <image
@@ -60,7 +102,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
         </view>
       </view>
 
-      <view className="DetailsBody">
+      <scroll-view className="DetailsBody" scroll-y>
         {/* Description */}
         <view
           className="DescriptionSection"
@@ -103,7 +145,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
         </view>
 
         {/* Chapter List */}
-        <scroll-view className="DetailsChapterList" scroll-y>
+        <view className="DetailsChapterList">
           {displayChapters.map((ch) => (
             <view
               key={ch.id}
@@ -118,8 +160,8 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
               </view>
             </view>
           ))}
-        </scroll-view>
-      </view>
+        </view>
+      </scroll-view>
     </view>
   );
 }

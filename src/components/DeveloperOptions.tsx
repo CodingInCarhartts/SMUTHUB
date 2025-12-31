@@ -192,7 +192,7 @@ export function DeveloperOptions() {
             />
           </view>
 
-          <view className="Settings-button-row" style={{ flexDirection: 'row' }}>
+          <view className="Settings-button-row">
             <view
               className="Settings-button danger"
               bindtap={handleClearDeviceOverride}
@@ -201,7 +201,6 @@ export function DeveloperOptions() {
             </view>
             <view
               className={deviceIdOverrideInput ? 'Settings-button primary' : 'Settings-button primary disabled'}
-              style={{ opacity: deviceIdOverrideInput ? 1 : 0.5, marginLeft: '12px' }}
               bindtap={handleSetDeviceOverride}
             >
               <text className="Settings-button-text">APPLY</text>
@@ -301,31 +300,31 @@ export function DeveloperOptions() {
           <view className="DebugConsole-modal" catchtap={() => { }}>
             <view className="DebugConsole-header">
               <text className="DebugConsole-title">🐛 Debug Console</text>
-              <view className="DebugConsole-actions">
-                <view
-                  className="DebugConsole-button"
-                  bindtap={handleRefreshReport}
-                >
-                  <text className="DebugConsole-button-text">🔄</text>
-                </view>
-                <view
-                  className="DebugConsole-button"
-                  bindtap={handleForceUpdateCheck}
-                >
-                  <text className="DebugConsole-button-text">🆙 Check Update</text>
-                </view>
-                <view
-                  className="DebugConsole-button primary"
-                  bindtap={handleSaveToDb}
-                >
-                  <text className="DebugConsole-button-text">💾 Save to DB</text>
-                </view>
-                <view
-                  className="DebugConsole-button"
-                  bindtap={() => setShowDebugConsole(false)}
-                >
-                  <text className="DebugConsole-button-text">✕</text>
-                </view>
+              <view
+                className="DebugConsole-button"
+                bindtap={() => setShowDebugConsole(false)}
+              >
+                <text className="DebugConsole-button-text">✕</text>
+              </view>
+            </view>
+            <view className="DebugConsole-toolbar">
+              <view
+                className="DebugConsole-button"
+                bindtap={handleRefreshReport}
+              >
+                <text className="DebugConsole-button-text">🔄</text>
+              </view>
+              <view
+                className="DebugConsole-button"
+                bindtap={handleForceUpdateCheck}
+              >
+                <text className="DebugConsole-button-text">🆙</text>
+              </view>
+              <view
+                className="DebugConsole-button primary"
+                bindtap={handleSaveToDb}
+              >
+                <text className="DebugConsole-button-text">💾 Save</text>
               </view>
             </view>
 
