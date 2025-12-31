@@ -36,6 +36,7 @@ const logError = (...args: any[]) => logCapture('error', ...args);
 
 export interface AppUpdate {
   version: string;
+  commitHash: string;
   isMandatory: boolean;
   releaseNotes: string;
   forceImmediate: boolean;
@@ -54,6 +55,7 @@ export interface NativeAppUpdate {
 }
 
 export const BUNDLE_VERSION = '1.0.83';
+export const BUNDLE_COMMIT_HASH = '6bf1ada'; // Will be injected by publish-ota.js
 
 export const UpdateService = {
   /**
@@ -63,13 +65,14 @@ export const UpdateService = {
     try {
       const data = await SupabaseService.getAll<any>(
         'app_updates',
-        '?select=version,is_mandatory,force_immediate,release_notes&order=created_at.desc&limit=1',
+        '?select=version,commit_hash,is_mandatory,force_immediate,release_notes,download_url&order=created_at.desc&limit=1',
       );
 
       if (data && data.length > 0) {
         const row = data[0];
         return {
           version: row.version,
+          commitHash: row.commit_hash || '',
           isMandatory: !!row.is_mandatory || !!row.force_immediate,
           releaseNotes: row.release_notes || '',
           forceImmediate: !!row.force_immediate,
@@ -129,22 +132,35 @@ export const UpdateService = {
       console.log('[UpdateService] No update data found in Supabase');
       return null;
     }
-    console.log(`[UpdateService] Latest in DB: ${latest.version}`);
+    console.log(`[UpdateService] Latest in DB: ${latest.version} (hash: ${latest.commitHash})`);
 
-    // Check if version is skipped
+    // Check if commit hash matches (primary check)
+    if (latest.commitHash && latest.commitHash === BUNDLE_COMMIT_HASH) {
+      console.log('[UpdateService] Commit hash matches. App is up to date.');
+      return null;
+    }
+
+    // Check if version/hash is skipped
     const skipped = StorageService.getSkippedVersion();
-    if (skipped === latest.version && !latest.isMandatory) {
+    if ((skipped === latest.commitHash || skipped === latest.version) && !latest.isMandatory) {
       console.log(`[UpdateService] Version ${latest.version} is skipped by user.`);
       return null;
     }
 
+    // If commit hash differs, there's an update
+    if (latest.commitHash && latest.commitHash !== BUNDLE_COMMIT_HASH) {
+      console.log(`[UpdateService] NEW UPDATE FOUND! Hash mismatch: ${latest.commitHash} vs ${BUNDLE_COMMIT_HASH}`);
+      return latest;
+    }
+
+    // Fallback to semver comparison for legacy entries without commit_hash
     const comparison = this.compareVersions(latest.version, BUNDLE_VERSION);
     console.log(
-      `[UpdateService] Comparing ${latest.version} vs current ${BUNDLE_VERSION} => Result: ${comparison}`,
+      `[UpdateService] Fallback semver compare: ${latest.version} vs ${BUNDLE_VERSION} => Result: ${comparison}`,
     );
 
     if (comparison > 0) {
-      console.log('[UpdateService] NEW UPDATE FOUND!');
+      console.log('[UpdateService] NEW UPDATE FOUND (via semver fallback)!');
       return latest;
     }
 
