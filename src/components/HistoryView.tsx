@@ -5,7 +5,7 @@ import './HistoryView.css';
 
 interface Props {
   onBack: () => void;
-  onSelectManga: (manga: Manga) => void;
+  onSelectHistoryItem: (manga: Manga, chapterUrl?: string, chapterTitle?: string) => void;
 }
 
 // Helper to format relative time
@@ -25,7 +25,7 @@ function timeAgo(dateString: string): string {
   return `${Math.floor(diffDays / 30)}mo ago`;
 }
 
-export function HistoryView({ onBack, onSelectManga }: Props) {
+export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
   const [history, setHistory] = useState<ViewedManga[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,8 +45,8 @@ export function HistoryView({ onBack, onSelectManga }: Props) {
     }
   };
 
-  const handleSelectManga = (manga: Manga) => {
-    onSelectManga(manga);
+  const handleSelectManga = (item: ViewedManga) => {
+    onSelectHistoryItem(item.manga, item.lastChapterId, item.lastChapterTitle);
   };
 
   return (
@@ -78,7 +78,7 @@ export function HistoryView({ onBack, onSelectManga }: Props) {
               <view
                 key={item.manga.id}
                 className="HistoryView-item"
-                bindtap={() => handleSelectManga(item.manga)}
+                bindtap={() => handleSelectManga(item)}
               >
                 <image
                   src={item.manga.cover}

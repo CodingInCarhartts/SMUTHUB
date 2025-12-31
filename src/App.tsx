@@ -236,6 +236,33 @@ export function App() {
     setLoading(false);
   }, []);
 
+  const handleHistorySelect = useCallback(
+    async (manga: Manga, chapterUrl?: string, chapterTitle?: string) => {
+      console.log(`[App] History resume: ${manga.title}`);
+      setSelectedManga(manga);
+      setSettingsSubview('main'); // Exit history view
+
+      if (chapterUrl) {
+        // Optimistic: Go to reader immediately
+        setSelectedChapterUrl(chapterUrl);
+        setSelectedChapterTitle(chapterTitle || '');
+        setView('reader');
+
+        // Background fetch details to populate next chapter logic
+        try {
+          const details = await BatotoService.getMangaDetails(manga.url);
+          setMangaDetails(details);
+        } catch (e) {
+          console.error('[App] Failed to load details for history resume', e);
+        }
+      } else {
+        // Standard flow
+        handleSelectManga(manga);
+      }
+    },
+    [handleSelectManga],
+  );
+
   const handleSelectChapter = useCallback(
     (chapterUrl: string, chapterTitle?: string) => {
       setSelectedChapterUrl(chapterUrl);
@@ -555,7 +582,7 @@ export function App() {
                 {settingsSubview === 'history' && (
                   <HistoryView
                     onBack={() => setSettingsSubview('main')}
-                    onSelectManga={handleSelectManga}
+                    onSelectHistoryItem={handleHistorySelect}
                   />
                 )}
               </>
