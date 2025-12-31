@@ -28,7 +28,6 @@ SMUTHUB/*.apk
 backup.sql
 # Artifacts
 SMUTHUB.apk
-.agent/rules/*
 *.idsig
 temp_lynx_*
 Check.java

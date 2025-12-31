@@ -7,6 +7,7 @@
   position: absolute;
   pointer-events: none;
   animation: sparkle-animation 750ms linear forwards;
+  will-change: transform, opacity;
 }
 
 .SparkleChildWrapper {

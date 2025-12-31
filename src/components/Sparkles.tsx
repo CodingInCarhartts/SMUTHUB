@@ -45,10 +45,13 @@ export const Sparkles = ({ color = DEFAULT_COLOR, children, enabled = true }: Pr
       const newSparkle = generateSparkle(color);
       
       setSparkles(current => {
+        // Filter out old sparkles (lifetime 750ms)
         const filtered = current.filter(s => (now - s.createdAt) < 750);
+        // Cap max sparkles at 10 to prevent DOM overload
+        if (filtered.length >= 10) return filtered;
         return [...filtered, newSparkle];
       });
-    }, 200); // Slightly slower for performance
+    }, 400); // Optimized for performance: 2.5 sparkles/sec
 
     return () => clearInterval(interval);
   }, [enabled, color]);

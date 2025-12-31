@@ -275,12 +275,12 @@
 .Settings-input {
   /* @ts-ignore for Lynx input */
   flex: 1;
-  background-color: #ffffff;
-  color: #4a3f3f;
+  background-color: var(--surface);
+  color: var(--text-primary);
   padding: 12px 16px;
   border-radius: 12px;
   font-size: 14px;
-  border: 1px solid #fad2e1;
+  border: 1px solid var(--accent-border);
   min-height: 48px;
 }
 
@@ -454,7 +454,7 @@
 }
 
 .DebugConsole-text {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 11px;
   color: #e0e0e0;
   line-height: 1.5;
