@@ -115,8 +115,11 @@ export const PerformanceService = {
       snapshots.shift();
     }
 
+    const drainRate = this.calculateDrainRate();
+    const drainMsg = drainRate !== null ? ` | Drain: ${drainRate.toFixed(2)}%/min` : '';
+
     log('[PERF] Snapshot:', JSON.stringify({
-      battery: `${battery.level}%${battery.isCharging ? ' (charging)' : ''}`,
+      battery: `${battery.level}%${battery.isCharging ? ' (charging)' : ''}${drainMsg}`,
       memory: `${memory.usedMb.toFixed(1)}MB / ${memory.maxMb.toFixed(1)}MB`,
     }));
 
