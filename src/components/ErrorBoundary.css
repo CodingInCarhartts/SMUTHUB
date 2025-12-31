@@ -1,0 +1,58 @@
+/* ErrorBoundary Fallback UI */
+.ErrorBoundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  padding: 32px;
+}
+
+.ErrorBoundary-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 320px;
+}
+
+.ErrorBoundary-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.ErrorBoundary-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.ErrorBoundary-message {
+  font-size: 14px;
+  color: #a0a0b0;
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.ErrorBoundary-version {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.ErrorBoundary-button {
+  background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+  padding: 14px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.3);
+}
+
+.ErrorBoundary-button-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}

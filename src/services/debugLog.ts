@@ -112,7 +112,41 @@ export interface DebugReportContext {
   deviceId?: string;
 }
 
+export type LogCategory = 'INIT' | 'NETWORK' | 'SYNC' | 'UI' | 'STORAGE' | 'UPDATE' | 'GENERAL';
+
 export const DebugLogService = {
+  /**
+   * Log a message with a category prefix for better filtering
+   */
+  log(category: LogCategory, message: string, ...args: any[]): void {
+    console.log(`[${category}] ${message}`, ...args);
+  },
+
+  /**
+   * Log a warning with a category prefix
+   */
+  warn(category: LogCategory, message: string, ...args: any[]): void {
+    console.warn(`[${category}] ${message}`, ...args);
+  },
+
+  /**
+   * Log an error with a category prefix and optional error object
+   */
+  error(category: LogCategory, message: string, error?: Error, ...args: any[]): void {
+    console.error(`[${category}] ${message}`, error?.message || '', ...args);
+    if (error?.stack) {
+      console.error(`[${category}] Stack:`, error.stack);
+    }
+  },
+
+  /**
+   * Report an error with full context for debugging
+   */
+  reportError(category: LogCategory, context: string, error: Error): void {
+    console.error(`[${category}] ERROR in ${context}:`, error.message);
+    console.error(`[${category}] Stack:`, error.stack || 'N/A');
+  },
+
   getLogs(): LogEntry[] {
     return [...logs];
   },

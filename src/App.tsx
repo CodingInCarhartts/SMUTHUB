@@ -12,6 +12,7 @@ import { Search } from './components/Search';
 import { SearchFiltersModal } from './components/SearchFilters';
 import { Settings } from './components/Settings';
 import { UpdateModal } from './components/UpdateModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   BatotoService,
   type Chapter,
@@ -356,6 +357,7 @@ export function App() {
     headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
 
   return (
+    <ErrorBoundary>
     <view className={`${darkMode ? 'Main dark-mode' : 'Main'}${debugOutlines ? ' debug-outlines' : ''}`}>
       <view
         className={view === 'browse' ? 'Content Content-with-nav' : 'Content'}
@@ -599,5 +601,6 @@ export function App() {
         />
       )}
     </view>
+  </ErrorBoundary>
   );
 }
