@@ -36,7 +36,7 @@ const logError = (...args: any[]) => logCapture('error', ...args);
 
 export interface AppUpdate {
   version: string;
-  commitHash: string;
+  commitHash?: string;
   isMandatory: boolean;
   releaseNotes: string;
   forceImmediate: boolean;
@@ -52,10 +52,11 @@ export interface NativeAppUpdate {
   isMandatory: boolean;
   releaseNotes: string;
   forceImmediate: boolean;
+  commitHash?: string;
 }
 
-export const BUNDLE_VERSION = '1.0.83';
-export const BUNDLE_COMMIT_HASH = '6bf1ada'; // Will be injected by publish-ota.js
+export const BUNDLE_VERSION = '1.0.0';
+export const BUNDLE_COMMIT_HASH = '88a2583'; // Will be injected by publish-ota.js
 
 export const UpdateService = {
   /**
