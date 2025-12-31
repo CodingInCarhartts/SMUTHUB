@@ -40,13 +40,25 @@ declare let NativeModules: {
   };
 
   /**
-   * System utilities (Clipboard, Sharing)
+   * System utilities (Clipboard, Sharing, Performance)
    */
   NativeUtilsModule: {
     copyToClipboard(text: string): void;
     shareText(text: string, title: string): void;
+    getDeviceId(callback: (id: string) => void): void;
     exitApp(): void;
+    /**
+     * Get battery status as JSON string
+     * Returns: {"level": number, "isCharging": boolean, "temperature": number}
+     */
+    getBatteryStatus(callback: (json: string) => void): void;
+    /**
+     * Get memory info as JSON string
+     * Returns: {"usedMb": number, "maxMb": number, "pssMb": number}
+     */
+    getMemoryInfo(callback: (json: string) => void): void;
   };
+
 
   /**
    * Native APK Updater

@@ -1,6 +1,7 @@
 import { getNativeItemSync, setNativeItemSync } from './nativeStorage';
 import { SupabaseService } from './supabase';
 import { SYNC_HEARTBEAT_INTERVAL_MS } from '../config';
+import { PerformanceService } from './perf';
 
 export type OperationType = 'UPSERT' | 'DELETE';
 
@@ -67,6 +68,8 @@ export const SyncEngine = {
     isSyncing = true;
     this.notify();
 
+    PerformanceService.startTimer('SyncEngine.processQueue');
+
     try {
       // Processes operations sequentially to maintain order and validity
       while (queue.length > 0) {
@@ -88,6 +91,7 @@ export const SyncEngine = {
     } catch (e: any) {
       console.error('[SyncEngine] Critical error during queue processing:', e?.message || e);
     } finally {
+      PerformanceService.endTimer('SyncEngine.processQueue');
       isSyncing = false;
       this.notify();
       console.log(`[SyncEngine] Finished processing. Remaining: ${queue.length}`);

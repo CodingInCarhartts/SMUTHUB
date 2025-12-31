@@ -112,7 +112,7 @@ export interface DebugReportContext {
   deviceId?: string;
 }
 
-export type LogCategory = 'INIT' | 'NETWORK' | 'SYNC' | 'UI' | 'STORAGE' | 'UPDATE' | 'GENERAL';
+export type LogCategory = 'INIT' | 'NETWORK' | 'SYNC' | 'UI' | 'STORAGE' | 'UPDATE' | 'PERF' | 'GENERAL';
 
 export const DebugLogService = {
   /**
