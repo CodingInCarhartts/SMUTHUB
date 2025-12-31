@@ -55,14 +55,10 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
         Log.d(TAG, "Starting installUpdate from URL: $url")
         
         val fileName = "smuthub-update.apk"
-        val dlDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-        if (dlDir == null) {
-            Log.e(TAG, "External files directory (Downloads) is null")
-            return
-        }
-
+        
+        // Clean up old update if possible
         try {
-            val oldFile = File(dlDir, fileName)
+            val oldFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
             if (oldFile.exists()) {
                 val deleted = oldFile.delete()
                 Log.d(TAG, "Old update file found and deleted: $deleted")
@@ -71,15 +67,12 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
             Log.e(TAG, "Error cleaning up old file: ${e.message}")
         }
 
-        val destinationUri = Uri.fromFile(File(dlDir, fileName))
-        Log.d(TAG, "Downloading to: ${destinationUri.path}")
-
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle("SmutHub Update")
             .setDescription("Downloading version update...")
             .setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationUri(destinationUri)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
 
@@ -106,12 +99,11 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
                         Log.d(TAG, "Download status for $downloadId: $status")
                         
                         if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            val file = File(dlDir, fileName)
-                            Log.d(TAG, "Download successful. File size: ${file.length()} bytes")
-                            if (file.exists() && file.length() > 1000) {
-                                installAPK(file)
+                            val uri = manager.getUriForDownloadedFile(downloadId)
+                            if (uri != null) {
+                                installAPK(uri)
                             } else {
-                                Log.e(TAG, "Downloaded file is missing or too small")
+                                Log.e(TAG, "Download successful but URI is null")
                             }
                         } else {
                             val reasonIdx = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
@@ -149,10 +141,9 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
         }
     }
 
-    private fun installAPK(file: File) {
-        Log.d(TAG, "installAPK called for file: ${file.absolutePath}")
+    private fun installAPK(uri: Uri) {
+        Log.d(TAG, "installAPK called for URI: $uri")
         try {
-            val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION

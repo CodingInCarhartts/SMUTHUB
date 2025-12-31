@@ -91,6 +91,17 @@ async function publish() {
   run(`cp "${APK_SOURCE}" "${APK_DEST}"`);
   console.log(`✅ Copied APK to ${APK_DEST}`);
 
+  // 3.5 Manual Sign to ensure V1 signature (Fix for parsing error)
+  const apksigner = "/home/yum/Android/Sdk/build-tools/36.1.0/apksigner";
+  const keystore = join(process.cwd(), "SMUTHUB/app/debug.keystore");
+  console.log("\n🔐 Manually enforcing V1/V2 signatures...");
+  try {
+     run(`${apksigner} sign --ks "${keystore}" --ks-pass pass:android --key-pass pass:android --v1-signing-enabled true --v2-signing-enabled true --min-sdk-version 23 "${APK_DEST}"`);
+     console.log("✅ APK manually signed with V1+V2 schemes");
+  } catch (e) {
+     console.warn("⚠️ Manual signing failed (apksigner not found?), relying on Gradle build:", e.message);
+  }
+
   // 4. Create GitHub Release
   const tagName = `native-v${newVer}`;
   const releaseTitle = `Native Update v${newVer}`;
