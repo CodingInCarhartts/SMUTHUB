@@ -113,13 +113,12 @@ async function publish() {
     process.exit(1);
   }
 
-  // 8. Get the FINAL commit hash (after amend)
-  const finalCommitHash = runQuiet("git rev-parse HEAD");
-  const finalShortHash = runQuiet("git rev-parse --short HEAD");
-  const bundleUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/${finalCommitHash}/main.lynx.bundle`;
+  // 8. Use the hash that was EMBEDDED in the bundle (pre-amend hash)
+  // This is critical: the bundle contains `commitHash`, not the final amended hash
+  const bundleUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/${runQuiet("git rev-parse HEAD")}/main.lynx.bundle`;
 
-  // 9. Register in Supabase with commit_hash as primary identifier
-  console.log(`\n📡 Registering OTA in Supabase (hash: ${finalShortHash})...`);
+  // 9. Register in Supabase with the EMBEDDED commit_hash (not the amended one)
+  console.log(`\n📡 Registering OTA in Supabase (embedded hash: ${commitHash})...`);
 
   try {
     const response = await fetch(SUPABASE_URL, {
@@ -132,9 +131,9 @@ async function publish() {
       },
       body: JSON.stringify({
         version: displayVersion,
-        commit_hash: finalShortHash,
+        commit_hash: commitHash,
         is_mandatory: false,
-        release_notes: customMsg || `OTA update (${finalShortHash})`,
+        release_notes: customMsg || `OTA update (${commitHash})`,
         download_url: bundleUrl
       })
     });
