@@ -282,27 +282,25 @@ export const StorageService = {
     try {
       const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
       if (si?.deviceId && si.deviceId.length > 5 && si.deviceId !== 'android') {
-        setLocal(STORAGE_KEYS.DEVICE_ID, si.deviceId);
-        SESSION_DEVICE_ID = si.deviceId;
-        return si.deviceId;
+        const id = si.deviceId;
+        setLocal(STORAGE_KEYS.DEVICE_ID, id);
+        SESSION_DEVICE_ID = id;
+        return id;
       }
     } catch (e) {
       logWarn('[Storage] SystemInfo check failed:', e);
     }
 
-    // 5. Generate Fallback strictly for web/local dev if no ID exists at all
-    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : 'xxxx-xxxx-xxxx-xxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-      });
+    // 5. Generate Fallback strictly for web/local dev (Lynx Explorer)
+    // If we reach here, we have no ID. Generate one.
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 10);
+    const newId = `dev-${timestamp}-${randomPart}`;
 
-    // Only save permanently if we aren't likely to fetch a native ID later (not hardware capable)
-    if (!hasNativeStorage()) {
-      setLocal(STORAGE_KEYS.DEVICE_ID, newId);
-    }
+    log('[Storage] Generating FALLBACK Device ID (Local/Dev):', newId);
 
+    // Persist to memory/local immediately so it survives this session
+    setLocal(STORAGE_KEYS.DEVICE_ID, newId);
     SESSION_DEVICE_ID = newId;
     return newId;
   },

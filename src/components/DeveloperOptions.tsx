@@ -17,6 +17,13 @@ export function DeveloperOptions() {
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
   const [deviceIdOverrideInput, setDeviceIdOverrideInput] = useState('');
+  const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
+
+  const handleToggleDebugOutlines = () => {
+    const newVal = !debugOutlines;
+    setDebugOutlines(newVal);
+    SettingsStore.setDebugOutlines(newVal);
+  };
 
   const handleSetDeviceOverride = () => {
     if (!deviceIdOverrideInput) {
@@ -161,11 +168,16 @@ export function DeveloperOptions() {
 
 
         <view className="Settings-card">
-          <view className="Settings-item-left" style={{ marginBottom: '16px', flexDirection: 'row', alignItems: 'center' }}>
-            <text className="Settings-item-icon" style={{ marginRight: '16px' }}>🎭</text>
+          {/* Persona Override - Refactored Header */}
+          <view className="Settings-item-left">
+            <view className="Settings-item-icon">
+              <text>🎭</text>
+            </view>
             <view className="Settings-item-text">
               <text className="Settings-item-label">Override User Persona</text>
-              <text className="Settings-item-description">Simulate a different user</text>
+              <text className="Settings-item-description">
+                Simulate different user segments
+              </text>
             </view>
           </view>
 
@@ -269,12 +281,12 @@ export function DeveloperOptions() {
               </text>
             </view>
           </view>
-          {/* @ts-ignore */}
-          <switch
-            checked={SettingsStore.getDebugOutlines()}
-            bindchange={(e: any) => SettingsStore.setDebugOutlines(e.detail.value)}
-            color="#00e676"
-          />
+          <view
+            className={debugOutlines ? 'Settings-toggle active' : 'Settings-toggle'}
+            bindtap={handleToggleDebugOutlines}
+          >
+            <view className="Settings-toggle-knob" />
+          </view>
         </view>
 
 

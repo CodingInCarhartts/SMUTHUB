@@ -383,7 +383,12 @@ export function Reader({
       focus-index="0"
     >
       <view className={showControls ? "Reader-header" : "Reader-header hidden"}>
-        <view className="Reader-header-left" bindtap={onBack}>
+        <view
+          className="Reader-header-left"
+          bindtap={onBack}
+          style={{ padding: '10px 20px 10px 0' }}
+        >
+          {/* Expanded hit target */}
           <text className="Reader-back">{'‹ Back'}</text>
         </view>
 
@@ -396,8 +401,13 @@ export function Reader({
           </text>
         </view>
 
-        <view className="Reader-header-right" bindtap={handleToggleFavorite}>
-          <text className="Reader-favorite-btn">{isFavorite ? '❤️' : '🤍'}</text>
+        <view
+          className="Reader-header-right"
+          bindtap={handleToggleFavorite}
+          style={{ padding: '10px 0 10px 20px' }}
+        >
+          {/* Expanded hit target */}
+          <text className="Reader-back">{isFavorite ? '❤️' : '🤍'}</text>
         </view>
       </view>
 

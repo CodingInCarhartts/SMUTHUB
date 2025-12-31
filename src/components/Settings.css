@@ -253,6 +253,7 @@
   flex-direction: column;
   padding: 16px;
   background-color: var(--surface);
+  /* Ensure opaque background to prevent ghosting */
   border: 1px solid var(--accent-border);
   border-radius: 20px;
   margin-bottom: 12px;
@@ -260,18 +261,18 @@
 }
 
 .Settings-input-group {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  margin-bottom: 16px !important;
-  width: 100% !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .Settings-input {
   /* @ts-ignore for Lynx input */
   flex: 1;
-  background-color: #ffffff !important;
-  color: #4a3f3f !important;
+  background-color: #ffffff;
+  color: #4a3f3f;
   padding: 12px 16px;
   border-radius: 12px;
   font-size: 14px;
@@ -280,13 +281,12 @@
 }
 
 .Settings-button-row {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 12px !important;
-  width: 100% !important;
-  flex-wrap: nowrap !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
 }
 
 .Settings-button {
@@ -294,12 +294,13 @@
   min-width: 80px;
   padding: 0 16px;
   border-radius: 12px;
-  background-color: #fde2e4;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   border: 1px solid transparent;
+  flex: 0 0 auto;
+  /* Prevent shrinking */
 }
 
 .Settings-button.primary {
