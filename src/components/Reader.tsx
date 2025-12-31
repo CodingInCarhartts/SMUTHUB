@@ -149,6 +149,9 @@ export function Reader({
   const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
   const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
   const lastKeyDownTime = useRef<number>(0);
+  const touchCount = useRef<number>(0);
+  const lastTouchTime = useRef<number>(0);
+  const touchResetTimer = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -193,6 +196,41 @@ export function Reader({
     };
     loadPanels();
   }, [chapterUrl, manga?.id]);
+
+  const handleTap = (e: any) => {
+    const now = Date.now();
+    
+    // Reset count if too much time passed since last tap (300ms)
+    if (now - lastTouchTime.current > 300) {
+      touchCount.current = 0;
+    }
+
+    touchCount.current += 1;
+    lastTouchTime.current = now;
+
+    // Clear existing reset timer
+    if (touchResetTimer.current) {
+      clearTimeout(touchResetTimer.current);
+    }
+
+    if (touchCount.current === 3) {
+      // TRIPLE TAP DETECTED
+      log('[Reader] Triple tap detected - toggling privacy filter');
+      SettingsStore.setPrivacyFilter(!privacyFilter);
+      touchCount.current = 0; // Reset
+      return;
+    }
+
+    // Set a timer to process single/double tap if no more taps come in
+    touchResetTimer.current = setTimeout(() => {
+      if (touchCount.current === 1) {
+         // Single Tap -> Toggle Controls
+         toggleControls();
+      }
+      // Reset count
+      touchCount.current = 0;
+    }, 300);
+  };
 
   const toggleControls = () => {
     setShowControls((prev) => !prev);
@@ -381,15 +419,12 @@ export function Reader({
     }
   };
 
-  const togglePrivacyFilter = (e?: any) => {
-    e?.stopPropagation(); // Prevent header tap propagation if needed
-    SettingsStore.setPrivacyFilter(!privacyFilter);
-  };
+
 
   return (
     <view
       className="Reader"
-      bindtap={toggleControls}
+      bindtap={handleTap}
       bindkeydown={handleKeyDown}
       focusable={true}
       focus-index="0"
@@ -415,17 +450,11 @@ export function Reader({
 
         <view
           className="Reader-header-right"
+          bindtap={handleToggleFavorite}
           style={{ padding: '10px 0 10px 20px' }}
         >
-           {/* Privacy Toggle */}
-           <view bindtap={togglePrivacyFilter} style={{ marginRight: '15px' }}>
-            <text className="Reader-back">{privacyFilter ? '👁️' : '🔒'}</text>
-          </view>
-
           {/* Favorite Toggle */}
-          <view bindtap={handleToggleFavorite}>
-            <text className="Reader-back">{isFavorite ? '❤️' : '🤍'}</text>
-          </view>
+          <text className="Reader-back">{isFavorite ? '❤️' : '🤍'}</text>
         </view>
       </view>
 
