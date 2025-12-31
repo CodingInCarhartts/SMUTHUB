@@ -148,7 +148,7 @@ async function publish() {
   }
 
   console.log("\n🎉 OTA Publish Complete!");
-  console.log(`Commit Hash: ${finalShortHash}`);
+  console.log(`Commit Hash: ${commitHash}`);
   console.log(`Bundle URL: ${bundleUrl}`);
 }
 
