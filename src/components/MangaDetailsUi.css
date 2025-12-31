@@ -160,8 +160,7 @@
 }
 
 .DescriptionText.expanded {
-  max-height: initial;
-  height: auto;
+  max-height: 2000px;
 }
 
 .ExpandHint {
