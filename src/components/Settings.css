@@ -260,6 +260,10 @@
   box-shadow: var(--shadow-soft);
 }
 
+.Settings-card > .Settings-item-left {
+  align-items: flex-start;
+}
+
 .Settings-input-group {
   display: flex;
   flex-direction: row;
