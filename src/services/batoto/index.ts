@@ -339,15 +339,88 @@ export const BatotoService = {
     }
   },
 
+  /**
+   * Get the latest releases from a dedicated endpoint
+   * Note: get_comic_browse(sortby: "update") returns stale popular content,
+   * so we use the dedicated get_latestReleases query for fresh updates.
+   */
+  async getLatestReleases(): Promise<Manga[]> {
+    const client = BatotoClient.getInstance();
+    try {
+      console.log('[Service] getLatestReleases started');
+      
+      const response = await client.fetch('/ap2/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            query {
+              get_latestReleases {
+                items {
+                  id
+                  data {
+                    name
+                    urlPath
+                    urlCover600
+                    authors
+                    tranLang
+                    summary
+                    score_avg
+                    chapterNode_up_to {
+                      data {
+                        dname
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`[Service] getLatestReleases failed: ${response.status}`);
+        return [];
+      }
+
+      const json = await response.json();
+      const items = json?.data?.get_latestReleases?.items || [];
+      console.log(`[Service] getLatestReleases returned ${items.length} items`);
+
+      const baseUrl = client.getBaseUrl();
+      return items.map((item: any) => {
+        const data = item.data;
+        return {
+          id: item.id || '',
+          title: data.name || 'Unknown',
+          url: data.urlPath?.startsWith('http')
+            ? data.urlPath
+            : `${baseUrl}${data.urlPath}`,
+          cover: data.urlCover600?.startsWith('http')
+            ? data.urlCover600
+            : `${baseUrl}${data.urlCover600}`,
+          authors: data.authors || [],
+          rating: data.score_avg?.toFixed(1) || 'N/A',
+          latestChapter: data.chapterNode_up_to?.data?.dname || '',
+          description: data.summary?.substring(0, 150) || '',
+        };
+      });
+    } catch (e) {
+      console.error('[Service] getLatestReleases failed', e);
+      return [];
+    }
+  },
+
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     const client = BatotoClient.getInstance();
     try {
       console.log('[Service] getHomeFeed started (GraphQL)');
       
-      // We'll fetch Popular and Latest using the browse logic but optimized
+      // Fetch Popular using browse (trending) and Latest using dedicated query
       const [popularResponse, latestResponse] = await Promise.all([
         this.browse({ sort: 'views_d030', page: 1 }), // Trending/Popular
-        this.browse({ sort: 'update', page: 1 })      // Latest Updates
+        this.getLatestReleases()                      // Latest Updates (dedicated query)
       ]);
 
       return { 
