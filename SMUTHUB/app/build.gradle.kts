@@ -9,15 +9,31 @@ android {
 
     defaultConfig {
         applicationId = "com.example.smuthub"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 34
-        versionCode = 45
-        versionName = "1.1.1"
+        versionCode = 46
+        versionName = "1.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("myDebug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
+
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("myDebug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
