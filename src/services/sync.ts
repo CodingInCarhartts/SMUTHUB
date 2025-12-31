@@ -1,4 +1,4 @@
-import { StorageService } from './storage';
+import { getNativeItemSync, setNativeItemSync } from './nativeStorage';
 import { SupabaseService } from './supabase';
 import { SYNC_HEARTBEAT_INTERVAL_MS } from '../config';
 
@@ -135,7 +135,7 @@ export const SyncEngine = {
    * Persistent storage access
    */
   async getQueue(): Promise<Operation[]> {
-    const raw = await StorageService.getNativeItemSync(QUEUE_STORAGE_KEY);
+    const raw = await getNativeItemSync(QUEUE_STORAGE_KEY);
     if (!raw) return [];
     try {
       return JSON.parse(raw);
@@ -145,7 +145,7 @@ export const SyncEngine = {
   },
 
   async saveQueue(queue: Operation[]): Promise<void> {
-    await StorageService.setNativeItemSync(QUEUE_STORAGE_KEY, JSON.stringify(queue));
+    await setNativeItemSync(QUEUE_STORAGE_KEY, JSON.stringify(queue));
   }
 };
 

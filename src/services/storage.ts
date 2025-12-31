@@ -5,6 +5,14 @@ import { SyncEngine } from './sync';
 import { MigrationService } from './migration';
 import { HISTORY_LIMIT_LOCAL, HISTORY_LIMIT_CLOUD, NATIVE_DEVICE_ID_TIMEOUT_MS } from '../config';
 
+import {
+  getNativeItem,
+  getNativeItemSync,
+  hasNativeStorage,
+  setNativeItem,
+  setNativeItemSync,
+} from './nativeStorage';
+
 // Helper to log with capture (console override doesn't work in Lynx)
 const log = (...args: any[]) => logCapture('log', ...args);
 const logError = (...args: any[]) => logCapture('error', ...args);
@@ -58,73 +66,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   scrollSpeed: 0.6, // 60% of screen per scroll
 };
 
-
-
 // In-memory fallback and cache
 const memoryStorage = new Map<string, string>();
 let NATIVE_DEVICE_ID: string | null = null;
 let SESSION_DEVICE_ID: string | null = null;
-
-// Immediate startup log
-// log('[Storage] Module loading, checking native storage...');
-
-// Check if native module is available
-function hasNativeStorage(): boolean {
-  try {
-    const hasMods = typeof NativeModules !== 'undefined';
-    const hasStorageMod =
-      hasMods && !!NativeModules.NativeLocalStorageModule;
-    log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
-    return hasStorageMod;
-  } catch (e) {
-    logError('[Storage] hasNativeStorage error:', e);
-    return false;
-  }
-}
-
-// Async getter using native module
-function getNativeItem(key: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    try {
-      const nativeModule = NativeModules?.NativeLocalStorageModule;
-      if (nativeModule && typeof nativeModule.getStorageItem === 'function') {
-        nativeModule.getStorageItem(key, (value) => {
-          log('[getNativeItem] Got value:', {
-            key,
-            value: value?.substring?.(0, 50),
-          });
-          resolve(value);
-        });
-      } else {
-        resolve(null);
-      }
-    } catch (e) {
-      logError('[getNativeItem] Error:', e);
-      resolve(null);
-    }
-  });
-}
-
-// Sync setter using native module (fire and forget)
-export function setNativeItem(key: string, value: string): void {
-  try {
-    const nativeModule = NativeModules?.NativeLocalStorageModule;
-    if (nativeModule && typeof nativeModule.setStorageItem === 'function') {
-      nativeModule.setStorageItem(key, value);
-      log('[setNativeItem] Saved:', { key, valueLen: value.length });
-    }
-  } catch (e) {
-    logError('[setNativeItem] Error:', e);
-  }
-}
-
-// Export for SyncEngine
-export async function getNativeItemSync(key: string): Promise<string | null> {
-  return await getNativeItem(key);
-}
-export function setNativeItemSync(key: string, value: string): void {
-  setNativeItem(key, value);
-}
 
 // Helper for storage - tries localStorage first, then memory cache
 function getLocal<T>(key: string, defaultValue: T): T {
