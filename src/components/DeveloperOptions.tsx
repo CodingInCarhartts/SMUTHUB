@@ -168,28 +168,27 @@ export function DeveloperOptions() {
 
 
         <view className="Settings-card">
-          {/* Persona Override - Refactored Header */}
-          <view className="Settings-item-left">
-            <text className="Settings-item-icon">🤖</text>
-            <view className="Settings-item-text">
-              <text className="Settings-item-label">Override User Persona</text>
-              <text className="Settings-item-description">
-                Simulate different user segments
-              </text>
+          {/* Persona Override - Icon + Input Row */}
+          <view className="Settings-item">
+            <view className="Settings-item-left">
+              <text className="Settings-item-icon">🤖</text>
+              <view className="Settings-item-text">
+                <input
+                  className="Settings-input-inline"
+                  // @ts-ignore
+                  value={deviceIdOverrideInput}
+                  bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
+                  placeholder="Device ID / UUID"
+                  placeholder-style="color: var(--text-secondary); opacity: 0.5;"
+                />
+                <text className="Settings-item-description">
+                  Override user persona for testing
+                </text>
+              </view>
             </view>
           </view>
 
-          <view className="Settings-input-group">
-            <input
-              className="Settings-input"
-              // @ts-ignore
-              value={deviceIdOverrideInput}
-              bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
-              placeholder="Device ID / UUID"
-              placeholder-style="color: var(--text-secondary); opacity: 0.5;"
-            />
-          </view>
-
+          {/* Action Buttons Row */}
           <view className="Settings-button-row">
             <view
               className="Settings-button danger"
