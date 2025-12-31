@@ -26,4 +26,6 @@ SMUTHUB/*.apk
 .osgrep
 
 backup.sql
+# Artifacts
+SMUTHUB.apk
 .agent/rules/*
