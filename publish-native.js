@@ -4,7 +4,6 @@ import { join } from "path";
 import { execSync } from "child_process";
 
 const GRADLE_FILE = join(process.cwd(), "SMUTHUB/app/build.gradle.kts");
-const UPDATE_FILE = join(process.cwd(), "src/services/update.ts");
 const APK_SOURCE = join(process.cwd(), "SMUTHUB/app/build/outputs/apk/debug/app-debug.apk");
 const APK_DEST = join(process.cwd(), "SMUTHUB.apk");
 const ASSETS_DIR = join(process.cwd(), "SMUTHUB/app/src/main/assets");
@@ -12,20 +11,27 @@ const BUNDLE_SOURCE = join(process.cwd(), "dist/main.lynx.bundle");
 const BUNDLE_DEST = join(ASSETS_DIR, "main.lynx.bundle");
 
 // Configuration
+const REPO = "CodingInCarhartts/SMUTHUB";
 const SUPABASE_URL = "https://exymyvbkjsttqsnifedq.supabase.co/rest/v1/app_native_updates";
-// Note: Using the same key as found in existing publish.js
 const SUPABASE_KEY = "sb_publishable_tyLE5ronU6B5LAGta5GBjA_ZSqpzHyz";
 
 function run(command, options = {}) {
   console.log(`> ${command}`);
-  execSync(command, { stdio: 'inherit', ...options });
+  return execSync(command, { stdio: 'inherit', ...options });
+}
+
+function runWithOutput(command, options = {}) {
+  console.log(`> ${command}`);
+  return execSync(command, { encoding: 'utf8', ...options }).trim();
 }
 
 async function publish() {
   const customMsg = process.argv[2];
-  console.log("🦁 Starting Native Update Process...\n");
+  const forceVersion = process.argv.find(arg => arg.startsWith('--version='))?.split('=')[1];
+  
+  console.log("🦁 Starting Native Update Process (GitHub Releases Mode)...\n");
   if (customMsg) {
-    console.log(`📝 Using custom message: "${customMsg}"\n`);
+    console.log(`📝 Release Notes: "${customMsg}"\n`);
   }
 
   // 1. Bump Versions
@@ -41,17 +47,20 @@ async function publish() {
   console.log(`   Version Code (Gradle): ${oldCode} -> ${newCode}`);
 
   // Bump Version Name
-  const nameMatch = gradleContent.match(/versionName = "(\d+\.\d+\.(\d+))"/);
+  const nameMatch = gradleContent.match(/versionName = "(\d+\.\d+\.\d+)"/);
   if (!nameMatch) throw new Error("Could not find versionName in build.gradle.kts");
   const oldVer = nameMatch[1];
-  const oldPatch = parseInt(nameMatch[2]);
-  const newVer = oldVer.replace(/\.\d+$/, `.${oldPatch + 1}`);
+  
+  let newVer;
+  if (forceVersion) {
+    newVer = forceVersion;
+  } else {
+    const [major, minor, patch] = oldVer.split('.').map(Number);
+    newVer = `${major}.${minor}.${patch + 1}`;
+  }
+  
   gradleContent = gradleContent.replace(`versionName = "${oldVer}"`, `versionName = "${newVer}"`);
   console.log(`   Version Name (App):    ${oldVer} -> ${newVer}`);
-
-  // Confirm
-  // In a real interactive script we might ask, but here we proceed or use a flag? 
-  // For automation we proceed.
 
   writeFileSync(GRADLE_FILE, gradleContent);
   console.log("✅ Updated build.gradle.kts");
@@ -82,24 +91,39 @@ async function publish() {
   run(`cp "${APK_SOURCE}" "${APK_DEST}"`);
   console.log(`✅ Copied APK to ${APK_DEST}`);
 
-  // 4. Commit and Push
-  console.log("\nrw Committing and pushing...");
+  // 4. Create GitHub Release
+  const tagName = `native-v${newVer}`;
+  const releaseTitle = `Native Update v${newVer}`;
+  const releaseNotes = customMsg || `Native update v${newVer}`;
+  
+  console.log(`\n🚀 Creating GitHub Release: ${tagName}...`);
   try {
-    run("git add -f SMUTHUB/app/build.gradle.kts SMUTHUB/app/src SMUTHUB.apk");
-    const commitMsg = customMsg 
-      ? `🔖 native: ${customMsg} (v${newVer}, code ${newCode})`
-      : `🔖 native: release v${newVer} (code ${newCode})`;
-    run(`git commit -m "${commitMsg}"`);
-    run("git push origin main");
-    console.log("✅ Pushed to repository");
+    // Delete existing tag/release if it exists (for retries)
+    try {
+      run(`gh release delete ${tagName} --yes --cleanup-tag`, { stdio: 'ignore' });
+    } catch (e) {}
+    
+    run(`gh release create ${tagName} "${APK_DEST}#SMUTHUB.apk" --title "${releaseTitle}" --notes "${releaseNotes}"`);
+    console.log(`✅ GitHub Release created and APK uploaded.`);
   } catch (e) {
-    console.error("❌ Git operations failed:", e.message);
+    console.error("❌ GitHub Release failed:", e.message);
     process.exit(1);
   }
 
-  // 5. Update Supabase
+  // 5. Commit and Push version bump
+  console.log("\nrw Committing version bump...");
+  try {
+    run(`git add ${GRADLE_FILE}`);
+    run(`git commit -m "🔖 native: bump version to ${newVer}"`);
+    run("git push origin main");
+    console.log("✅ Version bump pushed to repository");
+  } catch (e) {
+    console.warn("⚠️ Git push failed, but release was created:", e.message);
+  }
+
+  // 6. Update Supabase
   console.log(`\n📡 Registering update in Supabase (v${newVer})...`);
-  const downloadUrl = `https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/main/SMUTHUB.apk`;
+  const downloadUrl = `https://github.com/${REPO}/releases/download/${tagName}/SMUTHUB.apk`;
 
   try {
     const response = await fetch(SUPABASE_URL, {
@@ -114,7 +138,7 @@ async function publish() {
         version: newVer,
         download_url: downloadUrl,
         is_mandatory: false,
-        release_notes: customMsg || `Native update v${newVer}`
+        release_notes: releaseNotes
       })
     });
 
@@ -128,6 +152,7 @@ async function publish() {
   }
 
   console.log("\n🎉 Native Publish Complete!");
+  console.log(`Download URL: ${downloadUrl}`);
 }
 
 publish();

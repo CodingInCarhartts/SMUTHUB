@@ -54,28 +54,43 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
     fun installUpdate(url: String) {
         Log.d(TAG, "Starting installUpdate from URL: $url")
         
+        val fileName = "smuthub-update.apk"
+        val dlDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        if (dlDir == null) {
+            Log.e(TAG, "External files directory (Downloads) is null")
+            return
+        }
+
         try {
-            val dlDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val oldFile = File(dlDir, "smuthub-update.apk")
+            val oldFile = File(dlDir, fileName)
             if (oldFile.exists()) {
-                oldFile.delete()
-                Log.d(TAG, "Deleted old update file")
+                val deleted = oldFile.delete()
+                Log.d(TAG, "Old update file found and deleted: $deleted")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error cleaning up old file: ${e.message}")
         }
 
+        val destinationUri = Uri.fromFile(File(dlDir, fileName))
+        Log.d(TAG, "Downloading to: ${destinationUri.path}")
+
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle("SmutHub Update")
-            .setDescription("Version update in progress...")
+            .setDescription("Downloading version update...")
             .setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "smuthub-update.apk")
+            .setDestinationUri(destinationUri)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
 
         val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val downloadId = manager.enqueue(request)
+        val downloadId = try {
+            manager.enqueue(request)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to enqueue download: ${e.message}")
+            return
+        }
+        
         Log.d(TAG, "Download enqueued with ID: $downloadId")
 
         val onComplete = object : BroadcastReceiver() {
@@ -84,21 +99,32 @@ class NativeUpdaterModule(private val context: Context) : LynxModule(context) {
                 if (downloadedId == downloadId) {
                     val query = DownloadManager.Query().setFilterById(downloadId)
                     val cursor = manager.query(query)
-                    if (cursor.moveToFirst()) {
-                        val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                        val status = if (statusIdx != -1) cursor.getInt(statusIdx) else -1
+                        
+                        Log.d(TAG, "Download status for $downloadId: $status")
+                        
                         if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                            val dlDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                            val file = File(dlDir, "smuthub-update.apk")
+                            val file = File(dlDir, fileName)
+                            Log.d(TAG, "Download successful. File size: ${file.length()} bytes")
                             if (file.exists() && file.length() > 1000) {
                                 installAPK(file)
+                            } else {
+                                Log.e(TAG, "Downloaded file is missing or too small")
                             }
+                        } else {
+                            val reasonIdx = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
+                            val reason = if (reasonIdx != -1) cursor.getInt(reasonIdx) else -1
+                            Log.e(TAG, "Download failed with status $status, reason: $reason")
                         }
+                        cursor.close()
                     }
-                    cursor.close()
+                    
                     try {
                         context.unregisterReceiver(this)
                     } catch (e: Exception) {
-                        // Ignore
+                        // Already unregistered or other issue
                     }
                 }
             }
