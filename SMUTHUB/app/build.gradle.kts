@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.smuthub"
         minSdk = 23
         targetSdk = 34
-        versionCode = 49
-        versionName = "1.1.5"
+        versionCode = 50
+        versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
