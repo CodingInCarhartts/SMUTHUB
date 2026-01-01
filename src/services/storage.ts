@@ -371,14 +371,54 @@ export const StorageService = {
         'history',
         `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&device_id=eq.${deviceId}&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`,
       );
+
       if (cloudData.length > 0) {
-        const history = cloudData.map((row: any) => ({
+        const cloudHistory: ViewedManga[] = cloudData.map((row: any) => ({
           manga: row.manga_data,
           lastChapterId: row.last_chapter_id,
           lastChapterTitle: row.last_chapter_title,
           viewedAt: row.viewed_at,
         }));
-        setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
+
+        // SMART MERGE: Combine Local and Cloud, prioritizing the NEWER timestamp
+        // This prevents stale cloud data from overwriting a just-read chapter
+        const mergedMap = new Map<string, ViewedManga>();
+
+        // 1. Add Cloud items first
+        cloudHistory.forEach(item => {
+          mergedMap.set(item.manga.id, item);
+        });
+
+        // 2. Overlay Local items if they are newer
+        // We re-fetch local here to catch any changes that happened during the await
+        const currentLocal = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+        
+        currentLocal.forEach(localItem => {
+          const cloudItem = mergedMap.get(localItem.manga.id);
+          if (!cloudItem) {
+            // Only in local
+            mergedMap.set(localItem.manga.id, localItem);
+          } else {
+            // Conflict: Check timestamps
+            const localDate = new Date(localItem.viewedAt).getTime();
+            const cloudDate = new Date(cloudItem.viewedAt).getTime();
+            
+            if (localDate > cloudDate) {
+               // Local is newer (e.g. user just read a chapter but sync hasn't finished)
+               mergedMap.set(localItem.manga.id, localItem);
+               console.log(`[Storage] Conflict resolved: Keeping LOCAL for ${localItem.manga.title} (Newer)`);
+            } else {
+               // Cloud is newer (or same), keep cloud (already in map)
+            }
+          }
+        });
+
+        // 3. Convert back to array and sort
+        const mergedHistory = Array.from(mergedMap.values())
+          .sort((a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime())
+          .slice(0, HISTORY_LIMIT_LOCAL);
+
+        setLocal(STORAGE_KEYS.HISTORY, mergedHistory);
       }
     })();
 
