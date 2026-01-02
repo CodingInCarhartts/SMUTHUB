@@ -123,44 +123,9 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-// Simplified wrapper that just forwards taps to parent
-function ReaderPanelWrapper({ url, index, onTap }: { url: string; index: number; onTap: (url: string) => void }) {
-  return (
-    <view bindtap={() => onTap(url)}>
-      <ReaderPanel url={url} index={index} />
-    </view>
-  );
-}
-
-function ZoomOverlay({ url, onClose }: { url: string; onClose: () => void }) {
-  // Use a state for scale to reset or track? Native scroll-view handles logic typically.
-  // Ensure image can be scaled.
-  return (
-    <view className="ZoomOverlay" bindtap={() => { onClose(); }}>
-      <scroll-view 
-        className="ZoomOverlay-scroll"
-        scroll-x
-        scroll-y
-        scale-enabled={true}
-        min-scale={1}
-        max-scale={5}
-        initial-scale={1}
-        bindtap={(e: any) => { /* Capture taps */ }}
-      >
-        <image 
-           src={url} 
-           className="ZoomOverlay-image" 
-           mode="aspectFit"
-           style={{ width: '100%', height: '100%' }}
-        />
-      </scroll-view>
-      <view className="ZoomOverlay-close" catchtap={onClose}>
-        <text className="ZoomOverlay-close-text">✕</text>
-      </view>
-    </view>
-  );
-}
-
+// 
+// Removed ZoomOverlay and Wrapper
+//
 
 export function Reader({
   chapterUrl,
@@ -184,14 +149,12 @@ export function Reader({
   const [showControls, setShowControls] = useState(true);
   const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
   const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
-  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null);
+  // Removed zoomedUrl state
   
   const lastKeyDownTime = useRef<number>(0);
   const touchCount = useRef<number>(0);
   const lastTouchTime = useRef<number>(0);
   const touchResetTimer = useRef<NodeJS.Timeout>();
-  // Track WHICH url was tapped for the double-tap action
-  const lastTappedUrl = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -236,13 +199,7 @@ export function Reader({
     loadPanels();
   }, [chapterUrl, manga?.id]);
 
-  const handleTap = (url?: string) => {
-    // If url is passed (from panel), update ref. If bubbling from background (undefined), ignore/keep last?
-    // Actually, background tap shouldn't trigger zoom.
-    if (url) {
-      lastTappedUrl.current = url;
-    }
-    
+  const handleTap = (e: any) => {
     const now = Date.now();
     
     // Reset count if too much time passed since last tap (300ms)
@@ -259,29 +216,21 @@ export function Reader({
     }
 
     if (touchCount.current === 3) {
-      // TRIPLE TAP -> PRIVACY
-      log('[Reader] Triple tap -> Privacy Toggle');
+      // TRIPLE TAP DETECTED
+      log('[Reader] Triple tap detected - toggling privacy filter');
       SettingsStore.setPrivacyFilter(!privacyFilter);
-      touchCount.current = 0; 
+      touchCount.current = 0; // Reset
       return;
     }
 
-    // Set a timer to process single/double tap
+    // Set a timer to process single tap
     touchResetTimer.current = setTimeout(() => {
       if (touchCount.current === 1) {
          // Single Tap -> Toggle Controls
          toggleControls();
-      } else if (touchCount.current === 2) {
-         // Double Tap -> Zoom
-         // Use the last tapped URL
-         if (lastTappedUrl.current) {
-            log('[Reader] Double tap -> Zoom:', lastTappedUrl.current);
-            setZoomedUrl(lastTappedUrl.current);
-         }
       }
       // Reset count
       touchCount.current = 0;
-      lastTappedUrl.current = null;
     }, 300);
   };
 
@@ -472,12 +421,10 @@ export function Reader({
     }
   };
 
-  // Remove handleZoom as it is now integrated into handleTap
-  
   return (
     <view
       className="Reader"
-      bindtap={() => handleTap()} // Background tap (no URL)
+      bindtap={handleTap}
       bindkeydown={handleKeyDown}
       focusable={true}
       focus-index="0"
@@ -543,7 +490,7 @@ export function Reader({
                   }
                 }}
               >
-                <ReaderPanelWrapper url={url} index={index} onTap={handleTap} />
+                <ReaderPanel url={url} index={index} />
               </list-item>
             )),
             ...(hasNextChapter && onNextChapter
@@ -576,11 +523,6 @@ export function Reader({
           className="Reader-privacy-overlay"
           style={{ opacity: filterOpacity }}
         />
-      )}
-      
-      {/* Zoom Overlay */}
-      {zoomedUrl && (
-        <ZoomOverlay url={zoomedUrl} onClose={() => setZoomedUrl(null)} />
       )}
     </view>
   );
