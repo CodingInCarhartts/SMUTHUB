@@ -35,12 +35,14 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
   const checkForNewChapters = async () => {
     try {
       const settings = await StorageService.getSettings();
+      console.log(`[HistoryView] Checking updates. Mock=${!!settings.mockUpdates}`);
       
       if (settings.mockUpdates) {
-        console.log('[HistoryView] Mock Updates ENABLED');
+        console.log('[HistoryView] Mock Updates ENABLED - Forcing updates on history items');
         // Mock updates: Force every history item to have a "new" chapter
         const mockMap = new Map<string, Manga>();
         const currentHistory = await StorageService.getHistory();
+        console.log(`[HistoryView] Generating mocks for ${currentHistory.length} items`);
         
         currentHistory.forEach(item => {
           // Clone and modify
@@ -48,6 +50,7 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
           mockManga.latestChapterUrl = (item.manga.latestChapterUrl || '') + '_mock_update';
           mockManga.latestChapter = 'NEW ' + (item.manga.latestChapter || 'Chapter');
           mockMap.set(item.manga.id, mockManga);
+          console.log(`[HistoryView] Mocked item: ${item.manga.title} -> ${mockManga.latestChapterUrl}`);
         });
         
         setLatestUpdates(mockMap);
@@ -55,7 +58,10 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
       }
       
       // Fetch latest releases to check against history
+      console.log('[HistoryView] Fetching real latest releases...');
       const updates = await BatotoService.getLatestReleases();
+      console.log(`[HistoryView] Fetched ${updates.length} recently updated manga`);
+      
       const updateMap = new Map<string, Manga>();
       updates.forEach(m => updateMap.set(m.id, m));
       setLatestUpdates(updateMap);
@@ -98,6 +104,10 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
               const hasUpdate = remoteManga 
                 ? StorageService.checkForUpdates(item.manga, remoteManga) 
                 : false;
+              
+              if (remoteManga) {
+                 console.log(`[HistoryView] Item ${item.manga.title}: hasUpdate=${hasUpdate} (Remote: ${remoteManga.latestChapterUrl} vs Local: ${item.manga.latestChapterUrl})`);
+              }
 
               return (
                 <view
