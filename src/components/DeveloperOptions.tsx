@@ -417,7 +417,7 @@ export function DeveloperOptions() {
                 value={ticketSubject}
                 bindinput={(e: any) => setTicketSubject(e.detail.value)}
                 placeholder="Brief summary..."
-                placeholder-style="color: #666666;"
+                placeholder-style="color: var(--text-secondary);"
               />
               
               <text className="Settings-input-label" style={{ marginTop: '16px' }}>Description</text>
@@ -428,7 +428,7 @@ export function DeveloperOptions() {
                 value={ticketBody}
                 bindinput={(e: any) => setTicketBody(e.detail.value)}
                 placeholder="Describe the issue or request..."
-                placeholder-style="color: #666666;"
+                placeholder-style="color: var(--text-secondary);"
               />
 
               <view

@@ -275,7 +275,7 @@
 .Settings-input {
   /* @ts-ignore for Lynx input */
   flex: 1;
-  background-color: rgba(0, 0, 0, 0.2); 
+  background-color: rgba(128, 128, 128, 0.15); 
   color: var(--text-primary);
   padding: 12px 16px;
   border-radius: 12px;
