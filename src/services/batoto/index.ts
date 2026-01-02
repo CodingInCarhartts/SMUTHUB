@@ -419,7 +419,6 @@ export const BatotoService = {
                       data {
                         dname
                         urlPath
-                        tranLang
                       }
                     }
                   }
@@ -442,8 +441,9 @@ export const BatotoService = {
       const baseUrl = client.getBaseUrl();
       return items
         .filter((item: any) => {
-           // Filter output to only English updates to match getMangaDetails behavior
-           const lang = item.data?.chapterNode_up_to?.data?.tranLang || '';
+           // Filter output to only English updates
+           // tranLang is on the COMIC node, not the chapter node
+           const lang = item.data?.tranLang || '';
            const norm = lang.toLowerCase().trim();
            return norm === 'en' || norm === 'english' || norm === ''; 
         })
