@@ -309,9 +309,9 @@ export function App() {
       (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
     );
 
-    if (currentIndex !== -1 && currentIndex < chapters.length - 1) {
-      const nextChapter = chapters[currentIndex + 1];
-      console.log(`[App] Found next chapter at index ${currentIndex + 1}: ${nextChapter.title}`);
+    if (currentIndex !== -1 && currentIndex > 0) {
+      const nextChapter = chapters[currentIndex - 1];
+      console.log(`[App] Found next chapter at index ${currentIndex - 1}: ${nextChapter.title}`);
       handleSelectChapter(nextChapter.url, nextChapter.title);
     } else {
       console.warn(`[App] Next chapter not found. Index: ${currentIndex}, Total: ${chapters.length}`);
@@ -325,7 +325,8 @@ export function App() {
     const currentIndex = chapters.findIndex(
       (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
     );
-    return currentIndex !== -1 && currentIndex < chapters.length - 1;
+    // Since chapters are sorted Descending (Newest First), "Next" is lower index
+    return currentIndex !== -1 && currentIndex > 0;
   }, [mangaDetails, selectedChapterUrl]);
 
   const handleTabChange = useCallback((newTab: Tab) => {

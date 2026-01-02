@@ -93,6 +93,7 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
         minHeight: ratio ? 'auto' : MIN_PANEL_HEIGHT,
       }}
     >
+       {/* Moved logic to ZoomOverlay wrapper in Reader */}
       {failed ? (
         <view className="Reader-panel-error" bindtap={handleRetryTap}>
           <text className="Reader-panel-error-text">
@@ -103,13 +104,10 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
         <image
           src={currentUrl}
           className="Reader-panel"
-          mode="scaleToFill"
+          mode="scaleToFill" // As requested
           bindload={handleLoad}
           binderror={handleError}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
+          style={{ width: '100%', height: '100%' }}
         />
       )}
       {!ratio && !failed && (
@@ -121,6 +119,51 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
           </text>
         </view>
       )}
+    </view>
+  );
+}
+
+// Separate component to handle interaction state properly
+function ReaderPanelWithZoom({ url, index, onZoom }: { url: string; index: number; onZoom: (url: string) => void }) {
+  const lastTap = useRef(0);
+  
+  const handleTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      log(`[ReaderPanel #${index}] Double tap detected -> ZOOM`);
+      onZoom(url);
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+    // Let event bubble to Reader (for toggle controls)
+  };
+
+  return (
+    <view bindtap={handleTap}>
+      <ReaderPanel url={url} index={index} />
+    </view>
+  );
+}
+
+function ZoomOverlay({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <view className="ZoomOverlay" bindtap={() => { onClose(); }}>
+      <scroll-view 
+        className="ZoomOverlay-scroll"
+        scroll-x
+        scroll-y
+        scale-enabled={true}
+        min-scale={1}
+        max-scale={3}
+        initial-scale={1}
+        bindtap={(e: any) => { /* Capture taps to prevent closing? */ }}
+      >
+        <image src={url} className="ZoomOverlay-image" mode="aspectFit" />
+      </scroll-view>
+      <view className="ZoomOverlay-close" catchtap={onClose}>
+        <text className="ZoomOverlay-close-text">✕</text>
+      </view>
     </view>
   );
 }
@@ -148,6 +191,7 @@ export function Reader({
   const [showControls, setShowControls] = useState(true);
   const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
   const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
+  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null); // New state for zoom
   const lastKeyDownTime = useRef<number>(0);
   const touchCount = useRef<number>(0);
   const lastTouchTime = useRef<number>(0);
@@ -419,7 +463,10 @@ export function Reader({
     }
   };
 
-
+  const handleZoom = (url: string) => {
+     log('[Reader] Opening zoom for:', url);
+     setZoomedUrl(url);
+  };
 
   return (
     <view
@@ -490,7 +537,7 @@ export function Reader({
                   }
                 }}
               >
-                <ReaderPanel url={url} index={index} />
+                <ReaderPanelWithZoom url={url} index={index} onZoom={handleZoom} />
               </list-item>
             )),
             ...(hasNextChapter && onNextChapter
@@ -523,6 +570,11 @@ export function Reader({
           className="Reader-privacy-overlay"
           style={{ opacity: filterOpacity }}
         />
+      )}
+      
+      {/* Zoom Overlay */}
+      {zoomedUrl && (
+        <ZoomOverlay url={zoomedUrl} onClose={() => setZoomedUrl(null)} />
       )}
     </view>
   );
