@@ -662,6 +662,27 @@ export const StorageService = {
 
   setNativeItemSync(key: string, value: string): void {
     setNativeItem(key, value);
+  },
+
+  /**
+   * Check if a new chapter is available by comparing the latest chapter URL.
+   * This is independent of the user's reading progress.
+   */
+  checkForUpdates(localManga: Manga, remoteManga: Manga): boolean {
+    // If we don't have URL data, fallback to false (or true if we want to be aggressive?)
+    // False is safer to avoid spammy dots.
+    if (!localManga.latestChapterUrl || !remoteManga.latestChapterUrl) {
+      return false;
+    }
+    
+    // Normalize function to handle trailing slashes or protocol diffs if needed
+    const normalize = (u: string) => u.replace(/\/+$/, '').toLowerCase().trim();
+    
+    const local = normalize(localManga.latestChapterUrl);
+    const remote = normalize(remoteManga.latestChapterUrl);
+    
+    // If the latest published chapter URL is different, it's an update.
+    return local !== remote;
   }
 };
 

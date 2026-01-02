@@ -22,8 +22,10 @@ export const BatotoService = {
                     authors
                     tranLang
                     chapterNode_up_to {
+                      id
                       data {
                         dname
+                        urlPath
                       }
                     }
                   }
@@ -83,6 +85,10 @@ export const BatotoService = {
             : `${baseUrl}${data.urlCover600}`,
           author: data.authors?.[0] || '',
           latestChapter: data.chapterNode_up_to?.data?.dname || '',
+          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
+            ? data.chapterNode_up_to.data.urlPath
+            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
+          latestChapterId: data.chapterNode_up_to?.id || undefined,
         };
       });
 
@@ -226,6 +232,9 @@ export const BatotoService = {
         authors: data.authors || [],
         genres: data.genres || [],
         rating: data.score_avg?.toFixed(1) || 'N/A',
+        latestChapter: chapters[0]?.title || '', 
+        latestChapterUrl: chapters[0]?.url || undefined,
+        latestChapterId: chapters[0]?.id || undefined,
         views: totalViews.toLocaleString(),
         chapters,
       };
@@ -406,8 +415,10 @@ export const BatotoService = {
                     summary
                     score_avg
                     chapterNode_up_to {
+                      id
                       data {
                         dname
+                        urlPath
                       }
                     }
                   }
@@ -442,6 +453,10 @@ export const BatotoService = {
           authors: data.authors || [],
           rating: data.score_avg?.toFixed(1) || 'N/A',
           latestChapter: data.chapterNode_up_to?.data?.dname || '',
+          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
+            ? data.chapterNode_up_to.data.urlPath
+            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
+          latestChapterId: data.chapterNode_up_to?.id || undefined,
           description: data.summary?.substring(0, 150) || '',
         };
       });
@@ -526,8 +541,10 @@ export const BatotoService = {
                     summary
                     score_avg
                     chapterNode_up_to {
+                      id
                       data {
                         dname
+                        urlPath
                       }
                     }
                   }
@@ -612,6 +629,10 @@ export const BatotoService = {
           authors: data.authors || [],
           rating: data.score_avg?.toFixed(1) || 'N/A',
           latestChapter: data.chapterNode_up_to?.data?.dname || '',
+          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
+            ? data.chapterNode_up_to.data.urlPath
+            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
+          latestChapterId: data.chapterNode_up_to?.id || undefined,
           description: data.summary?.substring(0, 150) || '',
         };
       });

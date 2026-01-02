@@ -5,6 +5,8 @@ export interface Manga {
   cover: string;
   genres?: string[];
   latestChapter?: string;
+  latestChapterUrl?: string; // URL of the latest chapter (for update checking)
+  latestChapterId?: string; // ID of the latest chapter
   description?: string;
   authors?: string[];
   status?: string;
