@@ -34,6 +34,26 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
 
   const checkForNewChapters = async () => {
     try {
+      const settings = await StorageService.getSettings();
+      
+      if (settings.mockUpdates) {
+        console.log('[HistoryView] Mock Updates ENABLED');
+        // Mock updates: Force every history item to have a "new" chapter
+        const mockMap = new Map<string, Manga>();
+        const currentHistory = await StorageService.getHistory();
+        
+        currentHistory.forEach(item => {
+          // Clone and modify
+          const mockManga = { ...item.manga };
+          mockManga.latestChapterUrl = (item.manga.latestChapterUrl || '') + '_mock_update';
+          mockManga.latestChapter = 'NEW ' + (item.manga.latestChapter || 'Chapter');
+          mockMap.set(item.manga.id, mockManga);
+        });
+        
+        setLatestUpdates(mockMap);
+        return;
+      }
+      
       // Fetch latest releases to check against history
       const updates = await BatotoService.getLatestReleases();
       const updateMap = new Map<string, Manga>();

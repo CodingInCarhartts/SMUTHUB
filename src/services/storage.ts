@@ -40,6 +40,7 @@ export interface AppSettings {
   debugOutlines?: boolean;
   privacyFilter?: boolean;
   privacyFilterOpacity?: number; // 0.0 to 1.0
+  mockUpdates?: boolean;
 }
 
 export interface ReaderPosition {
