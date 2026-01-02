@@ -101,4 +101,15 @@ export const SettingsStore = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
+
+  getMockUpdates(): boolean {
+    return settings.mockUpdates ?? false;
+  },
+
+  setMockUpdates(enabled: boolean): void {
+    console.log('[SettingsStore] Mock updates set to:', enabled);
+    settings.mockUpdates = enabled;
+    StorageService.saveSettings({ mockUpdates: enabled });
+    listeners.forEach((fn) => fn());
+  },
 };

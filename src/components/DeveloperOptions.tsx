@@ -29,7 +29,7 @@ export function DeveloperOptions() {
   const handleToggleMockUpdates = () => {
     const newVal = !mockUpdates;
     setMockUpdates(newVal);
-    StorageService.saveSettings({ mockUpdates: newVal });
+    SettingsStore.setMockUpdates(newVal);
   };
 
 
