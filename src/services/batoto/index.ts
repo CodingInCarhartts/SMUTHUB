@@ -331,14 +331,14 @@ export const BatotoService = {
 
       // --- IMAGE SPLITTING LOGIC ---
       // Detect tall images and split them using wsrv.nl proxy
-      // Max height for cached textures on most mobile GPUs is 4096 (safe limit)
-      const MAX_TEXTURE_HEIGHT = 4096;
+      // Max height for cached textures on most mobile GPUs is 4096, but we use 3000 for safety padding
+      const MAX_TEXTURE_HEIGHT = 3000;
       const finalUrls: string[] = [];
 
       for (const url of urls) {
-        // Pattern: .../filename_WIDTH_HEIGHT_SIZE.ext
+        // Pattern: .../filename_WIDTH_HEIGHT_SIZE.ext or .../filename_WIDTH_HEIGHT_SIZE.ext?params
         // Example: .../132518261_720_12000_1485090.webp
-        const match = url.match(/_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)$/i);
+        const match = url.match(/_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)(?:$|\?)/i);
         
         if (match) {
           const height = parseInt(match[2], 10);
