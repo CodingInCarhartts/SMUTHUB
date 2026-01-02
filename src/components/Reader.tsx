@@ -123,30 +123,18 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-// Separate component to handle interaction state properly
-function ReaderPanelWithZoom({ url, index, onZoom }: { url: string; index: number; onZoom: (url: string) => void }) {
-  const lastTap = useRef(0);
-  
-  const handleTap = () => {
-    const now = Date.now();
-    if (now - lastTap.current < 300) {
-      log(`[ReaderPanel #${index}] Double tap detected -> ZOOM`);
-      onZoom(url);
-      lastTap.current = 0;
-    } else {
-      lastTap.current = now;
-    }
-    // Let event bubble to Reader (for toggle controls)
-  };
-
+// Simplified wrapper that just forwards taps to parent
+function ReaderPanelWrapper({ url, index, onTap }: { url: string; index: number; onTap: (url: string) => void }) {
   return (
-    <view bindtap={handleTap}>
+    <view bindtap={() => onTap(url)}>
       <ReaderPanel url={url} index={index} />
     </view>
   );
 }
 
 function ZoomOverlay({ url, onClose }: { url: string; onClose: () => void }) {
+  // Use a state for scale to reset or track? Native scroll-view handles logic typically.
+  // Ensure image can be scaled.
   return (
     <view className="ZoomOverlay" bindtap={() => { onClose(); }}>
       <scroll-view 
@@ -155,11 +143,16 @@ function ZoomOverlay({ url, onClose }: { url: string; onClose: () => void }) {
         scroll-y
         scale-enabled={true}
         min-scale={1}
-        max-scale={3}
+        max-scale={5}
         initial-scale={1}
-        bindtap={(e: any) => { /* Capture taps to prevent closing? */ }}
+        bindtap={(e: any) => { /* Capture taps */ }}
       >
-        <image src={url} className="ZoomOverlay-image" mode="aspectFit" />
+        <image 
+           src={url} 
+           className="ZoomOverlay-image" 
+           mode="aspectFit"
+           style={{ width: '100%', height: '100%' }}
+        />
       </scroll-view>
       <view className="ZoomOverlay-close" catchtap={onClose}>
         <text className="ZoomOverlay-close-text">✕</text>
@@ -181,7 +174,7 @@ export function Reader({
 
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0); // In vertical mode, specific page tracking is less precise but used for restoration
+  const [currentPage, setCurrentPage] = useState(0); 
   const [restoredPageIndex, setRestoredPageIndex] = useState<number | undefined>(undefined);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -191,11 +184,14 @@ export function Reader({
   const [showControls, setShowControls] = useState(true);
   const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
   const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
-  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null); // New state for zoom
+  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null);
+  
   const lastKeyDownTime = useRef<number>(0);
   const touchCount = useRef<number>(0);
   const lastTouchTime = useRef<number>(0);
   const touchResetTimer = useRef<NodeJS.Timeout>();
+  // Track WHICH url was tapped for the double-tap action
+  const lastTappedUrl = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = SettingsStore.subscribe(() => {
@@ -230,7 +226,6 @@ export function Reader({
         }
       }
 
-      // Small delay to let the list / pager initialize before we allow saves
       setTimeout(() => {
         setPositionRestored(true);
         setIsRestoring(false);
@@ -241,7 +236,13 @@ export function Reader({
     loadPanels();
   }, [chapterUrl, manga?.id]);
 
-  const handleTap = (e: any) => {
+  const handleTap = (url?: string) => {
+    // If url is passed (from panel), update ref. If bubbling from background (undefined), ignore/keep last?
+    // Actually, background tap shouldn't trigger zoom.
+    if (url) {
+      lastTappedUrl.current = url;
+    }
+    
     const now = Date.now();
     
     // Reset count if too much time passed since last tap (300ms)
@@ -258,21 +259,29 @@ export function Reader({
     }
 
     if (touchCount.current === 3) {
-      // TRIPLE TAP DETECTED
-      log('[Reader] Triple tap detected - toggling privacy filter');
+      // TRIPLE TAP -> PRIVACY
+      log('[Reader] Triple tap -> Privacy Toggle');
       SettingsStore.setPrivacyFilter(!privacyFilter);
-      touchCount.current = 0; // Reset
+      touchCount.current = 0; 
       return;
     }
 
-    // Set a timer to process single/double tap if no more taps come in
+    // Set a timer to process single/double tap
     touchResetTimer.current = setTimeout(() => {
       if (touchCount.current === 1) {
          // Single Tap -> Toggle Controls
          toggleControls();
+      } else if (touchCount.current === 2) {
+         // Double Tap -> Zoom
+         // Use the last tapped URL
+         if (lastTappedUrl.current) {
+            log('[Reader] Double tap -> Zoom:', lastTappedUrl.current);
+            setZoomedUrl(lastTappedUrl.current);
+         }
       }
       // Reset count
       touchCount.current = 0;
+      lastTappedUrl.current = null;
     }, 300);
   };
 
@@ -463,15 +472,12 @@ export function Reader({
     }
   };
 
-  const handleZoom = (url: string) => {
-     log('[Reader] Opening zoom for:', url);
-     setZoomedUrl(url);
-  };
-
+  // Remove handleZoom as it is now integrated into handleTap
+  
   return (
     <view
       className="Reader"
-      bindtap={handleTap}
+      bindtap={() => handleTap()} // Background tap (no URL)
       bindkeydown={handleKeyDown}
       focusable={true}
       focus-index="0"
@@ -537,7 +543,7 @@ export function Reader({
                   }
                 }}
               >
-                <ReaderPanelWithZoom url={url} index={index} onZoom={handleZoom} />
+                <ReaderPanelWrapper url={url} index={index} onTap={handleTap} />
               </list-item>
             )),
             ...(hasNextChapter && onNextChapter
