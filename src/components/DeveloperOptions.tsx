@@ -1,4 +1,4 @@
-import { useState, useEffect } from '@lynx-js/react'; // Ensure useEffect is imported
+import { useState } from '@lynx-js/react'; // Ensure useEffect is imported
 import { DebugLogService } from '../services/debugLog';
 import { StorageService } from '../services/storage';
 import { SettingsStore } from '../services/settings';
