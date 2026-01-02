@@ -452,18 +452,8 @@ export function DeveloperOptions() {
             setCopyStatus('');
           }}
         >
-          <view 
-            className="DebugConsole-modal" 
-            catchtap={() => { }} 
-            style={{ 
-              height: 'auto', 
-              maxHeight: '90%', 
-              width: '90%',
-              maxWidth: '600px',
-              padding: 0 
-            }}
-          >
-            <view className="DebugConsole-header">
+          <view className="DebugConsole-modal" catchtap={() => { }} style={{ height: 'auto', maxHeight: '90%', padding: '20px' }}>
+            <view className="DebugConsole-header" style={{ borderBottomWidth: 0, paddingBottom: 0 }}>
               <text className="DebugConsole-title">🎫 Submit Ticket</text>
               <view
                 className="DebugConsole-button"
@@ -473,48 +463,38 @@ export function DeveloperOptions() {
               </view>
             </view>
             
-            <scroll-view 
-              className="DebugConsole-content" 
-              scroll-y 
-              style={{ backgroundColor: 'transparent', padding: 0 }}
-            >
-              <view style={{ padding: '24px' }}>
-                <text className="Settings-input-label">Subject</text>
-                <input
-                    className="Settings-input"
-                    // @ts-ignore
-                    value={ticketSubject}
-                    bindinput={(e: any) => setTicketSubject(e.detail.value)}
-                    placeholder="Brief summary..."
-                    placeholder-style="color: var(--text-secondary); opacity: 0.6;"
-                    style={{ marginBottom: '20px' }}
-                />
-                
-                <text className="Settings-input-label">Description</text>
-                <textarea
-                    className="Settings-input"
-                    // @ts-ignore
-                    value={ticketBody}
-                    bindinput={(e: any) => setTicketBody(e.detail.value)}
-                    placeholder="Describe the issue or request..."
-                    placeholder-style="color: var(--text-secondary); opacity: 0.6;"
-                    style={{ 
-                      height: '150px', 
-                      paddingTop: '12px'
-                    }}
-                />
+            <view className="Settings-card" style={{ marginTop: '20px', marginBottom: 0 }}>
+              <text className="Settings-input-label">Subject</text>
+              <input
+                className="Settings-input"
+                // @ts-ignore
+                value={ticketSubject}
+                bindinput={(e: any) => setTicketSubject(e.detail.value)}
+                placeholder="Brief summary..."
+                placeholder-style="color: var(--text-secondary);"
+              />
+              
+              <text className="Settings-input-label" style={{ marginTop: '16px' }}>Description</text>
+              <textarea
+                className="Settings-input"
+                style={{ height: '120px', paddingTop: '10px' }}
+                // @ts-ignore
+                value={ticketBody}
+                bindinput={(e: any) => setTicketBody(e.detail.value)}
+                placeholder="Describe the issue or request..."
+                placeholder-style="color: var(--text-secondary);"
+              />
 
-                <view className="Settings-button-row" style={{ marginTop: '32px' }}>
-                    <view
-                      className="Settings-button primary"
-                      style={{ flex: 1, backgroundColor: '#d47a94', height: '48px' }}
-                      bindtap={submitToDiscord}
-                    >
-                      <text className="Settings-button-text" style={{ color: 'white', fontSize: '16px' }}>Submit Ticket</text>
-                    </view>
+              <view className="Settings-button-row" style={{ marginTop: '24px' }}>
+                <view
+                  className="Settings-button primary"
+                  style={{ flex: 1, height: '44px' }}
+                  bindtap={submitToDiscord}
+                >
+                  <text className="Settings-button-text" style={{ color: 'white' }}>Submit Ticket</text>
                 </view>
               </view>
-            </scroll-view>
+            </view>
           </view>
         </view>
       )}
