@@ -129,6 +129,30 @@
   margin-bottom: 4px;
 }
 
+.HistoryView-item-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.HistoryView-item-badge-container {
+  background-color: var(--primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.HistoryView-item-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
 .HistoryView-item-time {
   font-size: 12px;
   color: var(--text-secondary);

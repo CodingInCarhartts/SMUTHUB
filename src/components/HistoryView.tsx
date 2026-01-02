@@ -1,5 +1,5 @@
 import { useEffect, useState } from '@lynx-js/react';
-import type { Manga } from '../services/batoto';
+import { BatotoService, type Manga } from '../services/batoto';
 import { StorageService, type ViewedManga } from '../services/storage';
 import './HistoryView.css';
 
@@ -13,9 +13,11 @@ import { timeAgo } from '../utils/formatters';
 export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
   const [history, setHistory] = useState<ViewedManga[]>([]);
   const [loading, setLoading] = useState(true);
+  const [latestUpdates, setLatestUpdates] = useState<Map<string, Manga>>(new Map());
 
   useEffect(() => {
     loadHistory();
+    checkForNewChapters();
   }, []);
 
   const loadHistory = async () => {
@@ -27,6 +29,18 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
       console.error('[HistoryView] Failed to load:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkForNewChapters = async () => {
+    try {
+      // Fetch latest releases to check against history
+      const updates = await BatotoService.getLatestReleases();
+      const updateMap = new Map<string, Manga>();
+      updates.forEach(m => updateMap.set(m.id, m));
+      setLatestUpdates(updateMap);
+    } catch (e) {
+      console.error('[HistoryView] Failed to check for updates:', e);
     }
   };
 
@@ -59,33 +73,47 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
           </view>
         ) : (
           <view className="HistoryView-list">
-            {history.map((item) => (
-              <view
-                key={item.manga.id}
-                className="HistoryView-item"
-                bindtap={() => handleSelectManga(item)}
-              >
-                <image
-                  src={item.manga.cover}
-                  className="HistoryView-item-cover"
-                  mode="aspectFill"
-                />
-                <view className="HistoryView-item-info">
-                  <text className="HistoryView-item-title">
-                    {item.manga.title}
-                  </text>
-                  {item.lastChapterTitle && (
-                    <text className="HistoryView-item-chapter">
-                      📖 {item.lastChapterTitle}
+            {history.map((item) => {
+              const remoteManga = latestUpdates.get(item.manga.id);
+              const hasUpdate = remoteManga 
+                ? StorageService.checkForUpdates(item.manga, remoteManga) 
+                : false;
+
+              return (
+                <view
+                  key={item.manga.id}
+                  className="HistoryView-item"
+                  bindtap={() => handleSelectManga(item)}
+                >
+                  <image
+                    src={item.manga.cover}
+                    className="HistoryView-item-cover"
+                    mode="aspectFill"
+                  />
+                  <view className="HistoryView-item-info">
+                    <text className="HistoryView-item-title">
+                      {item.manga.title}
                     </text>
-                  )}
-                  <text className="HistoryView-item-time">
-                    {timeAgo(item.viewedAt)}
-                  </text>
+                    <view className="HistoryView-item-meta">
+                       {item.lastChapterTitle && (
+                        <text className="HistoryView-item-chapter">
+                          📖 {item.lastChapterTitle}
+                        </text>
+                      )}
+                      {hasUpdate && (
+                        <view className="HistoryView-item-badge-container">
+                          <text className="HistoryView-item-badge">NEW</text>
+                        </view>
+                       )}
+                    </view>
+                    <text className="HistoryView-item-time">
+                      {timeAgo(item.viewedAt)}
+                    </text>
+                  </view>
+                  <text className="HistoryView-item-chevron">›</text>
                 </view>
-                <text className="HistoryView-item-chevron">›</text>
-              </view>
-            ))}
+              );
+            })}
           </view>
         )}
       </scroll-view>
