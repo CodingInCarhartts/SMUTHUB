@@ -419,6 +419,7 @@ export const BatotoService = {
                       data {
                         dname
                         urlPath
+                        tranLang
                       }
                     }
                   }
@@ -439,7 +440,14 @@ export const BatotoService = {
       console.log(`[Service] getLatestReleases returned ${items.length} items`);
 
       const baseUrl = client.getBaseUrl();
-      return items.map((item: any) => {
+      return items
+        .filter((item: any) => {
+           // Filter output to only English updates to match getMangaDetails behavior
+           const lang = item.data?.chapterNode_up_to?.data?.tranLang || '';
+           const norm = lang.toLowerCase().trim();
+           return norm === 'en' || norm === 'english' || norm === ''; 
+        })
+        .map((item: any) => {
         const data = item.data;
         return {
           id: item.id || '',
