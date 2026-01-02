@@ -670,6 +670,16 @@ export const StorageService = {
    * This is independent of the user's reading progress.
    */
   checkForUpdates(localManga: Manga, remoteManga: Manga): boolean {
+    // 1. Prefer ID-based comparison (Robuster)
+    if (localManga.latestChapterId && remoteManga.latestChapterId) {
+      if (localManga.latestChapterId !== remoteManga.latestChapterId) {
+        log(`[Storage] Update detected via ID: Local=${localManga.latestChapterId} vs Remote=${remoteManga.latestChapterId}`);
+        return true;
+      }
+      return false;
+    }
+
+    // 2. Fallback to URL-based comparison
     // If remote has no info, we can't confirm an update
     if (!remoteManga.latestChapterUrl) {
       return false;
@@ -677,6 +687,7 @@ export const StorageService = {
 
     // If local has no info (legacy data) but remote does, assume it's new
     if (!localManga.latestChapterUrl) {
+      log('[Storage] Update assumed (Legacy local data missing latestChapterUrl)');
       return true;
     }
     
@@ -686,8 +697,12 @@ export const StorageService = {
     const local = normalize(localManga.latestChapterUrl);
     const remote = normalize(remoteManga.latestChapterUrl);
     
-    // If the latest published chapter URL is different, it's an update.
-    return local !== remote;
+    if (local !== remote) {
+      log(`[Storage] Update detected via URL: Local=${local} vs Remote=${remote}`);
+      return true;
+    }
+    
+    return false;
   }
 };
 
