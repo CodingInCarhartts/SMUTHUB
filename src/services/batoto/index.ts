@@ -332,6 +332,7 @@ export const BatotoService = {
       // --- IMAGE SPLITTING LOGIC ---
       // Detect tall images and split them using wsrv.nl proxy
       // Max height for cached textures on most mobile GPUs is 4096, but we use 3000 for safety padding
+      // We use wsrv.nl because it supports precise cropping via cx, cy, cw, ch params
       const MAX_TEXTURE_HEIGHT = 3000;
       const finalUrls: string[] = [];
 
@@ -341,22 +342,23 @@ export const BatotoService = {
         const match = url.match(/_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)(?:$|\?)/i);
         
         if (match) {
+          const width = parseInt(match[1], 10);
           const height = parseInt(match[2], 10);
           
           if (height > MAX_TEXTURE_HEIGHT) {
-            console.log(`[Service] Detected tall image (${height}px), splitting: ${url}`);
+            console.log(`[Service] Detected tall image (${width}x${height}), splitting: ${url}`);
             
             // Calculate slices
             const slices = Math.ceil(height / MAX_TEXTURE_HEIGHT);
             
             for (let i = 0; i < slices; i++) {
               const startY = i * MAX_TEXTURE_HEIGHT;
+              const sliceHeight = Math.min(MAX_TEXTURE_HEIGHT, height - startY);
+              
               // wsrv.nl parameters: 
-              // url=...
-              // cy=Y (crop start Y)
-              // h=HEIGHT (crop height)
+              // cx, cy, cw, ch = Crop Rectangle
               // output=webp (force efficient format)
-              const sliceUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&cy=${startY}&h=${MAX_TEXTURE_HEIGHT}&output=webp`;
+              const sliceUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&cx=0&cy=${startY}&cw=${width}&ch=${sliceHeight}&output=webp`;
               finalUrls.push(sliceUrl);
             }
             continue; // Skip adding the original url
