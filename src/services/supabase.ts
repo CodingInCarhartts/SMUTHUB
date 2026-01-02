@@ -122,4 +122,24 @@ export const SupabaseService = {
     });
     return true;
   },
+
+  /**
+   * Get a global config value by key from 'app_config' table
+   */
+  async getGlobalConfig(key: string): Promise<string | null> {
+    try {
+      // Expects table "app_config" with columns "key", "value"
+      const data = await this.getAll<{ value: string }>(
+        'app_config',
+        `?select=value&key=eq.${key}&limit=1`
+      );
+      if (data && data.length > 0) {
+        return data[0].value;
+      }
+      return null;
+    } catch (e) {
+      console.warn(`[Supabase] Failed to fetch config for ${key}`, e);
+      return null;
+    }
+  },
 };
