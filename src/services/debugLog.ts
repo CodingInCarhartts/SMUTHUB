@@ -112,6 +112,17 @@ export interface DebugReportContext {
   deviceId?: string;
 }
 
+export interface StructuredDebugReport {
+  app_version: string;
+  device_id: string;
+  environment_info: any;
+  settings: any;
+  supabase_status: any;
+  storage_state: Record<string, string | null>;
+  console_logs: LogEntry[];
+  generated_at: string;
+}
+
 export type LogCategory = 'INIT' | 'NETWORK' | 'SYNC' | 'UI' | 'STORAGE' | 'UPDATE' | 'PERF' | 'GENERAL';
 
 export const DebugLogService = {
@@ -158,6 +169,25 @@ export const DebugLogService = {
           `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.args}`,
       )
       .join('\n');
+  },
+
+  getStructuredReport(context?: DebugReportContext): StructuredDebugReport {
+     return {
+       app_version: context?.version || 'Unknown',
+       device_id: context?.deviceId || 'Unknown',
+       environment_info: {
+         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+         localStorageAvailable: typeof localStorage !== 'undefined',
+         cryptoAvailable: typeof crypto !== 'undefined',
+         systemInfo: typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo,
+         nativeModules: typeof NativeModules !== 'undefined' ? Object.keys(NativeModules) : [],
+       },
+       settings: context?.settings || {},
+       supabase_status: context?.supabaseStatus || {},
+       storage_state: context?.storageValues || {},
+       console_logs: logs,
+       generated_at: new Date().toISOString(),
+     };
   },
 
   getDebugReport(context?: DebugReportContext): string {

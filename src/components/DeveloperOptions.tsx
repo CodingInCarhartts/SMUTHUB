@@ -94,10 +94,44 @@ export function DeveloperOptions() {
     try {
       const { SupabaseService } = await import('../services/supabase');
       const deviceId = StorageService.getDeviceId();
+      const settings = SettingsStore.get();
+
+      // Fetch storage for context
+      const storageValues: Record<string, string | null> = {};
+      const keys = [
+        'batoto:favorites',
+        'batoto:history',
+        'batoto:settings',
+        'batoto:filters',
+        'batoto:device_id',
+        'batoto:reader_position',
+      ];
+
+      for (const key of keys) {
+        storageValues[key] = await StorageService.getNativeItemSync(key);
+      }
+
+      const structuredReport = DebugLogService.getStructuredReport({
+        settings,
+        deviceId,
+        version: BUNDLE_VERSION,
+        storageValues,
+        supabaseStatus: {
+           status: 'Captured via DeveloperOptions'
+        }
+      });
 
       const success = await SupabaseService.upsert('debug_logs', {
         device_id: deviceId,
-        report: debugReport,
+        // Legacy support (optional, can be removed)
+        report: debugReport, 
+        // New Structured Data
+        app_version: structuredReport.app_version,
+        environment_info: structuredReport.environment_info,
+        settings: structuredReport.settings,
+        supabase_status: structuredReport.supabase_status,
+        storage_state: structuredReport.storage_state,
+        console_logs: structuredReport.console_logs,
         created_at: new Date().toISOString(),
       }, 'device_id');
 

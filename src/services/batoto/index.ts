@@ -211,7 +211,11 @@ export const BatotoService = {
             ? new Date(c.data.dateCreate).toLocaleDateString()
             : '',
           group: c.data?.userNode?.data?.name || 'Scanlator',
-        }));
+        }))
+        .sort((a: any, b: any) => {
+           // Sort by ID descending (proxy for newest first)
+           return Number(b.id) - Number(a.id);
+        });
 
       // Extract total views (usually field 'd000')
       const totalViews =
