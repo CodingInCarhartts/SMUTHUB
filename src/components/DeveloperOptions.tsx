@@ -31,27 +31,70 @@ export function DeveloperOptions() {
     }
 
     const email = 'Yumlabs.team@gmail.com';
-    const subject = encodeURIComponent(`[Supa Support] ${ticketSubject}`);
-    const body = encodeURIComponent(`Description:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`);
+    const subject = `[Supa Support] ${ticketSubject}`;
+    const body = `Description:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`;
     
     // Construct mailto link
-    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+    // Use standard encodeURIComponent. 
+    // Sometimes newline %0A is needed for body.
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
+    console.log('[DeveloperOptions] Attempting mailto:', mailtoUrl);
+
     // Check for Lynx runtime vs Web
-    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
-    if (runtime && runtime.openURL) {
-      runtime.openURL(mailtoUrl);
-    } else {
-      console.log('[DeveloperOptions] Opening mailto:', mailtoUrl);
-      // Fallback for web preview
-      if (typeof window !== 'undefined') {
-        window.open(mailtoUrl, '_blank');
+    try {
+      if (typeof lynx !== 'undefined' && (lynx as any).openURL) {
+        (lynx as any).openURL(mailtoUrl);
+        setCopyStatus('🚀 Opening Email...');
+      } else if ((globalThis as any).lynx && (globalThis as any).lynx.openURL) {
+        (globalThis as any).lynx.openURL(mailtoUrl);
+        setCopyStatus('🚀 Opening Email...');
+      } else {
+        console.log('[DeveloperOptions] openURL not found. Trying window.open text.');
+        // Web fallback
+        if (typeof window !== 'undefined') {
+          window.open(mailtoUrl, '_blank');
+          setCopyStatus('🚀 Opening Email...');
+        } else {
+             setCopyStatus('❌ Email action not supported');
+        }
       }
+    } catch (e: any) {
+      console.error('[DeveloperOptions] mailto failed:', e);
+      setCopyStatus(`❌ Error: ${e.message}`);
     }
     
-    setShowTicketModal(false);
-    setTicketSubject('');
-    setTicketBody('');
+    setTimeout(() => {
+        setShowTicketModal(false);
+        setTicketSubject('');
+        setTicketBody('');
+        setCopyStatus('');
+    }, 2000);
+  };
+
+  const handleShareTicket = () => {
+    if (!ticketSubject || !ticketBody) {
+      setCopyStatus('❌ Fill all fields');
+      setTimeout(() => setCopyStatus(''), 2000);
+      return;
+    }
+    
+    const subject = `[Supa Support] ${ticketSubject}`;
+    const body = `Subject: ${subject}\n\nDescription:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`;
+
+    if (typeof NativeModules !== 'undefined' && NativeModules.NativeUtilsModule && NativeModules.NativeUtilsModule.shareText) {
+       NativeModules.NativeUtilsModule.shareText(body, subject);
+       setCopyStatus('🚀 Opening Share Sheet...');
+    } else {
+       setCopyStatus('❌ Share not supported');
+    }
+
+    setTimeout(() => {
+        setShowTicketModal(false);
+        setTicketSubject('');
+        setTicketBody('');
+        setCopyStatus('');
+    }, 2000);
   };
 
   const handleToggleDebugOutlines = () => {
@@ -431,12 +474,22 @@ export function DeveloperOptions() {
                 placeholder-style="color: var(--text-secondary);"
               />
 
-              <view
-                className="Settings-button primary"
-                style={{ marginTop: '24px', width: '100%', justifyContent: 'center' }}
-                bindtap={handleSubmitTicket}
-              >
-                <text className="Settings-button-text">Submit via Email</text>
+              <view className="Settings-button-row" style={{ marginTop: '24px', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
+                <view
+                  className="Settings-button primary"
+                  style={{ width: '100%' }}
+                  bindtap={handleSubmitTicket}
+                >
+                  <text className="Settings-button-text">Submit via Email</text>
+                </view>
+
+                <view
+                  className="Settings-button"
+                  style={{ width: '100%', backgroundColor: 'transparent', border: '1px solid var(--accent-border)' }}
+                  bindtap={handleShareTicket}
+                >
+                  <text className="Settings-button-text">Share via...</text>
+                </view>
               </view>
             </view>
           </view>
