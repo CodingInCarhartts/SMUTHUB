@@ -19,6 +19,40 @@ export function DeveloperOptions() {
   const [deviceIdOverrideInput, setDeviceIdOverrideInput] = useState('');
   const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
   const [mockUpdates, setMockUpdates] = useState(SettingsStore.get().mockUpdates || false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketSubject, setTicketSubject] = useState('');
+  const [ticketBody, setTicketBody] = useState('');
+
+  const handleSubmitTicket = () => {
+    if (!ticketSubject || !ticketBody) {
+      setCopyStatus('❌ Fill all fields');
+      setTimeout(() => setCopyStatus(''), 2000);
+      return;
+    }
+
+    const email = 'Yumlabs.team@gmail.com';
+    const subject = encodeURIComponent(`[Supa Support] ${ticketSubject}`);
+    const body = encodeURIComponent(`Description:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`);
+    
+    // Construct mailto link
+    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+    
+    // Check for Lynx runtime vs Web
+    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    if (runtime && runtime.openURL) {
+      runtime.openURL(mailtoUrl);
+    } else {
+      console.log('[DeveloperOptions] Opening mailto:', mailtoUrl);
+      // Fallback for web preview
+      if (typeof window !== 'undefined') {
+        window.open(mailtoUrl, '_blank');
+      }
+    }
+    
+    setShowTicketModal(false);
+    setTicketSubject('');
+    setTicketBody('');
+  };
 
   const handleToggleDebugOutlines = () => {
     const newVal = !debugOutlines;
@@ -343,8 +377,71 @@ export function DeveloperOptions() {
           </view>
         </view>
 
+        <view className="Settings-item" bindtap={() => setShowTicketModal(true)}>
+          <view className="Settings-item-left">
+            <text className="Settings-item-icon">🎫</text>
+            <view className="Settings-item-text">
+              <text className="Settings-item-label">Submit Ticket</text>
+              <text className="Settings-item-description">
+                Report a bug or feature request
+              </text>
+            </view>
+          </view>
+          <text className="Settings-item-chevron">›</text>
+        </view>
 
       </view>
+
+      {/* Ticket Modal */}
+      {showTicketModal && (
+        <view
+          className="DebugConsole-overlay"
+          bindtap={() => setShowTicketModal(false)}
+        >
+          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: '20px' }}>
+            <view className="DebugConsole-header">
+              <text className="DebugConsole-title">🎫 Submit Ticket</text>
+              <view
+                className="DebugConsole-button"
+                bindtap={() => setShowTicketModal(false)}
+              >
+                <text className="DebugConsole-button-text">✕</text>
+              </view>
+            </view>
+            
+              <view className="Settings-card" style={{ marginTop: '20px' }}>
+              <text className="Settings-input-label">Subject</text>
+              <input
+                className="Settings-input"
+                // @ts-ignore
+                value={ticketSubject}
+                bindinput={(e: any) => setTicketSubject(e.detail.value)}
+                placeholder="Brief summary..."
+                placeholder-style="color: var(--text-secondary); opacity: 0.5;"
+              />
+              
+              <text className="Settings-input-label" style={{ marginTop: '16px' }}>Description</text>
+              <textarea
+                className="Settings-input"
+                style={{ height: '120px', paddingTop: '10px' }}
+                // @ts-ignore
+                value={ticketBody}
+                bindinput={(e: any) => setTicketBody(e.detail.value)}
+                placeholder="Describe the issue or request..."
+                placeholder-style="color: var(--text-secondary); opacity: 0.5;"
+              />
+
+              <view
+                className="Settings-button primary"
+                style={{ marginTop: '24px', width: '100%', justifyContent: 'center' }}
+                bindtap={handleSubmitTicket}
+              >
+                <text className="Settings-button-text">Submit via Email</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      )}
 
       {/* Debug Console Modal */}
       {showDebugConsole && (
