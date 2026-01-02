@@ -275,6 +275,10 @@ export function DeveloperOptions() {
               </text>
             </view>
           </view>
+          <view
+            className={debugOutlines ? 'Settings-toggle active' : 'Settings-toggle'}
+            bindtap={handleToggleDebugOutlines}
+          >
             <view className="Settings-toggle-knob" />
           </view>
         </view>
@@ -294,12 +298,9 @@ export function DeveloperOptions() {
             bindtap={() => {
               const current = SettingsStore.get().mockUpdates;
               StorageService.saveSettings({ mockUpdates: !current });
-              // Force re-render not needed as SettingsStore should trigger updates or we just toggle
-              // But DeveloperOptions uses local state for some things. We might need a forceUpdate or use useState for this setting?
-              // For simplicity, we'll let the next mount pick it up or just rely on the toggle visual if we track it.
-              // Better: use a local state initialized from store, or just force update.
-              SettingsStore.notifyListeners(); // If we had listeners.
-              // Hack: Force re-render by updating a dummy state or just accept it updates on next open.
+              // Force re-render relative to parent or just wait for next mount
+              // Using setDebugOutlines as a dummy trigger since it's state
+              setDebugOutlines(debugOutlines); 
             }}
           >
             <view className="Settings-toggle-knob" />
