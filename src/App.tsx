@@ -251,7 +251,14 @@ export function App() {
         // Background fetch details to populate next chapter logic
         try {
           const details = await BatotoService.getMangaDetails(manga.url);
-          setMangaDetails(details);
+          if (details) {
+            setMangaDetails(details);
+            // Upgrade selectedManga to fresh details (includes latestChapterUrl)
+            setSelectedManga(details);
+            // Update history to refresh metadata (clears "NEW" badge for legacy items)
+            StorageService.addToHistory(details, chapterUrl, chapterTitle);
+            console.log('[App] Refreshed history metadata for:', details.title);
+          }
         } catch (e) {
           console.error('[App] Failed to load details for history resume', e);
         }
