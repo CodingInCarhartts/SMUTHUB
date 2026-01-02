@@ -18,12 +18,20 @@ export function DeveloperOptions() {
   const [copyStatus, setCopyStatus] = useState('');
   const [deviceIdOverrideInput, setDeviceIdOverrideInput] = useState('');
   const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
+  const [mockUpdates, setMockUpdates] = useState(SettingsStore.get().mockUpdates || false);
 
   const handleToggleDebugOutlines = () => {
     const newVal = !debugOutlines;
     setDebugOutlines(newVal);
     SettingsStore.setDebugOutlines(newVal);
   };
+  
+  const handleToggleMockUpdates = () => {
+    const newVal = !mockUpdates;
+    setMockUpdates(newVal);
+    StorageService.saveSettings({ mockUpdates: newVal });
+  };
+
 
   const handleSetDeviceOverride = () => {
     if (!deviceIdOverrideInput) {
@@ -294,14 +302,8 @@ export function DeveloperOptions() {
             </view>
           </view>
           <view
-            className={SettingsStore.get().mockUpdates ? 'Settings-toggle active' : 'Settings-toggle'}
-            bindtap={() => {
-              const current = SettingsStore.get().mockUpdates;
-              StorageService.saveSettings({ mockUpdates: !current });
-              // Force re-render relative to parent or just wait for next mount
-              // Using setDebugOutlines as a dummy trigger since it's state
-              setDebugOutlines(debugOutlines); 
-            }}
+            className={mockUpdates ? 'Settings-toggle active' : 'Settings-toggle'}
+            bindtap={handleToggleMockUpdates}
           >
             <view className="Settings-toggle-knob" />
           </view>
