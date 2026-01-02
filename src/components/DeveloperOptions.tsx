@@ -8,6 +8,9 @@ import { SyncMonitor } from './SyncMonitor';
 import { StateInspector } from './StateInspector';
 import './Settings.css';
 
+// TODO: Replace with valid Discord Webhook URL. DO NOT COMMIT REAL URL TO PUBLIC REPO.
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1456543037109829751/MOkEVGZOADgjW9rvEmT1dpCRe1oPBKm50B21lkl7gT7AUT6uTkEEq_CWepxoFnqKWY2Z';
+
 export function DeveloperOptions() {
   const deviceId = StorageService.getDeviceId();
   const [showDebugConsole, setShowDebugConsole] = useState(false);
@@ -23,78 +26,82 @@ export function DeveloperOptions() {
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketBody, setTicketBody] = useState('');
 
-  const handleSubmitTicket = () => {
+  /* Removed unused handleSubmitTicket logic */
+
+  const submitToDiscord = async () => {
     if (!ticketSubject || !ticketBody) {
       setCopyStatus('❌ Fill all fields');
       setTimeout(() => setCopyStatus(''), 2000);
       return;
     }
 
-    const email = 'Yumlabs.team@gmail.com';
-    const subject = `[Supa Support] ${ticketSubject}`;
-    const body = `Description:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`;
-    
-    // Construct mailto link
-    // Use standard encodeURIComponent. 
-    // Sometimes newline %0A is needed for body.
-    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    console.log('[DeveloperOptions] Attempting mailto:', mailtoUrl);
+    if (!DISCORD_WEBHOOK_URL) {
+      setCopyStatus('❌ Config Missing URL');
+      console.warn('[DeveloperOptions] Discord Webhook URL is missing. Set DISCORD_WEBHOOK_URL in DeveloperOptions.tsx');
+      setTimeout(() => setCopyStatus(''), 3000);
+      return;
+    }
 
-    // Check for Lynx runtime vs Web
+    setCopyStatus('🚀 Sending...');
+
+    // Get native version synchronously if available
+    let nativeVersion = 'N/A';
     try {
-      if (typeof lynx !== 'undefined' && (lynx as any).openURL) {
-        (lynx as any).openURL(mailtoUrl);
-        setCopyStatus('🚀 Opening Email...');
-      } else if ((globalThis as any).lynx && (globalThis as any).lynx.openURL) {
-        (globalThis as any).lynx.openURL(mailtoUrl);
-        setCopyStatus('🚀 Opening Email...');
-      } else {
-        console.log('[DeveloperOptions] openURL not found. Trying window.open text.');
-        // Web fallback
-        if (typeof window !== 'undefined') {
-          window.open(mailtoUrl, '_blank');
-          setCopyStatus('🚀 Opening Email...');
-        } else {
-             setCopyStatus('❌ Email action not supported');
+      if (typeof NativeModules !== 'undefined' && NativeModules.NativeUpdaterModule && NativeModules.NativeUpdaterModule.getNativeVersion) {
+        nativeVersion = NativeModules.NativeUpdaterModule.getNativeVersion();
+      }
+    } catch (e) {
+      console.warn('[DeveloperOptions] Failed to get native version', e);
+    }
+
+    const payload = {
+      username: 'Supa Support',
+      embeds: [
+        {
+          title: `Ticket: ${ticketSubject}`,
+          description: ticketBody,
+          color: 15258703, // Pink-ish
+          fields: [
+            { name: 'Device ID', value: deviceId || 'Unknown', inline: true },
+            { name: 'App Version', value: BUNDLE_VERSION, inline: true },
+            { name: 'Native Version', value: nativeVersion, inline: true },
+            { name: 'Timestamp', value: new Date().toISOString() }
+          ],
+          footer: { text: 'Submitted via Developer Options' }
         }
+      ]
+    };
+
+    try {
+      const response = await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setCopyStatus('✅ Sent to Discord!');
+        setTimeout(() => {
+            setShowTicketModal(false);
+            setTicketSubject('');
+            setTicketBody('');
+            setCopyStatus('');
+        }, 1500);
+      } else {
+        const errText = await response.text();
+        console.error('[DeveloperOptions] Discord API Error:', response.status, errText);
+        setCopyStatus(`❌ API Error ${response.status}`);
       }
     } catch (e: any) {
-      console.error('[DeveloperOptions] mailto failed:', e);
-      setCopyStatus(`❌ Error: ${e.message}`);
+      console.error('[DeveloperOptions] Discord fetch failed:', e);
+      setCopyStatus(`❌ Network Error`);
     }
-    
-    setTimeout(() => {
-        setShowTicketModal(false);
-        setTicketSubject('');
-        setTicketBody('');
-        setCopyStatus('');
-    }, 2000);
   };
 
   const handleShareTicket = () => {
-    if (!ticketSubject || !ticketBody) {
-      setCopyStatus('❌ Fill all fields');
-      setTimeout(() => setCopyStatus(''), 2000);
-      return;
-    }
-    
-    const subject = `[Supa Support] ${ticketSubject}`;
-    const body = `Subject: ${subject}\n\nDescription:\n${ticketBody}\n\n---\nDevice ID: ${deviceId}\nVersion: ${BUNDLE_VERSION}`;
-
-    if (typeof NativeModules !== 'undefined' && NativeModules.NativeUtilsModule && NativeModules.NativeUtilsModule.shareText) {
-       NativeModules.NativeUtilsModule.shareText(body, subject);
-       setCopyStatus('🚀 Opening Share Sheet...');
-    } else {
-       setCopyStatus('❌ Share not supported');
-    }
-
-    setTimeout(() => {
-        setShowTicketModal(false);
-        setTicketSubject('');
-        setTicketBody('');
-        setCopyStatus('');
-    }, 2000);
+     // Deprecated in favor of Discord logging
   };
 
   const handleToggleDebugOutlines = () => {
@@ -474,21 +481,13 @@ export function DeveloperOptions() {
                 placeholder-style="color: var(--text-secondary);"
               />
 
-              <view className="Settings-button-row" style={{ marginTop: '24px', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
+              <view className="Settings-button-row" style={{ marginTop: '24px', justifyContent: 'center' }}>
                 <view
                   className="Settings-button primary"
                   style={{ width: '100%' }}
-                  bindtap={handleSubmitTicket}
+                  bindtap={submitToDiscord}
                 >
-                  <text className="Settings-button-text">Submit via Email</text>
-                </view>
-
-                <view
-                  className="Settings-button"
-                  style={{ width: '100%', backgroundColor: 'transparent', border: '1px solid var(--accent-border)' }}
-                  bindtap={handleShareTicket}
-                >
-                  <text className="Settings-button-text">Share via...</text>
+                  <text className="Settings-button-text">Submit Ticket</text>
                 </view>
               </view>
             </view>
