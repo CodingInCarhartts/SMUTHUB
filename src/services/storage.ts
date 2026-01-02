@@ -670,10 +670,14 @@ export const StorageService = {
    * This is independent of the user's reading progress.
    */
   checkForUpdates(localManga: Manga, remoteManga: Manga): boolean {
-    // If we don't have URL data, fallback to false (or true if we want to be aggressive?)
-    // False is safer to avoid spammy dots.
-    if (!localManga.latestChapterUrl || !remoteManga.latestChapterUrl) {
+    // If remote has no info, we can't confirm an update
+    if (!remoteManga.latestChapterUrl) {
       return false;
+    }
+
+    // If local has no info (legacy data) but remote does, assume it's new
+    if (!localManga.latestChapterUrl) {
+      return true;
     }
     
     // Normalize function to handle trailing slashes or protocol diffs if needed
