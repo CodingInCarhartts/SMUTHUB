@@ -272,6 +272,13 @@
   width: 100%;
 }
 
+.Settings-input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
 .Settings-input {
   /* @ts-ignore for Lynx input */
   flex: 1;
