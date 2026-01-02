@@ -329,10 +329,47 @@ export const BatotoService = {
         }
       }
 
+      // --- IMAGE SPLITTING LOGIC ---
+      // Detect tall images and split them using wsrv.nl proxy
+      // Max height for cached textures on most mobile GPUs is 4096 (safe limit)
+      const MAX_TEXTURE_HEIGHT = 4096;
+      const finalUrls: string[] = [];
+
+      for (const url of urls) {
+        // Pattern: .../filename_WIDTH_HEIGHT_SIZE.ext
+        // Example: .../132518261_720_12000_1485090.webp
+        const match = url.match(/_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)$/i);
+        
+        if (match) {
+          const height = parseInt(match[2], 10);
+          
+          if (height > MAX_TEXTURE_HEIGHT) {
+            console.log(`[Service] Detected tall image (${height}px), splitting: ${url}`);
+            
+            // Calculate slices
+            const slices = Math.ceil(height / MAX_TEXTURE_HEIGHT);
+            
+            for (let i = 0; i < slices; i++) {
+              const startY = i * MAX_TEXTURE_HEIGHT;
+              // wsrv.nl parameters: 
+              // url=...
+              // cy=Y (crop start Y)
+              // h=HEIGHT (crop height)
+              // output=webp (force efficient format)
+              const sliceUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&cy=${startY}&h=${MAX_TEXTURE_HEIGHT}&output=webp`;
+              finalUrls.push(sliceUrl);
+            }
+            continue; // Skip adding the original url
+          }
+        }
+        
+        finalUrls.push(url);
+      }
+
       console.log(
-        `[Service] Final panels: ${urls.length}. First final: ${urls[0]?.substring(0, 60)}`,
+        `[Service] Final panels: ${finalUrls.length} (expanded from ${urls.length}). First final: ${finalUrls[0]?.substring(0, 60)}`,
       );
-      return urls;
+      return finalUrls;
     } catch (e) {
       console.error('[Service] Panels failed', e);
       return [];
