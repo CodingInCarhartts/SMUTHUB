@@ -84,8 +84,9 @@ export const SupabaseService = {
     conflictColumn: string = 'id',
   ): Promise<boolean> {
     // resolution=merge-duplicates is key for upsert behavior via REST
+    // Use return=representation to distinguish 204 vs error
     const headers = {
-      Prefer: `resolution=merge-duplicates,return=minimal`,
+      Prefer: `resolution=merge-duplicates,return=representation`,
     };
 
     const result = await this.request(
@@ -97,13 +98,7 @@ export const SupabaseService = {
       },
     );
 
-    // If result is null (due to 204 No Content), it succeeded
-    // If request failed, it returned null but logged error
-    // check if it was a success or failure is tricky with just null return
-    // But our request wrapper catches errors.
-    // Ideally request should throw or return { error, data } tuple.
-    // For simplicity, assuming if it didn't throw/log, it worked.
-    return true;
+    return result !== null;
   },
 
   /**
@@ -117,10 +112,17 @@ export const SupabaseService = {
       ? value
       : `eq.${value}`;
 
+    // Use return=representation to distinguish 204 vs error
+    const headers = {
+       Prefer: `return=representation`,
+    };
+
     const result = await this.request(`/${table}?${column}=${filter}`, {
       method: 'DELETE',
+      headers
     });
-    return true;
+    
+    return result !== null;
   },
 
   /**

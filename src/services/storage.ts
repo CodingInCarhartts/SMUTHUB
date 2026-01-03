@@ -303,9 +303,26 @@ export const StorageService = {
         `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`,
       );
       if (cloudData.length > 0) {
-        const favorites = cloudData.map((row) => row.manga_data);
-        setLocal(STORAGE_KEYS.FAVORITES, favorites);
-        // We could trigger a listener here if needed
+        const cloudFavorites = cloudData.map((row) => row.manga_data);
+        
+        // Smart Merge: Union of Local and Cloud
+        // This ensures we don't lose locally added favorites that haven't synced yet
+        // AND we don't lose cloud favorites that were added on another device
+        const currentLocal = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+        const mergedMap = new Map<string, Manga>();
+        
+        // Add all cloud items
+        cloudFavorites.forEach(m => mergedMap.set(m.id, m));
+        
+        // Add all local items (local takes precedence if metadata is newer, 
+        // but for favorites usually just existence matters. We keep local version to be safe)
+        currentLocal.forEach(m => mergedMap.set(m.id, m));
+        
+        const mergedFavorites = Array.from(mergedMap.values());
+        
+        // Only update if generic "length" check or deep equality implies change?
+        // Simply setting it is safe as long as we merged correct.
+        setLocal(STORAGE_KEYS.FAVORITES, mergedFavorites);
       }
     })();
 
@@ -316,22 +333,28 @@ export const StorageService = {
     const deviceId = this.getDeviceId();
     console.log(`[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`);
     const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
-    if (!favorites.find((m) => m.id === manga.id)) {
-      favorites.unshift(manga);
-      setLocal(STORAGE_KEYS.FAVORITES, favorites);
+    
+    // Check duplication by ID strictly
+    if (!favorites.some((m) => m.id === manga.id)) {
+      // Add to local immediately
+      const newFavorites = [manga, ...favorites];
+      setLocal(STORAGE_KEYS.FAVORITES, newFavorites);
+      
+      // Enqueue sync
+      await SyncEngine.enqueue({
+        type: 'UPSERT',
+        table: 'favorites',
+        payload: {
+          device_id: deviceId,
+          manga_id: manga.id,
+          manga_data: manga,
+          created_at: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      });
+    } else {
+      console.log(`[Storage] Favorite already exists for ${manga.id}`);
     }
-
-    await SyncEngine.enqueue({
-      type: 'UPSERT',
-      table: 'favorites',
-      payload: {
-        device_id: deviceId,
-        manga_id: manga.id,
-        manga_data: manga,
-        created_at: new Date().toISOString()
-      },
-      timestamp: Date.now()
-    });
   },
 
   async removeFavorite(mangaId: string): Promise<void> {

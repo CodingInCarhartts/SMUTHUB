@@ -111,7 +111,8 @@ export const SyncEngine = {
           conflictColumn = 'device_id,manga_id';
         }
 
-        return await SupabaseService.upsert(op.table, op.payload, conflictColumn);
+        const success = await SupabaseService.upsert(op.table, op.payload, conflictColumn);
+        return success;
       } else if (op.type === 'DELETE') {
         const deviceId = op.payload.device_id;
         const column = op.table === 'settings' ? 'device_id' : 'manga_id';
@@ -121,12 +122,16 @@ export const SyncEngine = {
         // but our current SupabaseService.delete is a bit simplified.
         // If it's a many-to-many style table, we need complex filters.
         if (op.table === 'favorites' || op.table === 'history') {
-          return await SupabaseService.request(`/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`, {
-            method: 'DELETE'
-          }) !== null;
+          const success = await SupabaseService.request(`/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`, {
+            method: 'DELETE',
+            // Ensure we get a response body to confirm success vs error
+             headers: { Prefer: 'return=representation' } 
+          });
+          return success !== null;
         }
 
-        return await SupabaseService.delete(op.table, column, value);
+        const success = await SupabaseService.delete(op.table, column, value);
+        return success;
       }
       return true;
     } catch (e) {
@@ -142,7 +147,23 @@ export const SyncEngine = {
     const raw = await getNativeItemSync(QUEUE_STORAGE_KEY);
     if (!raw) return [];
     try {
-      return JSON.parse(raw);
+      // Zombie Check: If raw string is massive, we might have a corrupt or clogged queue
+      if (raw.length > 500000) { // 500kb safety limit
+         console.warn('[SyncEngine] ZOMBIE QUEUE DETECTED (Size > 500kb). PURGING QUEUE TO RESTORE SYNC.');
+         await this.saveQueue([]);
+         return [];
+      }
+
+      const queue = JSON.parse(raw);
+      
+      // Secondary safety check for item count
+      if (Array.isArray(queue) && queue.length > 500) {
+         console.warn('[SyncEngine] ZOMBIE QUEUE DETECTED (Count > 500). PURGING QUEUE TO RESTORE SYNC.');
+         await this.saveQueue([]);
+         return [];
+      }
+      
+      return queue;
     } catch {
       return [];
     }
