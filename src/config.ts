@@ -87,10 +87,10 @@ import JizzSpray from './assets/5100_JizzSpray.gif';
 // ============================================================
 export const ACTIVE_EVENT = {
   enabled: true,
-  icon: '🌸', 
+  icon: '✨', 
   image: JizzSpray,
-  color: '#FFB7C5',
-  mode: 'fall', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
+  color: '#FF0000',
+  mode: 'sparkle', // testing with sparkle mode
 };
 
 /* 

@@ -69,7 +69,7 @@ export const Sparkles = ({
   console.log('[Sparkles] Rendering. Active count:', sparkles.length);
 
   return (
-    <view className="SparklesWrapper">
+    <view className="SparklesWrapper" style={{ backgroundColor: 'rgba(255, 0, 0, 0.1)', minHeight: '10px' }}>
       {sparkles.map(sparkle => (
         sparkle.image ? (
           <image
