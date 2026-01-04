@@ -43,9 +43,9 @@ export const SupabaseService = {
         return null;
       }
 
-      // If no content (204), return null
+      // If no content (204), return true to indicate success but no data
       if (response.status === 204) {
-        return null; // Explicit 204
+        return true as any;
       }
 
       // Safe JSON parsing for handling empty bodies (even if not 204)

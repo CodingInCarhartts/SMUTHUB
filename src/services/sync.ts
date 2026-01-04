@@ -171,6 +171,20 @@ export const SyncEngine = {
 
   async saveQueue(queue: Operation[]): Promise<void> {
     await setNativeItemSync(QUEUE_STORAGE_KEY, JSON.stringify(queue));
+  },
+
+  /**
+   * Get a set of IDs that are pending deletion in the queue
+   */
+  async getPendingDeletions(table: string): Promise<Set<string>> {
+    const queue = await this.getQueue();
+    const deletions = new Set<string>();
+    queue.forEach(op => {
+      if (op.type === 'DELETE' && op.table === table && op.payload.manga_id) {
+        deletions.add(op.payload.manga_id);
+      }
+    });
+    return deletions;
   }
 };
 

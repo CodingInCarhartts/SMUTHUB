@@ -303,7 +303,14 @@ export const StorageService = {
         `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`,
       );
       if (cloudData.length > 0) {
-        const cloudFavorites = cloudData.map((row) => row.manga_data);
+        let cloudFavorites = cloudData.map((row) => row.manga_data);
+        
+        // Filter out items that are pending deletion in our local sync queue
+        // to prevent them from "ghosting" back after being deleted locally
+        const pendingDeletions = await SyncEngine.getPendingDeletions('favorites');
+        if (pendingDeletions.size > 0) {
+          cloudFavorites = cloudFavorites.filter(m => !pendingDeletions.has(m.id));
+        }
         
         // Smart Merge: Union of Local and Cloud
         // This ensures we don't lose locally added favorites that haven't synced yet
