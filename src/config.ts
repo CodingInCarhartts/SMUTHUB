@@ -80,3 +80,29 @@ export const USER_AGENTS = [
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
 ];
+// ============================================================
+// VISUAL EVENTS
+// ============================================================
+export const ACTIVE_EVENT = {
+  enabled: true,
+  icon: '🌸', 
+  image: '5100_JizzSpray.gif',
+  color: '#FFB7C5',
+  mode: 'drift', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
+};
+
+/* 
+  EVENT PRESETS:
+  
+  Sakura (Spring): 
+  { icon: '🌸', color: '#FFB7C5', mode: 'fall' }
+  
+  Love (Valentine):
+  { icon: '❤️', color: '#FF4D4D', mode: 'drift' }
+  
+  Snow (Winter):
+  { icon: '❄️', color: '#B0E2FF', mode: 'fall' }
+  
+  Classic (Default):
+  { icon: '✦', color: '#FFC000', mode: 'sparkle' }
+*/

@@ -1,37 +1,44 @@
 import { useEffect, useState, type ReactNode } from '@lynx-js/react';
+import { ACTIVE_EVENT } from '../config';
 import './Sparkles.css';
 
-const DEFAULT_COLOR = '#FFC000';
-
-const generateSparkle = (color: string) => {
+const generateSparkle = (color: string, icon: string, mode: string, image?: string) => {
+  const isFall = mode === 'fall';
+  const isDrift = mode === 'drift';
+  
   return {
     id: String(Math.random()),
     createdAt: Date.now(),
     color,
-    size: Math.floor(Math.random() * 20) + 10,
+    icon,
+    image,
+    mode,
+    size: Math.floor(Math.random() * (image ? 40 : 20)) + 15,
     style: {
-      top: Math.floor(Math.random() * 100) + '%',
+      top: isFall ? '-40px' : (Math.floor(Math.random() * 100) + '%'),
       left: Math.floor(Math.random() * 100) + '%',
       zIndex: 2,
     },
   };
 };
 
-interface Sparkle {
-  id: string;
-  createdAt: Date;
-  color: string;
-  size: number;
-  style: any;
-}
-
 interface Props {
   color?: string;
+  icon?: string;
+  image?: string;
+  mode?: 'sparkle' | 'fall' | 'drift';
   children: ReactNode;
   enabled?: boolean;
 }
 
-export const Sparkles = ({ color = DEFAULT_COLOR, children, enabled = true }: Props) => {
+export const Sparkles = ({ 
+  color = ACTIVE_EVENT.color, 
+  icon = ACTIVE_EVENT.icon,
+  image = (ACTIVE_EVENT as any).image,
+  mode = ACTIVE_EVENT.mode as any,
+  children, 
+  enabled = ACTIVE_EVENT.enabled 
+}: Props) => {
   const [sparkles, setSparkles] = useState<any[]>([]);
 
   useEffect(() => {
@@ -42,34 +49,49 @@ export const Sparkles = ({ color = DEFAULT_COLOR, children, enabled = true }: Pr
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const newSparkle = generateSparkle(color);
+      const newSparkle = generateSparkle(color, icon, mode, image);
       
       setSparkles(current => {
-        // Filter out old sparkles (lifetime 750ms)
-        const filtered = current.filter(s => (now - s.createdAt) < 750);
-        // Cap max sparkles at 10 to prevent DOM overload
-        if (filtered.length >= 10) return filtered;
+        const lifetime = mode === 'fall' ? 3000 : (mode === 'drift' ? 2000 : 750);
+        const filtered = current.filter(s => (now - s.createdAt) < lifetime);
+        
+        const max = mode === 'sparkle' ? 10 : 12;
+        if (filtered.length >= max) return filtered;
         return [...filtered, newSparkle];
       });
-    }, 400); // Optimized for performance: 2.5 sparkles/sec
+    }, mode === 'sparkle' ? 400 : 800);
 
     return () => clearInterval(interval);
-  }, [enabled, color]);
+  }, [enabled, color, icon, mode, image]);
 
   return (
     <view className="SparklesWrapper">
       {sparkles.map(sparkle => (
-        <text
-          key={sparkle.id}
-          className="SparkleInstance"
-          style={{
-            ...sparkle.style,
-            fontSize: sparkle.size + 'px',
-            color: sparkle.color,
-          }}
-        >
-          ✦
-        </text>
+        sparkle.image ? (
+          <image
+            key={sparkle.id}
+            src={sparkle.image}
+            className={`SparkleInstance mode-${sparkle.mode}`}
+            style={{
+              ...sparkle.style,
+              width: sparkle.size + 'px',
+              height: sparkle.size + 'px',
+            }}
+            mode="aspectFit"
+          />
+        ) : (
+          <text
+            key={sparkle.id}
+            className={`SparkleInstance mode-${sparkle.mode}`}
+            style={{
+              ...sparkle.style,
+              fontSize: sparkle.size + 'px',
+              color: sparkle.color,
+            }}
+          >
+            {sparkle.icon}
+          </text>
+        )
       ))}
       <view className="SparkleChildWrapper">
         {children}
