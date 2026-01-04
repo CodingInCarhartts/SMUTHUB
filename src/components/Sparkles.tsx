@@ -42,6 +42,7 @@ export const Sparkles = ({
   const [sparkles, setSparkles] = useState<any[]>([]);
 
   useEffect(() => {
+    console.log('[Sparkles] Component Mounted inside useEffect. Enabled:', enabled);
     if (!enabled) {
       setSparkles([]);
       return;
@@ -50,20 +51,22 @@ export const Sparkles = ({
     const interval = setInterval(() => {
       const now = Date.now();
       const newSparkle = generateSparkle(color, icon, mode, image);
-      console.log('[Sparkles] Spawning:', newSparkle.id, 'Image:', !!image);
+      console.log(`[Sparkles] Spawning id=${newSparkle.id} icon=${newSparkle.icon} mode=${mode}`);
       
       setSparkles(current => {
         const lifetime = mode === 'fall' ? 3000 : (mode === 'drift' ? 2000 : 750);
         const filtered = current.filter(s => (now - s.createdAt) < lifetime);
         
-        const max = image ? 15 : (mode === 'sparkle' ? 10 : 12);
+        const max = image ? 20 : 12;
         if (filtered.length >= max) return filtered;
         return [...filtered, newSparkle];
       });
-    }, image ? 300 : (mode === 'sparkle' ? 400 : 800));
+    }, image ? 300 : 600);
 
     return () => clearInterval(interval);
   }, [enabled, color, icon, mode, image]);
+
+  console.log('[Sparkles] Rendering. Active count:', sparkles.length);
 
   return (
     <view className="SparklesWrapper">

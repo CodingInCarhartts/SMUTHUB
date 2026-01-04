@@ -84,6 +84,7 @@ export function App() {
 
   // Fetch popular/latest manga on mount
   useEffect(() => {
+    console.log('[App] Mounted and running useEffect');
     fetchHomeFeed();
 
     // Load saved filters
