@@ -33,8 +33,6 @@ type Tab = 'home' | 'search' | 'settings';
 type ViewState = 'browse' | 'details' | 'reader';
 type SettingsSubview = 'main' | 'favorites' | 'history';
 
-console.log('[App] File executing...');
-
 export function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [view, setView] = useState<ViewState>('browse');
@@ -86,7 +84,6 @@ export function App() {
 
   // Fetch popular/latest manga on mount
   useEffect(() => {
-    console.log('[App] Mounted and running useEffect');
     fetchHomeFeed();
 
     // Load saved filters

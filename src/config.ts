@@ -80,17 +80,14 @@ export const USER_AGENTS = [
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
 ];
-import JizzSpray from './assets/5100_JizzSpray.gif';
-
 // ============================================================
 // VISUAL EVENTS
 // ============================================================
 export const ACTIVE_EVENT = {
   enabled: true,
-  icon: '✨', 
-  image: JizzSpray,
-  color: '#FF0000',
-  mode: 'sparkle', // testing with sparkle mode
+  icon: '🌸', 
+  color: '#FFB7C5',
+  mode: 'fall', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
 };
 
 /* 
