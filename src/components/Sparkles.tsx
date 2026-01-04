@@ -55,11 +55,11 @@ export const Sparkles = ({
         const lifetime = mode === 'fall' ? 3000 : (mode === 'drift' ? 2000 : 750);
         const filtered = current.filter(s => (now - s.createdAt) < lifetime);
         
-        const max = mode === 'sparkle' ? 10 : 12;
+        const max = image ? 15 : (mode === 'sparkle' ? 10 : 12);
         if (filtered.length >= max) return filtered;
         return [...filtered, newSparkle];
       });
-    }, mode === 'sparkle' ? 400 : 800);
+    }, image ? 300 : (mode === 'sparkle' ? 400 : 800));
 
     return () => clearInterval(interval);
   }, [enabled, color, icon, mode, image]);

@@ -1,6 +1,7 @@
 .SparklesWrapper {
   position: relative;
   display: inline-flex;
+  overflow: visible;
 }
 
 .SparkleInstance {
