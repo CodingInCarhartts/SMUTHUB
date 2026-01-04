@@ -90,7 +90,7 @@ export const ACTIVE_EVENT = {
   icon: '🌸', 
   image: JizzSpray,
   color: '#FFB7C5',
-  mode: 'drift', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
+  mode: 'fall', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
 };
 
 /* 

@@ -50,6 +50,7 @@ export const Sparkles = ({
     const interval = setInterval(() => {
       const now = Date.now();
       const newSparkle = generateSparkle(color, icon, mode, image);
+      console.log('[Sparkles] Spawning:', newSparkle.id, 'Image:', !!image);
       
       setSparkles(current => {
         const lifetime = mode === 'fall' ? 3000 : (mode === 'drift' ? 2000 : 750);

@@ -386,10 +386,10 @@ export function App() {
     );
   }
 
-  const headerTitleRandom = ['I love you', 'Discover', 'Explore'];
-
-  const randomHeaderTitle =
-    headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
+  const randomHeaderTitle = useMemo(() => {
+    const headerTitleRandom = ['I love you', 'Discover', 'Explore'];
+    return headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
+  }, []);
 
   return (
     <ErrorBoundary>

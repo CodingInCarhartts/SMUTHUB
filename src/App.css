@@ -53,6 +53,7 @@
 .HomeHeader {
   padding: 50px 24px 16px 24px;
   background-color: var(--glass);
+  overflow: visible;
 }
 
 .HomeTitle {
