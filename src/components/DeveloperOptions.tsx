@@ -258,6 +258,49 @@ export function DeveloperOptions() {
     }
   };
 
+  const handleVerifyUpdates = async () => {
+     setCopyStatus('🔍 Verifying updates...');
+     try {
+       // Force check (bypass throttle)
+       const updatesMap = await StorageService.checkFavoritesForUpdates(true);
+       const updates = Array.from(updatesMap.values());
+       
+       setCopyStatus(`✅ Check complete: ${updates.length} items found.`);
+
+       // Prepare report
+       const { SupabaseService } = await import('../services/supabase');
+       const deviceId = StorageService.getDeviceId();
+       
+       const report = {
+          verification_type: 'chapter_update_check',
+          timestamp: new Date().toISOString(),
+          results: updates.map(m => ({
+            id: m.id,
+            title: m.title,
+            latest_chapter: m.latestChapter,
+            latest_url: m.latestChapterUrl,
+            latest_id: m.latestChapterId
+          })),
+          log_summary: `Checked ${updates.length} items. Force=true.`
+       };
+
+       await SupabaseService.upsert('debug_logs', {
+          device_id: deviceId,
+          report: JSON.stringify(report, null, 2),
+          console_logs: ['[DeveloperOptions] Verification run completed'],
+          created_at: new Date().toISOString()
+       });
+
+       setCopyStatus('✅ Verification saved to DB!');
+     } catch (e: any) {
+       console.error('[DeveloperOptions] Verification failed:', e);
+       setCopyStatus(`❌ Failed: ${e.message}`);
+     }
+     
+     // Clear status
+     setTimeout(() => setCopyStatus(''), 3000);
+  };
+
   const handleRefreshReport = async () => {
     const settings = SettingsStore.get();
     const deviceId = StorageService.getDeviceId();
@@ -527,6 +570,12 @@ export function DeveloperOptions() {
                 bindtap={handleForceUpdateCheck}
               >
                 <text className="DebugConsole-button-text">🆙</text>
+              </view>
+              <view
+                className="DebugConsole-button"
+                bindtap={handleVerifyUpdates}
+              >
+                <text className="DebugConsole-button-text">🔎 Batch Verify</text>
               </view>
               <view
                 className="DebugConsole-button primary"

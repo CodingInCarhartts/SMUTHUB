@@ -478,6 +478,91 @@ export const BatotoService = {
     }
   },
 
+  async getBatchMangaInfo(ids: string[]): Promise<Manga[]> {
+    const client = BatotoClient.getInstance();
+    const baseUrl = client.getBaseUrl();
+    const results: Manga[] = [];
+    const CHUNK_SIZE = 5; // Concurrency limit
+
+    console.log(`[Service] Batch fetching info for ${ids.length} mangas`);
+
+    // Helper to process a chunk
+    const processChunk = async (chunkIds: string[]) => {
+      const promises = chunkIds.map(async (id) => {
+        try {
+          const response = await client.fetch('/ap2/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `
+                      query get_comicNode($id: ID!) {
+                          get_comicNode(id: $id) {
+                              id
+                              data {
+                                  name
+                                  urlPath
+                                  urlCover600
+                                  chapterNode_up_to {
+                                    id
+                                    data { dname, urlPath }
+                                  }
+                              }
+                          }
+                      }
+                   `,
+              variables: { id },
+            }),
+          });
+          const json = await response.json();
+          const item = json?.data?.get_comicNode;
+          if (!item) return null;
+
+          const data = item.data;
+          return {
+            id: item.id,
+            title: data.name || 'Unknown',
+            url: data.urlPath?.startsWith('http')
+              ? data.urlPath
+              : `${baseUrl}${data.urlPath}`,
+            cover: data.urlCover600?.startsWith('http')
+              ? data.urlCover600
+              : `${baseUrl}${data.urlCover600}`,
+            latestChapter: data.chapterNode_up_to?.data?.dname || '',
+            latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith(
+              'http',
+            )
+              ? data.chapterNode_up_to.data.urlPath
+              : data.chapterNode_up_to?.data?.urlPath
+              ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
+              : undefined,
+            latestChapterId: data.chapterNode_up_to?.id || undefined,
+            // Minimal set for updates
+            authors: [],
+            rating: '',
+            description: '',
+          } as Manga;
+        } catch (e) {
+          console.error(`[Service] Batch fetch failed for ${id}`, e);
+          return null;
+        }
+      });
+
+      return Promise.all(promises);
+    };
+
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const chunkResults = await processChunk(chunk);
+      results.push(...(chunkResults.filter((r) => r !== null) as Manga[]));
+      // Small delay to be polite
+      if (i + CHUNK_SIZE < ids.length) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+
+    return results;
+  },
+
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     const client = BatotoClient.getInstance();
     try {

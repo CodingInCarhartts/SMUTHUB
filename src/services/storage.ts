@@ -1,3 +1,4 @@
+import { BatotoService } from './batoto';
 import type { Manga, SearchFilters } from './batoto/types';
 import { logCapture } from './debugLog';
 import { SupabaseService } from './supabase';
@@ -733,6 +734,87 @@ export const StorageService = {
     }
     
     return false;
+  },
+
+  /**
+   * Check for updates on user's favorites.
+   * force = true bypasses the 1-hour throttle.
+   */
+  async checkFavoritesForUpdates(force: boolean = false): Promise<Map<string, Manga>> {
+    try {
+      const settings = await this.getSettings();
+      log(`[Storage] checkFavoritesForUpdates. Force=${force}, Mock=${!!settings.mockUpdates}`);
+
+      if (settings.mockUpdates) {
+        log('[Storage] Mock Updates ENABLED - Forcing updates on history items');
+        const mockMap = new Map<string, Manga>();
+        const currentHistory = await this.getHistory();
+        
+        currentHistory.forEach(item => {
+          const mockManga = { ...item.manga };
+          mockManga.latestChapterUrl = (item.manga.latestChapterUrl || '') + '_mock_update';
+          mockManga.latestChapter = 'NEW ' + (item.manga.latestChapter || 'Chapter');
+          mockMap.set(item.manga.id, mockManga);
+        });
+        
+        return mockMap;
+      }
+
+      // Check throttle if not forced
+      const LAST_CHECK_KEY = 'batoto:last_update_check';
+      const CACHED_UPDATES_KEY = 'batoto:cached_updates';
+      const ONE_HOUR = 60 * 60 * 1000;
+      
+      const now = Date.now();
+      
+      if (!force) {
+        const lastCheckStr = await getNativeItemSync(LAST_CHECK_KEY);
+        const lastCheck = lastCheckStr ? parseInt(lastCheckStr, 10) : 0;
+        const shouldCheck = (now - lastCheck > ONE_HOUR);
+
+        if (!shouldCheck) {
+           log(`[Storage] Throttled update check (Last: ${new Date(lastCheck).toLocaleTimeString()}). Loading cache.`);
+           const cachedStr = await getNativeItemSync(CACHED_UPDATES_KEY);
+           if (cachedStr) {
+              try {
+                 const cachedList: Manga[] = JSON.parse(cachedStr);
+                 const map = new Map<string, Manga>();
+                 cachedList.forEach(m => map.set(m.id, m));
+                 return map;
+              } catch(e) {
+                 logError('[Storage] Failed to parse cached updates:', e);
+              }
+           }
+           return new Map();
+        }
+      }
+      
+      // Targeted Update Check: Favorites Only
+      log('[Storage] Fetching targeted updates for Favorites...');
+      const favorites = await this.getFavorites();
+      const ids = favorites.map(f => f.id);
+      
+      if (ids.length === 0) {
+         log('[Storage] No favorites to check.');
+         return new Map();
+      }
+
+      const updates = await BatotoService.getBatchMangaInfo(ids);
+      log(`[Storage] Fetched updates for ${updates.length} favorites`);
+      
+      const updateMap = new Map<string, Manga>();
+      updates.forEach(m => updateMap.set(m.id, m));
+
+      // Save Cache
+      setNativeItemSync(CACHED_UPDATES_KEY, JSON.stringify(updates));
+      setNativeItemSync(LAST_CHECK_KEY, now.toString());
+      
+      return updateMap;
+
+    } catch (e) {
+      logError('[Storage] Failed to check for updates:', e);
+      return new Map();
+    }
   }
 };
 
