@@ -76,21 +76,21 @@ export class BatotoClient {
           MIRROR_TIMEOUT_MS,
         );
 
-        reqId = NetworkLogService.logRequest('POST', probeUrl, {
+        // MOBILE DATA WORKAROUND:
+        // Some mobile carriers (like those returning 404s) intercept POST requests
+        // to unknown endpoints. We'll try a GET probe first which is less likely
+        // to be intercepted by transparent proxies/firewalls.
+        reqId = NetworkLogService.logRequest('GET', probeUrl, {
           'User-Agent': this.userAgent,
-          'Content-Type': 'application/json',
         });
 
         const res = await fetch(probeUrl, {
-          method: 'POST',
+          method: 'GET',
           signal: controller.signal,
           headers: {
             'User-Agent': this.userAgent,
-            'Content-Type': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',
           },
-          // Simple GraphQL probe
-          body: JSON.stringify({ query: '{ __typename }' }),
         });
 
         clearTimeout(timeoutId);
@@ -101,16 +101,18 @@ export class BatotoClient {
             res.status,
             res.statusText,
             {},
-            'API Probe',
+            'API Probe (GET)',
           );
         }
 
-        if (res.ok) {
+        // If GET works (even with 405 Method Not Allowed), the domain is reachable
+        // If it's a 404, the carrier is likely intercepting/blocking the path.
+        if (res.ok || res.status === 405) {
           this.activeMirror = mirror;
           const setCookie = res.headers.get('set-cookie');
           this.saveCookies(setCookie);
           log(
-            `[SmutHub] Active mirror verified and set to: ${this.activeMirror}`,
+            `[SmutHub] Active mirror verified (via GET/405) and set to: ${this.activeMirror}`,
           );
           return;
         } else {
