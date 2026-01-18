@@ -53,7 +53,7 @@ export class BatotoClient {
 
   /**
    * Initialize dynamic mirror resolution
-   * Tries to find the fastest responding mirror
+   * Tries to find the fastest responding mirror that supports the API
    */
   public async initialize(): Promise<void> {
     if (this.activeMirror) return;
@@ -61,32 +61,36 @@ export class BatotoClient {
     log('[SmutHub] Resolving mirrors...');
 
     // Shuffle mirrors to avoid every device hitting the same "first" mirror
-    // which might be slow or blocked for some users.
     const shuffledMirrors = [...BATO_MIRRORS].sort(() => Math.random() - 0.5);
 
+    // Limit to checking a subset of mirrors to save time, or just check all if list is reasonable
     for (const mirror of shuffledMirrors) {
       let reqId: string | undefined;
       try {
-        log(`[SmutHub] Checking mirror: ${mirror}`);
+        const probeUrl = `${mirror}${mirror.endsWith('/') ? '' : '/'}ap2/`;
+        log(`[SmutHub] Probing mirror API: ${probeUrl}`);
+
         const controller = new AbortController();
         const timeoutId = setTimeout(
           () => controller.abort(),
           MIRROR_TIMEOUT_MS,
         );
 
-        // Log initialization checks
-        reqId = NetworkLogService.logRequest('GET', mirror, {
+        reqId = NetworkLogService.logRequest('POST', probeUrl, {
           'User-Agent': this.userAgent,
-          'Accept-Language': 'en-US,en;q=0.9',
+          'Content-Type': 'application/json',
         });
 
-        const res = await fetch(mirror, {
-          method: 'GET',
+        const res = await fetch(probeUrl, {
+          method: 'POST',
           signal: controller.signal,
           headers: {
             'User-Agent': this.userAgent,
+            'Content-Type': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',
           },
+          // Simple GraphQL probe
+          body: JSON.stringify({ query: '{ __typename }' }),
         });
 
         clearTimeout(timeoutId);
@@ -97,33 +101,35 @@ export class BatotoClient {
             res.status,
             res.statusText,
             {},
-            'Mirror Check',
+            'API Probe',
           );
         }
 
-        // Restrict to successful responses (2xx)
-        // If it's a 403 or 503, it might be a block page
         if (res.ok) {
           this.activeMirror = mirror;
           const setCookie = res.headers.get('set-cookie');
           this.saveCookies(setCookie);
-          log(`[SmutHub] Active mirror set to: ${this.activeMirror}`);
+          log(
+            `[SmutHub] Active mirror verified and set to: ${this.activeMirror}`,
+          );
           return;
         } else {
-          logWarn(`[SmutHub] Mirror ${mirror} returned status: ${res.status}`);
+          logWarn(
+            `[SmutHub] Mirror ${mirror} API probe returned status: ${res.status}`,
+          );
         }
       } catch (e: any) {
         if (reqId) {
           NetworkLogService.logError(reqId, e.message || 'Timeout');
         }
-        logError(`[SmutHub] Mirror check failed for ${mirror}: ${e.message}`);
+        logError(`[SmutHub] Mirror probe failed for ${mirror}: ${e.message}`);
       }
     }
 
-    // Fallback if all shuffled checks failed
+    // Fallback if all probes failed
     this.activeMirror = BATO_MIRRORS[0];
     logWarn(
-      `[SmutHub] Could not verify any mirror, defaulting to fallback ${this.activeMirror}`,
+      `[SmutHub] Could not verify any mirror API, defaulting to fallback ${this.activeMirror}`,
     );
   }
 
@@ -147,11 +153,12 @@ export class BatotoClient {
   }
 
   /**
-   * Core fetch wrapper with retry and rotation logic potential
+   * Core fetch wrapper with retry and rotation logic
    */
   public async fetch(
     path: string,
     options: RequestInit = {},
+    retryOnMirrorFail: boolean = true,
   ): Promise<Response> {
     if (!this.activeMirror) await this.initialize();
 
@@ -213,17 +220,40 @@ export class BatotoClient {
         log(`[SmutHub] Received new cookies, total: ${this.cookies.size}`);
       }
 
+      // Handle mirror failure (404, 403, 503)
       if (!response.ok) {
+        if (
+          retryOnMirrorFail &&
+          (response.status === 404 ||
+            response.status === 403 ||
+            response.status === 503)
+        ) {
+          logWarn(
+            `[SmutHub] Mirror ${this.activeMirror} failed with ${response.status}. Attempting rotation...`,
+          );
+          // Invalidate current mirror and try another
+          this.activeMirror = null;
+          // Recursive call with retryOnMirrorFail = false to avoid infinite loops
+          return this.fetch(path, options, false);
+        }
+
         if (response.status === 403 || response.status === 503) {
-          logWarn(`[SmutHub] Encountered ${response.status} at ${url}`);
-          // If the active mirror starts failing with 403, we might want to trigger re-init
-          // but for now we just log it.
+          logWarn(`[SmutHub] Permanent block/fail encountered at ${url}`);
         }
       }
       return response;
     } catch (error: any) {
       logError(`[SmutHub] Network error for ${url}`, error);
       NetworkLogService.logError(reqId, error.message || 'Network Fail');
+
+      if (retryOnMirrorFail) {
+        logWarn(
+          `[SmutHub] Network error on ${this.activeMirror}. Attempting rotation...`,
+        );
+        this.activeMirror = null;
+        return this.fetch(path, options, false);
+      }
+
       throw error;
     }
   }
