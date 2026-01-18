@@ -1,8 +1,8 @@
 // Initialize debug log capture FIRST so all logs are captured
-import './services/debugLog';
-import { Sparkles } from './components/Sparkles';
+
 import { useCallback, useEffect, useMemo, useState } from '@lynx-js/react';
 import { BottomNav } from './components/BottomNav';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { FavoritesView } from './components/FavoritesView';
 import { HistoryView } from './components/HistoryView';
 import { MangaCard } from './components/MangaCard';
@@ -11,8 +11,8 @@ import { Reader } from './components/Reader';
 import { Search } from './components/Search';
 import { SearchFiltersModal } from './components/SearchFilters';
 import { Settings } from './components/Settings';
+import { Sparkles } from './components/Sparkles';
 import { UpdateModal } from './components/UpdateModal';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   BatotoService,
   type Chapter,
@@ -20,14 +20,20 @@ import {
   type MangaDetails,
   type SearchFilters,
 } from './services/batoto';
+import { logCapture } from './services/debugLog';
 import { SettingsStore } from './services/settings';
-import { StorageService, normalizeUrl } from './services/storage';
+import { normalizeUrl, StorageService } from './services/storage';
 import {
   type AppUpdate,
   type NativeAppUpdate,
   UpdateService,
 } from './services/update';
 import './App.css';
+
+// Helper for debug logging
+const log = (...args: any[]) => logCapture('log', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
+const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
 type Tab = 'home' | 'search' | 'settings';
 type ViewState = 'browse' | 'details' | 'reader';
@@ -61,7 +67,9 @@ export function App() {
   // Dark mode
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   // Debug outlines
-  const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
+  const [debugOutlines, setDebugOutlines] = useState(
+    SettingsStore.getDebugOutlines(),
+  );
 
   // OTA Update state
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
@@ -75,7 +83,12 @@ export function App() {
     const unsubscribe = SettingsStore.subscribe(() => {
       const newMode = SettingsStore.getDarkMode();
       const newOutlines = SettingsStore.getDebugOutlines();
-      console.log('[App] Settings update received. Dark:', newMode, 'Outlines:', newOutlines);
+      log(
+        '[App] Settings update received. Dark:',
+        newMode,
+        'Outlines:',
+        newOutlines,
+      );
       setDarkMode(newMode);
       setDebugOutlines(newOutlines);
     });
@@ -90,23 +103,23 @@ export function App() {
     const savedFilters = StorageService.getLastFilters();
     if (savedFilters) {
       setCurrentFilters(savedFilters);
-      console.log('[App] Loaded saved filters:', savedFilters);
+      log('[App] Loaded saved filters:', savedFilters);
     }
   }, []);
 
   // Check for updates on mount, app resume, and navigation events
   // Cooldown is handled by UpdateService internally
   const triggerUpdateCheck = useCallback(async () => {
-    console.log('[App] Checking for OTA updates...');
+    log('[App] Checking for OTA updates...');
     const update = await UpdateService.checkUpdate();
     if (update) {
-      console.log('[App] OTA Update found:', update.version);
+      log('[App] OTA Update found:', update.version);
       setPendingUpdate(update);
     }
-    console.log('[App] Checking for Native updates...');
+    log('[App] Checking for Native updates...');
     const nativeUpdate = await UpdateService.checkNativeUpdate();
     if (nativeUpdate) {
-      console.log('[App] Native Update found:', nativeUpdate.version);
+      log('[App] Native Update found:', nativeUpdate.version);
       setPendingNativeUpdate(nativeUpdate);
     }
   }, []);
@@ -119,7 +132,7 @@ export function App() {
 
     // 2. Check on app resume/foreground
     const handleAppShow = () => {
-      console.log('[App] App resumed, checking for updates...');
+      log('[App] App resumed, checking for updates...');
       triggerUpdateCheck();
     };
 
@@ -138,7 +151,7 @@ export function App() {
   }, [triggerUpdateCheck]);
 
   const loadBrowse = useCallback(async (filters?: SearchFilters) => {
-    console.log('[App] Loading browse with filters:', JSON.stringify(filters));
+    log('[App] Loading browse with filters:', JSON.stringify(filters));
     setLoading(true);
     try {
       const browseParams = {
@@ -147,12 +160,12 @@ export function App() {
         status: filters?.status,
         word: (filters as any)?.word, // Search query
       };
-      console.log('[App] Browse params:', JSON.stringify(browseParams));
+      log('[App] Browse params:', JSON.stringify(browseParams));
       const results = await BatotoService.browse(browseParams);
-      console.log(`[App] Browse loaded: ${results.length} items`);
+      log(`[App] Browse loaded: ${results.length} items`);
       setMangas(results);
     } catch (error) {
-      console.error('[App] Browse error:', error);
+      logError('[App] Browse error:', error as Error);
     } finally {
       setLoading(false);
     }
@@ -161,7 +174,7 @@ export function App() {
   // Preload browse when search tab is selected
   useEffect(() => {
     if (tab === 'search' && mangas.length === 0 && !loading) {
-      console.log('[App] Search tab selected, preloading browse...');
+      log('[App] Search tab selected, preloading browse...');
       loadBrowse();
     }
   }, [tab, loadBrowse]);
@@ -170,7 +183,7 @@ export function App() {
     setHomeLoading(true);
     setHomeError(null);
     try {
-      console.log('[App] fetchHomeFeed started');
+      log('[App] fetchHomeFeed started');
       const feed = await BatotoService.getHomeFeed();
       setPopularMangas(feed.popular);
       setLatestMangas(feed.latest);
@@ -180,10 +193,10 @@ export function App() {
         );
       }
     } catch (e: any) {
-      console.error('[App] fetchHomeFeed failed:', e);
+      logError('[App] fetchHomeFeed failed:', e);
       setHomeError(
         e.message ||
-        'Failed to connect to Batoto. Site might be down or protected.',
+          'Failed to connect to Batoto. Site might be down or protected.',
       );
     } finally {
       setHomeLoading(false);
@@ -192,13 +205,13 @@ export function App() {
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
-    console.log('[App] Refreshing home feed...');
+    log('[App] Refreshing home feed...');
     await fetchHomeFeed();
   }, [fetchHomeFeed]);
 
   const handleSearch = useCallback(
     async (q: string) => {
-      console.log(`[App] handleSearch called with: "${q}"`);
+      log(`[App] handleSearch called with: "${q}"`);
       setSearchQuery(q);
 
       // Use browse API with search word + current filters
@@ -212,7 +225,7 @@ export function App() {
 
   const handleApplyFilters = useCallback(
     async (filters: SearchFilters) => {
-      console.log('[App] Applying filters:', filters);
+      log('[App] Applying filters:', filters);
       setCurrentFilters(filters);
       setShowFilters(false);
 
@@ -226,7 +239,7 @@ export function App() {
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
-    console.log(`[App] Selected manga: ${manga.title}`);
+    log(`[App] Selected manga: ${manga.title}`);
     setSelectedManga(manga);
     setView('details');
     setSettingsSubview('main'); // Reset settings subview when viewing manga
@@ -238,7 +251,7 @@ export function App() {
 
   const handleHistorySelect = useCallback(
     async (manga: Manga, chapterUrl?: string, chapterTitle?: string) => {
-      console.log(`[App] History resume: ${manga.title}`);
+      log(`[App] History resume: ${manga.title}`);
       setSelectedManga(manga);
       setSettingsSubview('main'); // Exit history view
 
@@ -257,10 +270,13 @@ export function App() {
             setSelectedManga(details);
             // Update history to refresh metadata (clears "NEW" badge for legacy items)
             StorageService.addToHistory(details, chapterUrl, chapterTitle);
-            console.log('[App] Refreshed history metadata for:', details.title);
+            log('[App] Refreshed history metadata for:', details.title);
           }
         } catch (e) {
-          console.error('[App] Failed to load details for history resume', e);
+          logError(
+            '[App] Failed to load details for history resume',
+            e as Error,
+          );
         }
       } else {
         // Standard flow
@@ -296,14 +312,14 @@ export function App() {
 
   const handleNextChapter = useCallback(() => {
     if (!mangaDetails || !selectedChapterUrl) {
-      console.warn('[App] handleNextChapter failed: No details or selected chapter');
+      logWarn('[App] handleNextChapter failed: No details or selected chapter');
       return;
     }
 
     const chapters = mangaDetails.chapters;
     const normalizedSelected = normalizeUrl(selectedChapterUrl);
 
-    console.log(`[App] Searching for next chapter after: ${normalizedSelected}`);
+    log(`[App] Searching for next chapter after: ${normalizedSelected}`);
 
     const currentIndex = chapters.findIndex(
       (c: Chapter) => normalizeUrl(c.url) === normalizedSelected,
@@ -311,10 +327,14 @@ export function App() {
 
     if (currentIndex !== -1 && currentIndex > 0) {
       const nextChapter = chapters[currentIndex - 1];
-      console.log(`[App] Found next chapter at index ${currentIndex - 1}: ${nextChapter.title}`);
+      log(
+        `[App] Found next chapter at index ${currentIndex - 1}: ${nextChapter.title}`,
+      );
       handleSelectChapter(nextChapter.url, nextChapter.title);
     } else {
-      console.warn(`[App] Next chapter not found. Index: ${currentIndex}, Total: ${chapters.length}`);
+      logWarn(
+        `[App] Next chapter not found. Index: ${currentIndex}, Total: ${chapters.length}`,
+      );
     }
   }, [mangaDetails, selectedChapterUrl, handleSelectChapter]);
 
@@ -329,14 +349,17 @@ export function App() {
     return currentIndex !== -1 && currentIndex > 0;
   }, [mangaDetails, selectedChapterUrl]);
 
-  const handleTabChange = useCallback((newTab: Tab) => {
-    setTab(newTab);
-    setView('browse');
-    // Check for updates when navigating to home tab
-    if (newTab === 'home') {
-      triggerUpdateCheck();
-    }
-  }, [triggerUpdateCheck]);
+  const handleTabChange = useCallback(
+    (newTab: Tab) => {
+      setTab(newTab);
+      setView('browse');
+      // Check for updates when navigating to home tab
+      if (newTab === 'home') {
+        triggerUpdateCheck();
+      }
+    },
+    [triggerUpdateCheck],
+  );
 
   const handleGenreClick = useCallback(
     (genre: string) => {
@@ -388,254 +411,263 @@ export function App() {
 
   const randomHeaderTitle = useMemo(() => {
     const headerTitleRandom = ['I love you', 'Discover', 'Explore'];
-    return headerTitleRandom[Math.floor(Math.random() * headerTitleRandom.length)];
+    return headerTitleRandom[
+      Math.floor(Math.random() * headerTitleRandom.length)
+    ];
   }, []);
 
   return (
     <ErrorBoundary>
-    <view className={`${darkMode ? 'Main dark-mode' : 'Main'}${debugOutlines ? ' debug-outlines' : ''}`}>
       <view
-        className={view === 'browse' ? 'Content Content-with-nav' : 'Content'}
+        className={`${darkMode ? 'Main dark-mode' : 'Main'}${debugOutlines ? ' debug-outlines' : ''}`}
       >
-        {/* Details view */}
-        {view === 'details' && selectedManga && mangaDetails && (
-          <MangaDetailsUi
-            details={mangaDetails}
-            onBack={handleBack}
-            onRead={handleSelectChapter}
-          />
-        )}
-        {view === 'details' && selectedManga && !mangaDetails && (
-          <view className="LoadingContainer">
-            <view className="LoadingPulse">
-              <text className="LoadingIcon">📖</text>
+        <view
+          className={view === 'browse' ? 'Content Content-with-nav' : 'Content'}
+        >
+          {/* Details view */}
+          {view === 'details' && selectedManga && mangaDetails && (
+            <MangaDetailsUi
+              details={mangaDetails}
+              onBack={handleBack}
+              onRead={handleSelectChapter}
+            />
+          )}
+          {view === 'details' && selectedManga && !mangaDetails && (
+            <view className="LoadingContainer">
+              <view className="LoadingPulse">
+                <text className="LoadingIcon">📖</text>
+              </view>
+              <text className="StatusText">Opening the story...</text>
             </view>
-            <text className="StatusText">Opening the story...</text>
-          </view>
-        )}
+          )}
 
-        {/* Browse view with tabs */}
-        {view === 'browse' && (
-          <>
-            {tab === 'home' && (
-              <view className="Home">
-                <view className="HomeHeader">
-                  <Sparkles>
-                    <text className="HomeTitle">{randomHeaderTitle}</text>
-                  </Sparkles>
-                </view>
-                <scroll-view
-                  className="MangaList"
-                  scroll-y
-                  bindscrolltoupper={handleRefresh}
-                  upper-threshold={50}
-                >
-                  {homeLoading ? (
-                    <view className="LoadingContainer">
-                      <view className="LoadingSpinner" />
-                      <text className="StatusText">
-                        Fetching latest updates...
-                      </text>
-                      <text className="SubStatusText">
-                        Checking mirrors and resolving connection...
-                      </text>
-                    </view>
-                  ) : homeError ? (
-                    <view className="ErrorContainer">
-                      <text className="ErrorIcon">📡</text>
-                      <text className="ErrorTitle">Connection Issue</text>
-                      <text className="StatusText">{homeError}</text>
-                      <view className="RetryButton" bindtap={handleRefresh}>
-                        <text className="RetryText">Try Again</text>
+          {/* Browse view with tabs */}
+          {view === 'browse' && (
+            <>
+              {tab === 'home' && (
+                <view className="Home">
+                  <view className="HomeHeader">
+                    <Sparkles>
+                      <text className="HomeTitle">{randomHeaderTitle}</text>
+                    </Sparkles>
+                  </view>
+                  <scroll-view
+                    className="MangaList"
+                    scroll-y
+                    bindscrolltoupper={handleRefresh}
+                    upper-threshold={50}
+                  >
+                    {homeLoading ? (
+                      <view className="LoadingContainer">
+                        <view className="LoadingSpinner" />
+                        <text className="StatusText">
+                          Fetching latest updates...
+                        </text>
+                        <text className="SubStatusText">
+                          Checking mirrors and resolving connection...
+                        </text>
                       </view>
-                    </view>
-                  ) : (
-                    <>
-                      {/* Editorial Hero Section */}
-                      {popularMangas.length > 0 && (
-                        <view
-                          className="EditorialHero"
-                          bindtap={() => handleSelectManga(popularMangas[0])}
-                        >
-                          <image
-                            className="HeroImage"
-                            src={popularMangas[0].cover}
-                            mode="aspectFill"
-                          />
-                          <view className="HeroOverlay">
-                            <text className="HeroTag">Trending Now</text>
-                            <text className="HeroTitle">
-                              {popularMangas[0].title}
-                            </text>
-                            <view className="HeroActions">
-                              <view className="HeroReadButton">
-                                <text className="HeroReadText">Read Now</text>
+                    ) : homeError ? (
+                      <view className="ErrorContainer">
+                        <text className="ErrorIcon">📡</text>
+                        <text className="ErrorTitle">Connection Issue</text>
+                        <text className="StatusText">{homeError}</text>
+                        <view className="RetryButton" bindtap={handleRefresh}>
+                          <text className="RetryText">Try Again</text>
+                        </view>
+                      </view>
+                    ) : (
+                      <>
+                        {/* Editorial Hero Section */}
+                        {popularMangas.length > 0 && (
+                          <view
+                            className="EditorialHero"
+                            bindtap={() => handleSelectManga(popularMangas[0])}
+                          >
+                            <image
+                              className="HeroImage"
+                              src={popularMangas[0].cover}
+                              mode="aspectFill"
+                            />
+                            <view className="HeroOverlay">
+                              <text className="HeroTag">Trending Now</text>
+                              <text className="HeroTitle">
+                                {popularMangas[0].title}
+                              </text>
+                              <view className="HeroActions">
+                                <view className="HeroReadButton">
+                                  <text className="HeroReadText">Read Now</text>
+                                </view>
                               </view>
                             </view>
                           </view>
+                        )}
+
+                        {/* Category Scroll */}
+                        <view className="CategoryScrollContainer">
+                          <scroll-view className="CategoryScroll" scroll-x>
+                            {[
+                              'For You',
+                              'Romance',
+                              'Action',
+                              'Fantasy',
+                              'Comedy',
+                              'Isekai',
+                              'Drama',
+                            ].map((genre) => (
+                              <view
+                                key={genre}
+                                className="CatPill"
+                                bindtap={() => handleGenreClick(genre)}
+                              >
+                                <text className="CatText">{genre}</text>
+                              </view>
+                            ))}
+                          </scroll-view>
                         </view>
-                      )}
 
-                      {/* Category Scroll */}
-                      <view className="CategoryScrollContainer">
-                        <scroll-view className="CategoryScroll" scroll-x>
-                          {[
-                            'For You',
-                            'Romance',
-                            'Action',
-                            'Fantasy',
-                            'Comedy',
-                            'Isekai',
-                            'Drama',
-                          ].map((genre) => (
-                            <view
-                              key={genre}
-                              className="CatPill"
-                              bindtap={() => handleGenreClick(genre)}
-                            >
-                              <text className="CatText">{genre}</text>
-                            </view>
-                          ))}
-                        </scroll-view>
-                      </view>
+                        <view className="SectionHeader">
+                          <text className="SectionTitle">New Releases</text>
+                          <text className="ViewAll" bindtap={handleSeeAllNew}>
+                            See All
+                          </text>
+                        </view>
 
-                      <view className="SectionHeader">
-                        <text className="SectionTitle">New Releases</text>
-                        <text className="ViewAll" bindtap={handleSeeAllNew}>
-                          See All
+                        {/* Latest Updates Grid */}
+                        <view className="MangaGrid">
+                          {latestMangas.length > 0 ? (
+                            latestMangas.map((m) => (
+                              <view key={m.id} className="GridItem">
+                                <MangaCard
+                                  manga={m}
+                                  onSelect={handleSelectManga}
+                                />
+                              </view>
+                            ))
+                          ) : (
+                            <text className="StatusText">
+                              No updates found.
+                            </text>
+                          )}
+                        </view>
+                      </>
+                    )}
+                  </scroll-view>
+                </view>
+              )}
+
+              {tab === 'search' && (
+                <view className="SearchView">
+                  <Search
+                    onSearch={handleSearch}
+                    onFilterClick={() => setShowFilters(true)}
+                    value={searchQuery}
+                  />
+                  <scroll-view className="MangaList" scroll-y>
+                    {loading ? (
+                      <view className="LoadingContainer">
+                        <view className="LoadingSpinner" />
+                        <text className="StatusText">
+                          Searching the library...
                         </text>
                       </view>
-
-                      {/* Latest Updates Grid */}
-                      <view className="MangaGrid">
-                        {latestMangas.length > 0 ? (
-                          latestMangas.map((m) => (
-                            <view key={m.id} className="GridItem">
-                              <MangaCard
-                                manga={m}
-                                onSelect={handleSelectManga}
-                              />
-                            </view>
-                          ))
-                        ) : (
-                          <text className="StatusText">No updates found.</text>
+                    ) : mangas.length > 0 ? (
+                      mangas.map((m) => (
+                        <MangaCard
+                          key={m.id}
+                          manga={m}
+                          onSelect={handleSelectManga}
+                        />
+                      ))
+                    ) : (
+                      <view className="EmptyState">
+                        <text className="EmptyIcon">
+                          {searchQuery ? '😞' : '🔍'}
+                        </text>
+                        <text className="EmptyTitle">
+                          {searchQuery
+                            ? 'No Results Found'
+                            : 'Start Your Search'}
+                        </text>
+                        <text className="EmptySubtitle">
+                          {searchQuery
+                            ? `We couldn't find anything for "${searchQuery}". Try different keywords.`
+                            : 'Discover your next favorite manga by typing above.'}
+                        </text>
+                        {currentFilters && (
+                          <text className="FilterStatus">
+                            Filters active: {currentFilters.genres.length}{' '}
+                            genres
+                          </text>
                         )}
                       </view>
-                    </>
-                  )}
-                </scroll-view>
-              </view>
-            )}
+                    )}
+                  </scroll-view>
+                </view>
+              )}
 
-            {tab === 'search' && (
-              <view className="SearchView">
-                <Search
-                  onSearch={handleSearch}
-                  onFilterClick={() => setShowFilters(true)}
-                  value={searchQuery}
-                />
-                <scroll-view className="MangaList" scroll-y>
-                  {loading ? (
-                    <view className="LoadingContainer">
-                      <view className="LoadingSpinner" />
-                      <text className="StatusText">
-                        Searching the library...
-                      </text>
-                    </view>
-                  ) : mangas.length > 0 ? (
-                    mangas.map((m) => (
-                      <MangaCard
-                        key={m.id}
-                        manga={m}
-                        onSelect={handleSelectManga}
-                      />
-                    ))
-                  ) : (
-                    <view className="EmptyState">
-                      <text className="EmptyIcon">
-                        {searchQuery ? '😞' : '🔍'}
-                      </text>
-                      <text className="EmptyTitle">
-                        {searchQuery ? 'No Results Found' : 'Start Your Search'}
-                      </text>
-                      <text className="EmptySubtitle">
-                        {searchQuery
-                          ? `We couldn't find anything for "${searchQuery}". Try different keywords.`
-                          : 'Discover your next favorite manga by typing above.'}
-                      </text>
-                      {currentFilters && (
-                        <text className="FilterStatus">
-                          Filters active: {currentFilters.genres.length} genres
-                        </text>
-                      )}
-                    </view>
+              {tab === 'settings' && (
+                <>
+                  {settingsSubview === 'main' && (
+                    <Settings
+                      onNavigate={(subview) => setSettingsSubview(subview)}
+                    />
                   )}
-                </scroll-view>
-              </view>
-            )}
+                  {settingsSubview === 'favorites' && (
+                    <FavoritesView
+                      onBack={() => setSettingsSubview('main')}
+                      onSelectManga={handleSelectManga}
+                    />
+                  )}
+                  {settingsSubview === 'history' && (
+                    <HistoryView
+                      onBack={() => setSettingsSubview('main')}
+                      onSelectHistoryItem={handleHistorySelect}
+                    />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </view>
 
-            {tab === 'settings' && (
-              <>
-                {settingsSubview === 'main' && (
-                  <Settings
-                    onNavigate={(subview) => setSettingsSubview(subview)}
-                  />
-                )}
-                {settingsSubview === 'favorites' && (
-                  <FavoritesView
-                    onBack={() => setSettingsSubview('main')}
-                    onSelectManga={handleSelectManga}
-                  />
-                )}
-                {settingsSubview === 'history' && (
-                  <HistoryView
-                    onBack={() => setSettingsSubview('main')}
-                    onSelectHistoryItem={handleHistorySelect}
-                  />
-                )}
-              </>
-            )}
-          </>
+        {/* Filter Modal */}
+        {showFilters && (
+          <SearchFiltersModal
+            onApply={handleApplyFilters}
+            onClose={() => setShowFilters(false)}
+            onReset={() => setSearchQuery('')}
+            initialFilters={currentFilters}
+          />
+        )}
+
+        {/* Bottom Navigation */}
+        {view === 'browse' && (
+          <BottomNav activeTab={tab} onTabChange={handleTabChange} />
+        )}
+
+        {/* Update Notification */}
+        {pendingNativeUpdate && (
+          <UpdateModal
+            update={pendingNativeUpdate}
+            nativeUrl={pendingNativeUpdate.url}
+            onDismiss={() => {
+              UpdateService.skipVersion(pendingNativeUpdate.version);
+              setPendingNativeUpdate(null);
+            }}
+          />
+        )}
+
+        {!pendingNativeUpdate && pendingUpdate && (
+          <UpdateModal
+            update={pendingUpdate}
+            onDismiss={() => {
+              UpdateService.skipVersion(pendingUpdate.version);
+              setPendingUpdate(null);
+            }}
+          />
         )}
       </view>
-
-      {/* Filter Modal */}
-      {showFilters && (
-        <SearchFiltersModal
-          onApply={handleApplyFilters}
-          onClose={() => setShowFilters(false)}
-          onReset={() => setSearchQuery('')}
-          initialFilters={currentFilters}
-        />
-      )}
-
-      {/* Bottom Navigation */}
-      {view === 'browse' && (
-        <BottomNav activeTab={tab} onTabChange={handleTabChange} />
-      )}
-
-      {/* Update Notification */}
-      {pendingNativeUpdate && (
-        <UpdateModal
-          update={pendingNativeUpdate}
-          nativeUrl={pendingNativeUpdate.url}
-          onDismiss={() => {
-            UpdateService.skipVersion(pendingNativeUpdate.version);
-            setPendingNativeUpdate(null);
-          }}
-        />
-      )}
-
-      {!pendingNativeUpdate && pendingUpdate && (
-        <UpdateModal
-          update={pendingUpdate}
-          onDismiss={() => {
-            UpdateService.skipVersion(pendingUpdate.version);
-            setPendingUpdate(null);
-          }}
-        />
-      )}
-    </view>
-  </ErrorBoundary>
+    </ErrorBoundary>
   );
 }

@@ -1,13 +1,19 @@
+import { logCapture } from '../debugLog';
 import { BatotoClient } from './client';
 import type { Chapter, Manga, MangaDetails, SearchFilters } from './types';
 import { GENRE_API_MAPPING, mapGenreToApi } from './types';
+
+// Helper for debug logging
+const log = (...args: any[]) => logCapture('log', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
+const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
 export * from './types';
 
 export const BatotoService = {
   async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
     const client = BatotoClient.getInstance();
-    console.log(`[Service] search() called with query: "${query}"`);
+    log(`[Service] search() called with query: "${query}"`);
     try {
       // Use get_comic_browse which supports word search + language filtering
       const gqlQuery = `
@@ -52,7 +58,7 @@ export const BatotoService = {
 
       if (!response.ok) {
         const text = await response.text();
-        console.error(
+        logError(
           `[Service] GraphQL request failed with status ${response.status}: ${text.substring(0, 100)}...`,
         );
         return [];
@@ -61,7 +67,7 @@ export const BatotoService = {
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        console.error(
+        logError(
           `[Service] Expected JSON but got ${contentType}. Body start: ${text.substring(0, 100)}...`,
         );
         return [];
@@ -69,7 +75,7 @@ export const BatotoService = {
 
       const json = await response.json();
       const items = json?.data?.get_comic_browse?.items || [];
-      console.log(`[Service] GraphQL returned ${items.length} items`);
+      log(`[Service] GraphQL returned ${items.length} items`);
 
       const results = items.map((item: any) => {
         const data = item.data;
@@ -85,16 +91,20 @@ export const BatotoService = {
             : `${baseUrl}${data.urlCover600}`,
           author: data.authors?.[0] || '',
           latestChapter: data.chapterNode_up_to?.data?.dname || '',
-          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
+          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith(
+            'http',
+          )
             ? data.chapterNode_up_to.data.urlPath
-            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
+            : data.chapterNode_up_to?.data?.urlPath
+              ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
+              : undefined,
           latestChapterId: data.chapterNode_up_to?.id || undefined,
         };
       });
 
       return results;
     } catch (e) {
-      console.error('[Service] Search failed', e);
+      logError('[Service] Search failed', e as Error);
       return [];
     }
   },
@@ -107,11 +117,11 @@ export const BatotoService = {
       const id = idMatch ? idMatch[1] : '';
 
       if (!id) {
-        console.warn(`[Service] Could not extract ID from path: ${path}`);
+        logWarn(`[Service] Could not extract ID from path: ${path}`);
         return null;
       }
 
-      console.log(`[Service] Fetching details for comic ID: ${id}`);
+      log(`[Service] Fetching details for comic ID: ${id}`);
 
       // Fetch comic info and chapters in parallel
       const [detailsResponse, chaptersResponse] = await Promise.all([
@@ -171,9 +181,9 @@ export const BatotoService = {
 
       const comic = detailsJson?.data?.get_comicNode;
       if (!comic) {
-        console.error(
+        logError(
           '[Service] Comic not found in GraphQL response. Errors:',
-          JSON.stringify(detailsJson?.errors),
+          new Error(JSON.stringify(detailsJson?.errors)),
         );
         return null;
       }
@@ -213,8 +223,8 @@ export const BatotoService = {
           group: c.data?.userNode?.data?.name || 'Scanlator',
         }))
         .sort((a: any, b: any) => {
-           // Sort by ID descending (proxy for newest first)
-           return Number(b.id) - Number(a.id);
+          // Sort by ID descending (proxy for newest first)
+          return Number(b.id) - Number(a.id);
         });
 
       // Extract total views (usually field 'd000')
@@ -236,14 +246,14 @@ export const BatotoService = {
         authors: data.authors || [],
         genres: data.genres || [],
         rating: data.score_avg?.toFixed(1) || 'N/A',
-        latestChapter: chapters[0]?.title || '', 
+        latestChapter: chapters[0]?.title || '',
         latestChapterUrl: chapters[0]?.url || undefined,
         latestChapterId: chapters[0]?.id || undefined,
         views: totalViews.toLocaleString(),
         chapters,
       };
     } catch (e) {
-      console.error('[Service] getMangaDetails failed', e);
+      logError('[Service] getMangaDetails failed', e as Error);
       return null;
     }
   },
@@ -262,13 +272,11 @@ export const BatotoService = {
       const chapterId = idMatch ? idMatch[1] : '';
 
       if (!chapterId) {
-        console.warn(
-          `[Service] Could not extract chapter ID from path: ${path}`,
-        );
+        logWarn(`[Service] Could not extract chapter ID from path: ${path}`);
         return [];
       }
 
-      console.log(`[Service] Fetching panels for chapter ID: ${chapterId}`);
+      log(`[Service] Fetching panels for chapter ID: ${chapterId}`);
 
       const response = await client.fetch('/ap2/', {
         method: 'POST',
@@ -294,17 +302,16 @@ export const BatotoService = {
       const chapterData = json?.data?.get_chapterNode?.data;
 
       if (!chapterData) {
-        console.error(
+        logError(
           '[Service] Chapter not found in GraphQL response',
-          json?.errors,
+          new Error(JSON.stringify(json?.errors)),
         );
         return [];
       }
 
       const rawUrls: string[] = chapterData.imageFile?.urlList || [];
-      console.log(
-        `[Service] Raw urlList[0..2]:`,
-        JSON.stringify(rawUrls.slice(0, 3)),
+      log(
+        `[Service] Raw urlList[0..2]: ${JSON.stringify(rawUrls.slice(0, 3))}`,
       );
 
       // Reddit workaround: Batoto's k-servers are down, replace with n-servers
@@ -352,23 +359,27 @@ export const BatotoService = {
       for (const url of urls) {
         // Pattern: .../filename_WIDTH_HEIGHT_SIZE.ext or .../filename_WIDTH_HEIGHT_SIZE.ext?params
         // Example: .../132518261_720_12000_1485090.webp
-        const match = url.match(/_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)(?:$|\?)/i);
-        
+        const match = url.match(
+          /_(\d+)_(\d+)_(\d+)\.(webp|jpg|jpeg|png|gif)(?:$|\?)/i,
+        );
+
         if (match) {
           const width = parseInt(match[1], 10);
           const height = parseInt(match[2], 10);
-          
+
           if (height > MAX_TEXTURE_HEIGHT) {
-            console.log(`[Service] Detected tall image (${width}x${height}), splitting: ${url}`);
-            
+            log(
+              `[Service] Detected tall image (${width}x${height}), splitting: ${url}`,
+            );
+
             // Calculate slices
             const slices = Math.ceil(height / MAX_TEXTURE_HEIGHT);
-            
+
             for (let i = 0; i < slices; i++) {
               const startY = i * MAX_TEXTURE_HEIGHT;
               const sliceHeight = Math.min(MAX_TEXTURE_HEIGHT, height - startY);
-              
-              // wsrv.nl parameters: 
+
+              // wsrv.nl parameters:
               // cx, cy, cw, ch = Crop Rectangle
               // output=webp (force efficient format)
               const sliceUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&cx=0&cy=${startY}&cw=${width}&ch=${sliceHeight}&output=webp`;
@@ -377,16 +388,16 @@ export const BatotoService = {
             continue; // Skip adding the original url
           }
         }
-        
+
         finalUrls.push(url);
       }
 
-      console.log(
+      log(
         `[Service] Final panels: ${finalUrls.length} (expanded from ${urls.length}). First final: ${finalUrls[0]?.substring(0, 60)}`,
       );
       return finalUrls;
     } catch (e) {
-      console.error('[Service] Panels failed', e);
+      logError('[Service] Panels failed', e as Error);
       return [];
     }
   },
@@ -399,8 +410,8 @@ export const BatotoService = {
   async getLatestReleases(): Promise<Manga[]> {
     const client = BatotoClient.getInstance();
     try {
-      console.log('[Service] getLatestReleases started');
-      
+      log('[Service] getLatestReleases started');
+
       const response = await client.fetch('/ap2/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -434,46 +445,53 @@ export const BatotoService = {
       });
 
       if (!response.ok) {
-        console.error(`[Service] getLatestReleases failed: ${response.status}`);
+        logError(
+          `[Service] getLatestReleases failed: ${response.status}`,
+          new Error(),
+        );
         return [];
       }
 
       const json = await response.json();
       const items = json?.data?.get_latestReleases?.items || [];
-      console.log(`[Service] getLatestReleases returned ${items.length} items`);
+      log(`[Service] getLatestReleases returned ${items.length} items`);
 
       const baseUrl = client.getBaseUrl();
       return items
         .filter((item: any) => {
-           // Filter output to only English updates
-           // tranLang is on the COMIC node, not the chapter node
-           const lang = item.data?.tranLang || '';
-           const norm = lang.toLowerCase().trim();
-           return norm === 'en' || norm === 'english' || norm === ''; 
+          // Filter output to only English updates
+          // tranLang is on the COMIC node, not the chapter node
+          const lang = item.data?.tranLang || '';
+          const norm = lang.toLowerCase().trim();
+          return norm === 'en' || norm === 'english' || norm === '';
         })
         .map((item: any) => {
-        const data = item.data;
-        return {
-          id: item.id || '',
-          title: data.name || 'Unknown',
-          url: data.urlPath?.startsWith('http')
-            ? data.urlPath
-            : `${baseUrl}${data.urlPath}`,
-          cover: data.urlCover600?.startsWith('http')
-            ? data.urlCover600
-            : `${baseUrl}${data.urlCover600}`,
-          authors: data.authors || [],
-          rating: data.score_avg?.toFixed(1) || 'N/A',
-          latestChapter: data.chapterNode_up_to?.data?.dname || '',
-          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
-            ? data.chapterNode_up_to.data.urlPath
-            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
-          latestChapterId: data.chapterNode_up_to?.id || undefined,
-          description: data.summary?.substring(0, 150) || '',
-        };
-      });
+          const data = item.data;
+          return {
+            id: item.id || '',
+            title: data.name || 'Unknown',
+            url: data.urlPath?.startsWith('http')
+              ? data.urlPath
+              : `${baseUrl}${data.urlPath}`,
+            cover: data.urlCover600?.startsWith('http')
+              ? data.urlCover600
+              : `${baseUrl}${data.urlCover600}`,
+            authors: data.authors || [],
+            rating: data.score_avg?.toFixed(1) || 'N/A',
+            latestChapter: data.chapterNode_up_to?.data?.dname || '',
+            latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith(
+              'http',
+            )
+              ? data.chapterNode_up_to.data.urlPath
+              : data.chapterNode_up_to?.data?.urlPath
+                ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
+                : undefined,
+            latestChapterId: data.chapterNode_up_to?.id || undefined,
+            description: data.summary?.substring(0, 150) || '',
+          };
+        });
     } catch (e) {
-      console.error('[Service] getLatestReleases failed', e);
+      logError('[Service] getLatestReleases failed', e as Error);
       return [];
     }
   },
@@ -484,7 +502,7 @@ export const BatotoService = {
     const results: Manga[] = [];
     const CHUNK_SIZE = 5; // Concurrency limit
 
-    console.log(`[Service] Batch fetching info for ${ids.length} mangas`);
+    log(`[Service] Batch fetching info for ${ids.length} mangas`);
 
     // Helper to process a chunk
     const processChunk = async (chunkIds: string[]) => {
@@ -533,8 +551,8 @@ export const BatotoService = {
             )
               ? data.chapterNode_up_to.data.urlPath
               : data.chapterNode_up_to?.data?.urlPath
-              ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
-              : undefined,
+                ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
+                : undefined,
             latestChapterId: data.chapterNode_up_to?.id || undefined,
             // Minimal set for updates
             authors: [],
@@ -542,7 +560,7 @@ export const BatotoService = {
             description: '',
           } as Manga;
         } catch (e) {
-          console.error(`[Service] Batch fetch failed for ${id}`, e);
+          logError(`[Service] Batch fetch failed for ${id}`, e as Error);
           return null;
         }
       });
@@ -566,20 +584,20 @@ export const BatotoService = {
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     const client = BatotoClient.getInstance();
     try {
-      console.log('[Service] getHomeFeed started (GraphQL)');
-      
+      log('[Service] getHomeFeed started (GraphQL)');
+
       // Fetch Popular using browse (trending) and Latest using dedicated query
       const [popularResponse, latestResponse] = await Promise.all([
         this.browse({ sort: 'views_d030', page: 1 }), // Trending/Popular
-        this.getLatestReleases()                      // Latest Updates (dedicated query)
+        this.getLatestReleases(), // Latest Updates (dedicated query)
       ]);
 
-      return { 
-        popular: popularResponse.slice(0, 14), 
-        latest: latestResponse 
+      return {
+        popular: popularResponse.slice(0, 14),
+        latest: latestResponse,
       };
     } catch (e) {
-      console.error('[Service] getHomeFeed (GraphQL) failed', e);
+      logError('[Service] getHomeFeed (GraphQL) failed', e as Error);
       return { popular: [], latest: [] };
     }
   },
@@ -603,7 +621,7 @@ export const BatotoService = {
     const page = filters?.page || 1;
     const sort = filters?.sort || 'views_d030';
 
-    console.log(
+    log(
       `[Service] browse() called with page=${page}, sort=${sort}, word=${filters?.word || ''}`,
     );
 
@@ -665,11 +683,8 @@ export const BatotoService = {
         const mappedGenres = filters.genres.map((g: string) =>
           mapGenreToApi(g),
         );
-        console.log(
-          '[Service] Genre mapping:',
-          filters.genres,
-          '->',
-          mappedGenres,
+        log(
+          `[Service] Genre mapping: ${JSON.stringify(filters.genres)} -> ${JSON.stringify(mappedGenres)}`,
         );
         selectParams.incGenres = mappedGenres;
       }
@@ -684,10 +699,7 @@ export const BatotoService = {
         selectParams.word = filters.word.trim();
       }
 
-      console.log(
-        '[Service] Browse selectParams:',
-        JSON.stringify(selectParams),
-      );
+      log(`[Service] Browse selectParams: ${JSON.stringify(selectParams)}`);
 
       const response = await client.fetch('/ap2/', {
         method: 'POST',
@@ -699,17 +711,19 @@ export const BatotoService = {
       });
 
       if (!response.ok) {
-        console.error(`[Service] Browse request failed: ${response.status}`);
+        logError(
+          `[Service] Browse request failed: ${response.status}`,
+          new Error(),
+        );
         return [];
       }
 
       const json = await response.json();
-      console.log(
-        '[Service] Browse response:',
-        JSON.stringify(json).substring(0, 500),
+      log(
+        `[Service] Browse response: ${JSON.stringify(json).substring(0, 500)}...`,
       );
       const items = json?.data?.get_comic_browse?.items || [];
-      console.log(`[Service] Browse returned ${items.length} items`);
+      log(`[Service] Browse returned ${items.length} items`);
 
       const baseUrl = client.getBaseUrl();
       return items.map((item: any) => {
@@ -726,15 +740,19 @@ export const BatotoService = {
           authors: data.authors || [],
           rating: data.score_avg?.toFixed(1) || 'N/A',
           latestChapter: data.chapterNode_up_to?.data?.dname || '',
-          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith('http')
+          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith(
+            'http',
+          )
             ? data.chapterNode_up_to.data.urlPath
-            : data.chapterNode_up_to?.data?.urlPath ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}` : undefined,
+            : data.chapterNode_up_to?.data?.urlPath
+              ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
+              : undefined,
           latestChapterId: data.chapterNode_up_to?.id || undefined,
           description: data.summary?.substring(0, 150) || '',
         };
       });
     } catch (e) {
-      console.error('[Service] Browse failed', e);
+      logError('[Service] Browse failed', e as Error);
       return [];
     }
   },

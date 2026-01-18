@@ -1,7 +1,13 @@
 // src/services/batoto/client.ts
 
-import { BATO_MIRRORS, USER_AGENTS, MIRROR_TIMEOUT_MS } from '../../config';
+import { BATO_MIRRORS, MIRROR_TIMEOUT_MS, USER_AGENTS } from '../../config';
+import { logCapture } from '../debugLog';
 import { NetworkLogService } from '../networkLog';
+
+// Helper for debug logging that we know works in Lynx
+const log = (...args: any[]) => logCapture('log', ...args);
+const logError = (...args: any[]) => logCapture('error', ...args);
+const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
 export class BatotoClient {
   private static instance: BatotoClient;
@@ -52,17 +58,24 @@ export class BatotoClient {
   public async initialize(): Promise<void> {
     if (this.activeMirror) return;
 
-    console.log('[SmutHub] Resolving mirrors...');
+    log('[SmutHub] Resolving mirrors...');
 
-    // Safer updated logic with timeouts:
-    for (const mirror of BATO_MIRRORS) {
+    // Shuffle mirrors to avoid every device hitting the same "first" mirror
+    // which might be slow or blocked for some users.
+    const shuffledMirrors = [...BATO_MIRRORS].sort(() => Math.random() - 0.5);
+
+    for (const mirror of shuffledMirrors) {
+      let reqId: string | undefined;
       try {
-        console.log(`[SmutHub] Checking mirror: ${mirror}`);
+        log(`[SmutHub] Checking mirror: ${mirror}`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), MIRROR_TIMEOUT_MS);
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          MIRROR_TIMEOUT_MS,
+        );
 
-        // Log initialization checks too
-        const reqId = NetworkLogService.logRequest('GET', mirror, {
+        // Log initialization checks
+        reqId = NetworkLogService.logRequest('GET', mirror, {
           'User-Agent': this.userAgent,
           'Accept-Language': 'en-US,en;q=0.9',
         });
@@ -78,31 +91,39 @@ export class BatotoClient {
 
         clearTimeout(timeoutId);
 
-        NetworkLogService.logResponse(reqId, res.status, res.statusText, {}, 'Mirror Check');
+        if (reqId) {
+          NetworkLogService.logResponse(
+            reqId,
+            res.status,
+            res.statusText,
+            {},
+            'Mirror Check',
+          );
+        }
 
-        if (res.ok || res.status < 500) {
+        // Restrict to successful responses (2xx)
+        // If it's a 403 or 503, it might be a block page
+        if (res.ok) {
           this.activeMirror = mirror;
           const setCookie = res.headers.get('set-cookie');
           this.saveCookies(setCookie);
-          console.log(`[SmutHub] Active mirror set to: ${this.activeMirror}`);
+          log(`[SmutHub] Active mirror set to: ${this.activeMirror}`);
           return;
         } else {
-          console.warn(
-            `[SmutHub] Mirror ${mirror} returned status: ${res.status}`,
-          );
+          logWarn(`[SmutHub] Mirror ${mirror} returned status: ${res.status}`);
         }
       } catch (e: any) {
-        // NetworkLogService.logError(reqId, e.message); // reqId not accessible here due to scope, minor, ignoring for init
-        console.error(
-          `[SmutHub] Mirror check failed for ${mirror}: ${e.message}`,
-        );
+        if (reqId) {
+          NetworkLogService.logError(reqId, e.message || 'Timeout');
+        }
+        logError(`[SmutHub] Mirror check failed for ${mirror}: ${e.message}`);
       }
     }
 
-    // Fallback
+    // Fallback if all shuffled checks failed
     this.activeMirror = BATO_MIRRORS[0];
-    console.warn(
-      `[SmutHub] Could not verify any mirror, defaulting to ${this.activeMirror}`,
+    logWarn(
+      `[SmutHub] Could not verify any mirror, defaulting to fallback ${this.activeMirror}`,
     );
   }
 
@@ -142,9 +163,13 @@ export class BatotoClient {
     let extraHeaders: Record<string, string> = {};
 
     if (optHeaders instanceof Headers) {
-      optHeaders.forEach((v, k) => { extraHeaders[k] = v; });
+      optHeaders.forEach((v, k) => {
+        extraHeaders[k] = v;
+      });
     } else if (Array.isArray(optHeaders)) {
-      optHeaders.forEach(([k, v]) => { extraHeaders[k] = v; });
+      optHeaders.forEach(([k, v]) => {
+        extraHeaders[k] = v;
+      });
     } else {
       extraHeaders = optHeaders as Record<string, string>;
     }
@@ -159,44 +184,45 @@ export class BatotoClient {
       headers: mergedHeaders,
     };
 
-    console.log(`[SmutHub] Fetching ${url} with ${this.cookies.size} cookies`);
+    log(`[SmutHub] Fetching ${url} with ${this.cookies.size} cookies`);
 
     const method = options.method || 'GET';
     const reqId = NetworkLogService.logRequest(method, url, mergedHeaders);
 
     try {
       const response = await fetch(url, mergedOptions);
-      console.log(`[SmutHub] Response Status: ${response.status} (${response.statusText})`);
+      log(
+        `[SmutHub] Response Status: ${response.status} (${response.statusText})`,
+      );
 
       const resHeaders: Record<string, string> = {};
       response.headers.forEach((value, key) => {
-        // console.log(`[SmutHub] Header: ${key} = ${value}`);
         resHeaders[key] = value;
       });
 
-      // Clone response to read body preview without consuming it (only works if env supports clone)
-      // Lynx fetch/Response support might be limited. For now, we won't clone to be safe against runtime issues.
-      // We'll just log status.
-      NetworkLogService.logResponse(reqId, response.status, response.statusText, resHeaders);
+      NetworkLogService.logResponse(
+        reqId,
+        response.status,
+        response.statusText,
+        resHeaders,
+      );
 
       // Capture new cookies
       this.saveCookies(response.headers.get('set-cookie'));
       if (response.headers.get('set-cookie')) {
-        console.log(
-          `[SmutHub] Received new cookies, total: ${this.cookies.size}`,
-        );
+        log(`[SmutHub] Received new cookies, total: ${this.cookies.size}`);
       }
 
       if (!response.ok) {
-        // Handle specific error codes relevant to blocking?
         if (response.status === 403 || response.status === 503) {
-          console.warn(`[SmutHub] Encountered ${response.status} at ${url}`);
-          // Might implement aggressive rotation here later
+          logWarn(`[SmutHub] Encountered ${response.status} at ${url}`);
+          // If the active mirror starts failing with 403, we might want to trigger re-init
+          // but for now we just log it.
         }
       }
       return response;
     } catch (error: any) {
-      console.error(`[SmutHub] Network error for ${url}`, error);
+      logError(`[SmutHub] Network error for ${url}`, error);
       NetworkLogService.logError(reqId, error.message || 'Network Fail');
       throw error;
     }
