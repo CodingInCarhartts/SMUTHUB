@@ -77,20 +77,22 @@ export class BatotoClient {
         );
 
         // MOBILE DATA WORKAROUND:
-        // Some mobile carriers (like those returning 404s) intercept POST requests
-        // to unknown endpoints. We'll try a GET probe first which is less likely
-        // to be intercepted by transparent proxies/firewalls.
-        reqId = NetworkLogService.logRequest('GET', probeUrl, {
+        // Use a standard POST request with a minimal GraphQL query.
+        // We ensure headers are clean and content-type is set.
+        reqId = NetworkLogService.logRequest('POST', probeUrl, {
           'User-Agent': this.userAgent,
+          'Content-Type': 'application/json',
         });
 
         const res = await fetch(probeUrl, {
-          method: 'GET',
+          method: 'POST',
           signal: controller.signal,
           headers: {
             'User-Agent': this.userAgent,
+            'Content-Type': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',
           },
+          body: JSON.stringify({ query: '{ __typename }' }),
         });
 
         clearTimeout(timeoutId);
@@ -101,18 +103,16 @@ export class BatotoClient {
             res.status,
             res.statusText,
             {},
-            'API Probe (GET)',
+            'API Probe (POST)',
           );
         }
 
-        // If GET works (even with 405 Method Not Allowed), the domain is reachable
-        // If it's a 404, the carrier is likely intercepting/blocking the path.
-        if (res.ok || res.status === 405) {
+        if (res.ok) {
           this.activeMirror = mirror;
           const setCookie = res.headers.get('set-cookie');
           this.saveCookies(setCookie);
           log(
-            `[SmutHub] Active mirror verified (via GET/405) and set to: ${this.activeMirror}`,
+            `[SmutHub] Active mirror verified and set to: ${this.activeMirror}`,
           );
           return;
         } else {
@@ -222,13 +222,15 @@ export class BatotoClient {
         log(`[SmutHub] Received new cookies, total: ${this.cookies.size}`);
       }
 
-      // Handle mirror failure (404, 403, 503)
+      // Handle mirror failure (404, 403, 503, 400)
       if (!response.ok) {
         if (
           retryOnMirrorFail &&
           (response.status === 404 ||
             response.status === 403 ||
-            response.status === 503)
+            response.status === 503 ||
+            response.status === 400 ||
+            response.status === 499)
         ) {
           logWarn(
             `[SmutHub] Mirror ${this.activeMirror} failed with ${response.status}. Attempting rotation...`,
