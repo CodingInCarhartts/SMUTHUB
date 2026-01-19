@@ -3,7 +3,7 @@ import { MangagoService } from './mangago';
 import { MangaparkService } from './mangapark';
 import {
   type Manga,
-  MangaDetails,
+  type MangaDetails,
   type MangaSource,
   type SearchFilters,
 } from './types';
