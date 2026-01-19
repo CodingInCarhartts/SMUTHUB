@@ -1,174 +1,174 @@
 .StateInspector {
-    display: flex;
-    flex-direction: column;
-    height: 400px;
-    background-color: var(--surface);
-    border-radius: 8px;
-    overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  background-color: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .StateInspector-header {
-    padding: 12px;
-    background-color: var(--glass);
-    border-bottom: 1px solid var(--accent-border);
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  padding: 12px;
+  background-color: var(--glass);
+  border-bottom: 1px solid var(--accent-border);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .StateInspector-title {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 16px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 16px;
 }
 
 .StateInspector-actions {
-    display: flex;
-    flex-direction: row;
+  display: flex;
+  flex-direction: row;
 }
 
 .StateInspector-btn {
-    padding: 6px 12px;
-    border-radius: 4px;
-    margin-left: 8px;
-    background-color: var(--accent-soft);
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-left: 8px;
+  background-color: var(--accent-soft);
 }
 
 .StateInspector-btn.primary {
-    background-color: var(--text-accent);
+  background-color: var(--text-accent);
 }
 
 .StateInspector-btn.danger {
-    background-color: #d32f2f;
+  background-color: #d32f2f;
 }
 
 .StateInspector-btn.small {
-    padding: 4px 8px;
-    margin-left: 0;
+  padding: 4px 8px;
+  margin-left: 0;
 }
 
 .StateInspector-btn:active {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 .StateInspector-btn-text {
-    color: var(--text-accent);
-    font-size: 12px;
-    font-weight: bold;
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .StateInspector-btn.primary .StateInspector-btn-text,
 .StateInspector-btn.danger .StateInspector-btn-text {
-    color: #fff;
+  color: #fff;
 }
 
 .StateInspector-split {
-    flex: 1;
-    position: relative;
+  flex: 1;
+  position: relative;
 }
 
 .StateInspector-list {
-    flex: 1;
-    background-color: var(--bg-main);
-    padding: 8px;
-    height: 100%;
+  flex: 1;
+  background-color: var(--bg-main);
+  padding: 8px;
+  height: 100%;
 }
 
 .StateInspector-item {
-    background-color: var(--surface);
-    border-radius: 4px;
-    padding: 10px;
-    margin-bottom: 8px;
-    border: 1px solid var(--accent-border);
+  background-color: var(--surface);
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--accent-border);
 }
 
 .StateInspector-item.selected {
-    border-color: var(--text-accent);
-    background-color: var(--accent-soft);
+  border-color: var(--text-accent);
+  background-color: var(--accent-soft);
 }
 
 .StateInspector-item-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .StateInspector-key {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 14px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .StateInspector-size {
-    color: var(--text-secondary);
-    font-size: 10px;
-    font-family: monospace;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-family: monospace;
 }
 
 .StateInspector-empty-label {
-    color: var(--text-secondary);
-    font-size: 10px;
-    font-style: italic;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-style: italic;
 }
 
 .StateInspector-raw-key {
-    color: var(--text-secondary);
-    font-size: 10px;
-    font-family: monospace;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-family: monospace;
 }
 
 .StateInspector-detail-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
 }
 
 .StateInspector-detail-modal {
-    background-color: var(--surface);
-    border-radius: 8px;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--accent-border);
-    overflow: hidden;
+  background-color: var(--surface);
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--accent-border);
+  overflow: hidden;
 }
 
 .StateInspector-detail-header {
-    padding: 10px;
-    background-color: var(--glass);
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--accent-border);
+  padding: 10px;
+  background-color: var(--glass);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .StateInspector-detail-title {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 14px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .StateInspector-detail-content {
-    flex: 1;
-    padding: 10px;
-    background-color: var(--bg-main);
+  flex: 1;
+  padding: 10px;
+  background-color: var(--bg-main);
 }
 
 .StateInspector-json {
-    color: var(--text-primary);
-    font-family: monospace;
-    font-size: 12px;
-    white-space: pre-wrap;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
 }

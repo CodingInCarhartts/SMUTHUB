@@ -14,7 +14,7 @@ const logWarn = (...args: any[]) => logCapture('warn', ...args);
 // ============================================================
 
 export interface BatteryStatus {
-  level: number;       // 0-100, or -1 if unavailable
+  level: number; // 0-100, or -1 if unavailable
   isCharging: boolean;
   temperature: number; // Celsius
 }
@@ -22,7 +22,7 @@ export interface BatteryStatus {
 export interface MemoryInfo {
   usedMb: number;
   maxMb: number;
-  pssMb: number;       // Process-specific memory
+  pssMb: number; // Process-specific memory
 }
 
 export interface PerfSnapshot {
@@ -116,12 +116,16 @@ export const PerformanceService = {
     }
 
     const drainRate = this.calculateDrainRate();
-    const drainMsg = drainRate !== null ? ` | Drain: ${drainRate.toFixed(2)}%/min` : '';
+    const drainMsg =
+      drainRate !== null ? ` | Drain: ${drainRate.toFixed(2)}%/min` : '';
 
-    log('[PERF] Snapshot:', JSON.stringify({
-      battery: `${battery.level}%${battery.isCharging ? ' (charging)' : ''}${drainMsg}`,
-      memory: `${memory.usedMb.toFixed(1)}MB / ${memory.maxMb.toFixed(1)}MB`,
-    }));
+    log(
+      '[PERF] Snapshot:',
+      JSON.stringify({
+        battery: `${battery.level}%${battery.isCharging ? ' (charging)' : ''}${drainMsg}`,
+        memory: `${memory.usedMb.toFixed(1)}MB / ${memory.maxMb.toFixed(1)}MB`,
+      }),
+    );
 
     return snap;
   },
@@ -178,7 +182,9 @@ export const PerformanceService = {
    * Returns percentage per minute
    */
   calculateDrainRate(): number | null {
-    const nonChargingSnaps = snapshots.filter(s => !s.battery.isCharging && s.battery.level >= 0);
+    const nonChargingSnaps = snapshots.filter(
+      (s) => !s.battery.isCharging && s.battery.level >= 0,
+    );
     if (nonChargingSnaps.length < 2) return null;
 
     const first = nonChargingSnaps[0];
@@ -198,14 +204,16 @@ export const PerformanceService = {
     const latest = this.getLatest();
     const drainRate = this.calculateDrainRate();
 
-    const lines: string[] = [
-      '--- PERFORMANCE SUMMARY ---',
-    ];
+    const lines: string[] = ['--- PERFORMANCE SUMMARY ---'];
 
     if (latest) {
-      lines.push(`Battery: ${latest.battery.level}%${latest.battery.isCharging ? ' (charging)' : ''}`);
+      lines.push(
+        `Battery: ${latest.battery.level}%${latest.battery.isCharging ? ' (charging)' : ''}`,
+      );
       lines.push(`Temperature: ${latest.battery.temperature}°C`);
-      lines.push(`Memory: ${latest.memory.usedMb.toFixed(1)}MB / ${latest.memory.maxMb.toFixed(1)}MB`);
+      lines.push(
+        `Memory: ${latest.memory.usedMb.toFixed(1)}MB / ${latest.memory.maxMb.toFixed(1)}MB`,
+      );
       lines.push(`PSS Memory: ${latest.memory.pssMb.toFixed(1)}MB`);
     }
 
@@ -236,7 +244,7 @@ if (typeof globalThis !== 'undefined') {
   setInterval(() => {
     PerformanceService.snapshot();
   }, 60000);
-  
+
   // Take initial snapshot after 5 seconds
   setTimeout(() => {
     PerformanceService.snapshot();

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { normalizeUrl } from '../../services/storage';
 
 // Mock native storage to prevent "NativeModules is not defined" error
@@ -16,16 +16,24 @@ describe('Storage Logic', () => {
     });
 
     it('should remove trailing slashes', () => {
-      expect(normalizeUrl('https://example.com/chapter/1/')).toBe('https://example.com/chapter/1');
-      expect(normalizeUrl('https://example.com/chapter/1///')).toBe('https://example.com/chapter/1');
+      expect(normalizeUrl('https://example.com/chapter/1/')).toBe(
+        'https://example.com/chapter/1',
+      );
+      expect(normalizeUrl('https://example.com/chapter/1///')).toBe(
+        'https://example.com/chapter/1',
+      );
     });
 
     it('should lowercase the URL', () => {
-      expect(normalizeUrl('HTTPS://EXAMPLE.COM/Chapter/1')).toBe('https://example.com/chapter/1');
+      expect(normalizeUrl('HTTPS://EXAMPLE.COM/Chapter/1')).toBe(
+        'https://example.com/chapter/1',
+      );
     });
 
     it('should handle URLs without trailing slashes correctly', () => {
-      expect(normalizeUrl('https://example.com/chapter/1')).toBe('https://example.com/chapter/1');
+      expect(normalizeUrl('https://example.com/chapter/1')).toBe(
+        'https://example.com/chapter/1',
+      );
     });
   });
 });

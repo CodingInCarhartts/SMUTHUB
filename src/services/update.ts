@@ -1,7 +1,11 @@
+import {
+  DEFAULT_OTA_BUNDLE_URL,
+  STORAGE_INIT_TIMEOUT_MS,
+  UPDATE_CHECK_COOLDOWN_MS,
+} from '../config';
 import { logCapture } from './debugLog';
-import { SupabaseService } from './supabase';
 import { StorageService, storageReady } from './storage';
-import { STORAGE_INIT_TIMEOUT_MS, UPDATE_CHECK_COOLDOWN_MS, DEFAULT_OTA_BUNDLE_URL } from '../config';
+import { SupabaseService } from './supabase';
 
 let storageInitialized = false;
 let resolveStorageReady: () => void;
@@ -133,7 +137,9 @@ export const UpdateService = {
       console.log('[UpdateService] No update data found in Supabase');
       return null;
     }
-    console.log(`[UpdateService] Latest in DB: ${latest.version} (hash: ${latest.commitHash})`);
+    console.log(
+      `[UpdateService] Latest in DB: ${latest.version} (hash: ${latest.commitHash})`,
+    );
 
     // Check if commit hash matches (primary check)
     if (latest.commitHash && latest.commitHash === BUNDLE_COMMIT_HASH) {
@@ -143,14 +149,21 @@ export const UpdateService = {
 
     // Check if version/hash is skipped
     const skipped = StorageService.getSkippedVersion();
-    if ((skipped === latest.commitHash || skipped === latest.version) && !latest.isMandatory) {
-      console.log(`[UpdateService] Version ${latest.version} is skipped by user.`);
+    if (
+      (skipped === latest.commitHash || skipped === latest.version) &&
+      !latest.isMandatory
+    ) {
+      console.log(
+        `[UpdateService] Version ${latest.version} is skipped by user.`,
+      );
       return null;
     }
 
     // If commit hash differs, there's an update
     if (latest.commitHash && latest.commitHash !== BUNDLE_COMMIT_HASH) {
-      console.log(`[UpdateService] NEW UPDATE FOUND! Hash mismatch: ${latest.commitHash} vs ${BUNDLE_COMMIT_HASH}`);
+      console.log(
+        `[UpdateService] NEW UPDATE FOUND! Hash mismatch: ${latest.commitHash} vs ${BUNDLE_COMMIT_HASH}`,
+      );
       return latest;
     }
 
@@ -168,7 +181,6 @@ export const UpdateService = {
     console.log('[UpdateService] App is up to date.');
     return null;
   },
-
 
   /**
    * Mark a version as skipped
@@ -213,7 +225,6 @@ export const UpdateService = {
           };
         }
       }
-
     } catch (e) {
       logWarn('[UpdateService] Native update check failed:', e);
     }

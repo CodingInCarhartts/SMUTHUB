@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from '@lynx-js/react';
-import type { Chapter, MangaDetails } from '../services/batoto';
+import type { MangaDetails } from '../services/batoto';
 import { StorageService } from '../services/storage';
 import './MangaDetailsUi.css';
 
@@ -71,7 +71,9 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
               ← Back
             </text>
             <view
-              className={isFavorite ? 'DetailsFavorite active' : 'DetailsFavorite'}
+              className={
+                isFavorite ? 'DetailsFavorite active' : 'DetailsFavorite'
+              }
               bindtap={handleToggleFavorite}
             >
               <text className="DetailsFavorite-icon">

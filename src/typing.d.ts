@@ -59,7 +59,6 @@ declare let NativeModules: {
     getMemoryInfo(callback: (json: string) => void): void;
   };
 
-
   /**
    * Native APK Updater
    */

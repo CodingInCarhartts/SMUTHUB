@@ -1,7 +1,7 @@
 import { useEffect, useState } from '@lynx-js/react';
 import { SettingsStore } from '../services/settings';
-import { BUNDLE_VERSION } from '../services/update';
 import { StorageService } from '../services/storage';
+import { BUNDLE_VERSION } from '../services/update';
 import { DeveloperOptions } from './DeveloperOptions';
 import './Settings.css';
 
@@ -13,7 +13,9 @@ interface Props {
 export function Settings({ onBack, onNavigate }: Props) {
   const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
   const [devMode, setDevMode] = useState(SettingsStore.getDevMode());
-  const [scrollSpeed, setScrollSpeed] = useState(SettingsStore.getScrollSpeed());
+  const [scrollSpeed, setScrollSpeed] = useState(
+    SettingsStore.getScrollSpeed(),
+  );
 
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -45,7 +47,10 @@ export function Settings({ onBack, onNavigate }: Props) {
   useEffect(() => {
     // Fetch native version from module
     try {
-      if (typeof NativeModules !== 'undefined' && NativeModules.NativeUpdaterModule) {
+      if (
+        typeof NativeModules !== 'undefined' &&
+        NativeModules.NativeUpdaterModule
+      ) {
         const v = NativeModules.NativeUpdaterModule.getNativeVersion();
         setNativeVersion(v);
       } else {
@@ -63,8 +68,6 @@ export function Settings({ onBack, onNavigate }: Props) {
   const handleScrollSpeedChange = (speed: number) => {
     SettingsStore.setScrollSpeed(speed);
   };
-
-
 
   const handleAboutTap = () => {
     const newTaps = aboutTaps + 1;
@@ -111,31 +114,54 @@ export function Settings({ onBack, onNavigate }: Props) {
               <view className="Settings-item-text">
                 <text className="Settings-item-label">Scroll Speed</text>
                 <text className="Settings-item-description">
-                  {scrollSpeed <= 0.4 ? 'Slow' : scrollSpeed <= 0.6 ? 'Normal' : scrollSpeed <= 0.8 ? 'Fast' : 'Very Fast'} ({Math.round(scrollSpeed * 100)}%)
+                  {scrollSpeed <= 0.4
+                    ? 'Slow'
+                    : scrollSpeed <= 0.6
+                      ? 'Normal'
+                      : scrollSpeed <= 0.8
+                        ? 'Fast'
+                        : 'Very Fast'}{' '}
+                  ({Math.round(scrollSpeed * 100)}%)
                 </text>
               </view>
             </view>
             <view className="Settings-speed-buttons">
               <view
-                className={scrollSpeed === 0.4 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                className={
+                  scrollSpeed === 0.4
+                    ? 'Settings-speed-btn active'
+                    : 'Settings-speed-btn'
+                }
                 bindtap={() => handleScrollSpeedChange(0.4)}
               >
                 <text>S</text>
               </view>
               <view
-                className={scrollSpeed === 0.6 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                className={
+                  scrollSpeed === 0.6
+                    ? 'Settings-speed-btn active'
+                    : 'Settings-speed-btn'
+                }
                 bindtap={() => handleScrollSpeedChange(0.6)}
               >
                 <text>N</text>
               </view>
               <view
-                className={scrollSpeed === 0.8 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                className={
+                  scrollSpeed === 0.8
+                    ? 'Settings-speed-btn active'
+                    : 'Settings-speed-btn'
+                }
                 bindtap={() => handleScrollSpeedChange(0.8)}
               >
                 <text>F</text>
               </view>
               <view
-                className={scrollSpeed === 1.0 ? 'Settings-speed-btn active' : 'Settings-speed-btn'}
+                className={
+                  scrollSpeed === 1.0
+                    ? 'Settings-speed-btn active'
+                    : 'Settings-speed-btn'
+                }
                 bindtap={() => handleScrollSpeedChange(1.0)}
               >
                 <text>VF</text>
@@ -143,9 +169,6 @@ export function Settings({ onBack, onNavigate }: Props) {
             </view>
           </view>
         </view>
-
-
-
 
         {/* Appearance Section */}
         <view className="Settings-section">
@@ -256,8 +279,12 @@ export function Settings({ onBack, onNavigate }: Props) {
               <text className="Settings-item-icon">💜</text>
               <view className="Settings-item-text">
                 <text className="Settings-item-label">SMUTHUB</text>
-                <text className="Settings-item-description">APK: v{nativeVersion}</text>
-                <text className="Settings-item-description">JS: v{BUNDLE_VERSION}</text>
+                <text className="Settings-item-description">
+                  APK: v{nativeVersion}
+                </text>
+                <text className="Settings-item-description">
+                  JS: v{BUNDLE_VERSION}
+                </text>
                 <text className="Settings-item-description">🖤 Daddy..</text>
               </view>
             </view>
@@ -273,7 +300,7 @@ export function Settings({ onBack, onNavigate }: Props) {
           className="ConfirmOverlay"
           bindtap={() => setShowClearConfirm(null)}
         >
-          <view className="ConfirmDialog" catchtap={() => { }}>
+          <view className="ConfirmDialog" catchtap={() => {}}>
             <text className="ConfirmTitle">
               {showClearConfirm === 'history'
                 ? 'Clear History?'

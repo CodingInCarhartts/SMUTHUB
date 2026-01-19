@@ -1,112 +1,39 @@
 import { logCapture } from '../debugLog';
+import type {
+  Chapter,
+  Manga,
+  MangaDetails,
+  MangaSource,
+  SearchFilters,
+} from '../types';
+import { GENRE_API_MAPPING, mapGenreToApi } from '../types';
 import { BatotoClient } from './client';
-import type { Chapter, Manga, MangaDetails, SearchFilters } from './types';
-import { GENRE_API_MAPPING, mapGenreToApi } from './types';
 
 // Helper for debug logging
 const log = (...args: any[]) => logCapture('log', ...args);
 const logError = (...args: any[]) => logCapture('error', ...args);
 const logWarn = (...args: any[]) => logCapture('warn', ...args);
 
-export * from './types';
+export * from '../types';
 
 export const BatotoService = {
-  async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
-    const client = BatotoClient.getInstance();
-    log(`[Service] search() called with query: "${query}"`);
-    try {
-      // Use get_comic_browse which supports word search + language filtering
-      const gqlQuery = `
-            query get_comic_browse($select: Comic_Browse_Select) {
-              get_comic_browse(select: $select) {
-                items {
-                  id
-                  data {
-                    name
-                    urlPath
-                    urlCover600
-                    authors
-                    tranLang
-                    chapterNode_up_to {
-                      id
-                      data {
-                        dname
-                        urlPath
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          `;
+  id: 'batoto',
+  name: 'Batoto',
+  baseUrl: 'https://bato.to', // Default, will be updated by client
 
-      const response = await client.fetch('/ap2/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: gqlQuery,
-          variables: {
-            select: {
-              word: query,
-              incTLangs: ['en'],
-            },
-          },
-        }),
-      });
+  async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
+    // If we have filters or if we want to use the robust browse logic
+    return this.browse({
+      word: query,
+      sort: filters?.sort,
+      genres: filters?.genres,
+      status: filters?.status,
+      page: filters?.page,
+    });
+  },
 
-      if (!response.ok) {
-        const text = await response.text();
-        logError(
-          `[Service] GraphQL request failed with status ${response.status}: ${text.substring(0, 100)}...`,
-        );
-        return [];
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        logError(
-          `[Service] Expected JSON but got ${contentType}. Body start: ${text.substring(0, 100)}...`,
-        );
-        return [];
-      }
-
-      const json = await response.json();
-      const items = json?.data?.get_comic_browse?.items || [];
-      log(`[Service] GraphQL returned ${items.length} items`);
-
-      const results = items.map((item: any) => {
-        const data = item.data;
-        const baseUrl = client.getBaseUrl();
-        return {
-          id: item.id || data.id || '',
-          title: data.name || 'Unknown Title',
-          url: data.urlPath.startsWith('http')
-            ? data.urlPath
-            : `${baseUrl}${data.urlPath}`,
-          cover: data.urlCover600.startsWith('http')
-            ? data.urlCover600
-            : `${baseUrl}${data.urlCover600}`,
-          author: data.authors?.[0] || '',
-          latestChapter: data.chapterNode_up_to?.data?.dname || '',
-          latestChapterUrl: data.chapterNode_up_to?.data?.urlPath?.startsWith(
-            'http',
-          )
-            ? data.chapterNode_up_to.data.urlPath
-            : data.chapterNode_up_to?.data?.urlPath
-              ? `${baseUrl}${data.chapterNode_up_to.data.urlPath}`
-              : undefined,
-          latestChapterId: data.chapterNode_up_to?.id || undefined,
-        };
-      });
-
-      return results;
-    } catch (e) {
-      logError('[Service] Search failed', e as Error);
-      return [];
-    }
+  async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
+    return this.getChapterPanels(chapterIdOrUrl);
   },
 
   async getMangaDetails(mangaPath: string): Promise<MangaDetails | null> {

@@ -8,8 +8,7 @@ const logError = (...args: any[]) => logCapture('error', ...args);
 export function hasNativeStorage(): boolean {
   try {
     const hasMods = typeof NativeModules !== 'undefined';
-    const hasStorageMod =
-      hasMods && !!NativeModules.NativeLocalStorageModule;
+    const hasStorageMod = hasMods && !!NativeModules.NativeLocalStorageModule;
     log('[Storage] hasNativeStorage check:', { hasMods, hasStorageMod });
     return hasStorageMod;
   } catch (e) {

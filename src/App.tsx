@@ -22,6 +22,7 @@ import {
 } from './services/batoto';
 import { logCapture } from './services/debugLog';
 import { SettingsStore } from './services/settings';
+import { sourceManager } from './services/sourceManager';
 import { normalizeUrl, StorageService } from './services/storage';
 import {
   type AppUpdate,
@@ -161,7 +162,16 @@ export function App() {
         word: (filters as any)?.word, // Search query
       };
       log('[App] Browse params:', JSON.stringify(browseParams));
-      const results = await BatotoService.browse(browseParams);
+      // Use sourceManager to search (defaults to batoto for now, or we could add source selection in filters)
+      // Passing browseParams as filters
+      const results = await sourceManager.search(browseParams.word || '', {
+        ...filters,
+        // Ensure search logic respects these if passed in the interface
+        sort: filters?.sort || 'views_d030',
+        genres: filters?.genres || [],
+        status: filters?.status || 'all',
+        nsfw: false, // App default
+      });
       log(`[App] Browse loaded: ${results.length} items`);
       setMangas(results);
     } catch (error) {
@@ -184,13 +194,16 @@ export function App() {
     setHomeError(null);
     try {
       log('[App] fetchHomeFeed started');
-      const feed = await BatotoService.getHomeFeed();
-      setPopularMangas(feed.popular);
-      setLatestMangas(feed.latest);
-      if (feed.popular.length === 0 && feed.latest.length === 0) {
-        setHomeError(
-          'Connected but found no content. Batoto might be blocking the request.',
-        );
+      // For home feed, we currently only support Batoto or we might want to aggregate
+      // Using Batoto explicitly for Home Feed for now as it has the structure
+      const batoto = sourceManager.getSource('batoto');
+      if (batoto) {
+        const feed = await batoto.getHomeFeed();
+        setPopularMangas(feed.popular);
+        setLatestMangas(feed.latest);
+        if (feed.popular.length === 0 && feed.latest.length === 0) {
+          setHomeError('Connected but found no content.');
+        }
       }
     } catch (e: any) {
       logError('[App] fetchHomeFeed failed:', e);
@@ -244,7 +257,15 @@ export function App() {
     setView('details');
     setSettingsSubview('main'); // Reset settings subview when viewing manga
     setLoading(true);
-    const details = await BatotoService.getMangaDetails(manga.url);
+    const source = sourceManager.resolveSource(
+      manga.source || manga.url || manga.id,
+    );
+    if (!source) {
+      logError('[App] No source found for manga:', manga);
+      setLoading(false);
+      return;
+    }
+    const details = await source.getMangaDetails(manga.url || manga.id);
     setMangaDetails(details);
     setLoading(false);
   }, []);
@@ -263,14 +284,19 @@ export function App() {
 
         // Background fetch details to populate next chapter logic
         try {
-          const details = await BatotoService.getMangaDetails(manga.url);
-          if (details) {
-            setMangaDetails(details);
-            // Upgrade selectedManga to fresh details (includes latestChapterUrl)
-            setSelectedManga(details);
-            // Update history to refresh metadata (clears "NEW" badge for legacy items)
-            StorageService.addToHistory(details, chapterUrl, chapterTitle);
-            log('[App] Refreshed history metadata for:', details.title);
+          const source = sourceManager.resolveSource(
+            manga.source || manga.url || manga.id,
+          );
+          if (source) {
+            const details = await source.getMangaDetails(manga.url || manga.id);
+            if (details) {
+              setMangaDetails(details);
+              // Upgrade selectedManga to fresh details (includes latestChapterUrl)
+              setSelectedManga(details);
+              // Update history to refresh metadata (clears "NEW" badge for legacy items)
+              StorageService.addToHistory(details, chapterUrl, chapterTitle);
+              log('[App] Refreshed history metadata for:', details.title);
+            }
           }
         } catch (e) {
           logError(

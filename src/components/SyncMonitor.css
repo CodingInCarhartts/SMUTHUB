@@ -1,159 +1,159 @@
 .SyncMonitor {
-    display: flex;
-    flex-direction: column;
-    height: 400px;
-    background-color: var(--surface);
-    border-radius: 8px;
-    overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  background-color: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .SyncMonitor-header {
-    padding: 12px;
-    background-color: var(--glass);
-    border-bottom: 1px solid var(--accent-border);
+  padding: 12px;
+  background-color: var(--glass);
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .SyncMonitor-status-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .SyncMonitor-title {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 16px;
-    margin-right: 12px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: 12px;
 }
 
 .SyncMonitor-badge {
-    padding: 2px 8px;
-    border-radius: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .SyncMonitor-badge.idle {
-    background-color: var(--text-secondary);
+  background-color: var(--text-secondary);
 }
 
 .SyncMonitor-badge.syncing {
-    background-color: var(--text-accent);
+  background-color: var(--text-accent);
 }
 
 .SyncMonitor-badge-text {
-    font-size: 10px;
-    font-weight: bold;
-    color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
 }
 
 .SyncMonitor-actions {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
 .SyncMonitor-btn {
-    padding: 6px 12px;
-    border-radius: 4px;
-    margin-left: 8px;
-    background-color: var(--accent-soft);
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-left: 8px;
+  background-color: var(--accent-soft);
 }
 
 .SyncMonitor-btn.primary {
-    background-color: var(--text-accent);
+  background-color: var(--text-accent);
 }
 
 .SyncMonitor-btn.danger {
-    background-color: #d32f2f;
+  background-color: #d32f2f;
 }
 
 .SyncMonitor-btn:active {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 .SyncMonitor-btn-text {
-    color: var(--text-accent);
-    font-size: 12px;
-    font-weight: bold;
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .SyncMonitor-btn.primary .SyncMonitor-btn-text,
 .SyncMonitor-btn.danger .SyncMonitor-btn-text {
-    color: #fff;
+  color: #fff;
 }
 
 .SyncMonitor-list {
-    flex: 1;
-    background-color: var(--bg-main);
-    padding: 8px;
+  flex: 1;
+  background-color: var(--bg-main);
+  padding: 8px;
 }
 
 .SyncMonitor-item {
-    background-color: var(--surface);
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 8px;
-    border: 1px solid var(--accent-border);
+  background-color: var(--surface);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--accent-border);
 }
 
 .SyncMonitor-item-header {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .SyncMonitor-op-type {
-    font-size: 10px;
-    font-weight: bold;
-    padding: 2px 4px;
-    border-radius: 2px;
-    margin-right: 6px;
-    color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin-right: 6px;
+  color: #fff;
 }
 
 .SyncMonitor-op-type.UPSERT {
-    background-color: #2e7d32;
+  background-color: #2e7d32;
 }
 
 .SyncMonitor-op-type.DELETE {
-    background-color: #c62828;
+  background-color: #c62828;
 }
 
 .SyncMonitor-op-table {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: bold;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: bold;
 }
 
 .SyncMonitor-op-payload {
-    font-size: 10px;
-    color: var(--text-secondary);
-    font-family: monospace;
-    margin-bottom: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  margin-bottom: 4px;
 }
 
 .SyncMonitor-op-time {
-    font-size: 9px;
-    color: var(--text-secondary);
-    text-align: right;
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-align: right;
 }
 
 .SyncMonitor-empty {
-    color: var(--text-secondary);
-    text-align: center;
-    margin-top: 40px;
-    font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 40px;
+  font-size: 14px;
 }
 
 .SyncMonitor-footer {
-    padding: 8px;
-    background-color: var(--glass);
-    border-top: 1px solid var(--accent-border);
+  padding: 8px;
+  background-color: var(--glass);
+  border-top: 1px solid var(--accent-border);
 }
 
 .SyncMonitor-footer-text {
-    font-size: 10px;
-    color: var(--text-secondary);
-    text-align: center;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
 }

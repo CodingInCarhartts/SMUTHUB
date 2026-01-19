@@ -68,6 +68,12 @@ export class BatotoClient {
       let reqId: string | undefined;
       try {
         const probeUrl = `${mirror}${mirror.endsWith('/') ? '' : '/'}ap2/`;
+        // Detect if this is a Bato-style mirror or something else (like Comiko/Mangatoto)
+        const isBatoMirror =
+          mirror.includes('bato.') ||
+          mirror.includes('batoto.') ||
+          mirror.includes('.to');
+
         log(`[SmutHub] Probing mirror API: ${probeUrl}`);
 
         const controller = new AbortController();
@@ -84,6 +90,8 @@ export class BatotoClient {
           'Content-Type': 'application/json',
         });
 
+        // For non-Bato mirrors, we might want to try a simple GET first if POST fails,
+        // but for now we'll stick to POST as it's the required API format.
         const res = await fetch(probeUrl, {
           method: 'POST',
           signal: controller.signal,
@@ -119,6 +127,9 @@ export class BatotoClient {
           logWarn(
             `[SmutHub] Mirror ${mirror} API probe returned status: ${res.status}`,
           );
+
+          // If a Bato-compatible mirror is giving 502/403, we might want to
+          // investigate if it's a permanent block or temporary.
         }
       } catch (e: any) {
         if (reqId) {

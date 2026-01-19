@@ -1,7 +1,7 @@
 // Supabase REST Client
 // Bypasses the official client to avoid WebSocket/Runtime issues in Lynx
 
-import { SUPABASE_REST_URL, SUPABASE_ANON_KEY } from '../config';
+import { SUPABASE_ANON_KEY, SUPABASE_REST_URL } from '../config';
 
 const HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -38,7 +38,7 @@ export const SupabaseService = {
           `[Supabase] Request failed: ${response.status} ${response.statusText}`,
           errorText,
           `Endpoint: ${endpoint}`,
-          `Body: ${options.body}`
+          `Body: ${options.body}`,
         );
         return null;
       }
@@ -114,14 +114,14 @@ export const SupabaseService = {
 
     // Use return=representation to distinguish 204 vs error
     const headers = {
-       Prefer: `return=representation`,
+      Prefer: `return=representation`,
     };
 
     const result = await this.request(`/${table}?${column}=${filter}`, {
       method: 'DELETE',
-      headers
+      headers,
     });
-    
+
     return result !== null;
   },
 
@@ -133,7 +133,7 @@ export const SupabaseService = {
       // Expects table "app_config" with columns "key", "value"
       const data = await this.getAll<{ value: string }>(
         'app_config',
-        `?select=value&key=eq.${key}&limit=1`
+        `?select=value&key=eq.${key}&limit=1`,
       );
       if (data && data.length > 0) {
         return data[0].value;

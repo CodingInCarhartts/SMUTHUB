@@ -1,19 +1,20 @@
-import { useEffect, useState, useRef } from '@lynx-js/react';
-import { BatotoService, type Manga } from '../services/batoto';
-import { SettingsStore } from '../services/settings';
-import { StorageService, normalizeUrl } from '../services/storage';
-import { logCapture } from '../services/debugLog';
+import { useEffect, useRef, useState } from '@lynx-js/react';
 import {
-  DEFAULT_ASPECT_RATIO,
   BG_COLOR_DARK,
+  DEFAULT_ASPECT_RATIO,
+  KEY_DEBOUNCE_MS,
   MIN_PANEL_HEIGHT,
   PANEL_MAX_RETRIES,
+  REMOTE_TOUCH_DIVIDER_X,
   RETRY_DELAY_BASE,
   RETRY_DELAY_INCREMENT,
-  KEY_DEBOUNCE_MS,
-  REMOTE_TOUCH_DIVIDER_X,
-  SWIPE_THRESHOLD_PX
+  SWIPE_THRESHOLD_PX,
 } from '../config';
+import { BatotoService, type Manga } from '../services/batoto';
+import { logCapture } from '../services/debugLog';
+import { SettingsStore } from '../services/settings';
+import { sourceManager } from '../services/sourceManager';
+import { normalizeUrl, StorageService } from '../services/storage';
 import './Reader.css';
 
 // Helper for debug logging
@@ -93,7 +94,7 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
         minHeight: ratio ? 'auto' : MIN_PANEL_HEIGHT,
       }}
     >
-       {/* Moved logic to ZoomOverlay wrapper in Reader */}
+      {/* Moved logic to ZoomOverlay wrapper in Reader */}
       {failed ? (
         <view className="Reader-panel-error" bindtap={handleRetryTap}>
           <text className="Reader-panel-error-text">
@@ -123,7 +124,7 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
   );
 }
 
-// 
+//
 // Removed ZoomOverlay and Wrapper
 //
 
@@ -135,22 +136,31 @@ export function Reader({
   hasNextChapter,
   onNextChapter,
 }: Props) {
-  log('[Reader] COMPONENT RENDERING - chapterUrl:', chapterUrl?.substring(0, 50));
+  log(
+    '[Reader] COMPONENT RENDERING - chapterUrl:',
+    chapterUrl?.substring(0, 50),
+  );
 
   const [panels, setPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0); 
-  const [restoredPageIndex, setRestoredPageIndex] = useState<number | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [restoredPageIndex, setRestoredPageIndex] = useState<
+    number | undefined
+  >(undefined);
   const [positionRestored, setPositionRestored] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
   const [isFavorite, setIsFavorite] = useState(() =>
     manga ? StorageService.isFavoriteSync(manga.id) : false,
   );
   const [showControls, setShowControls] = useState(true);
-  const [privacyFilter, setPrivacyFilter] = useState(SettingsStore.getPrivacyFilter());
-  const [filterOpacity, setFilterOpacity] = useState(SettingsStore.getPrivacyFilterOpacity());
+  const [privacyFilter, setPrivacyFilter] = useState(
+    SettingsStore.getPrivacyFilter(),
+  );
+  const [filterOpacity, setFilterOpacity] = useState(
+    SettingsStore.getPrivacyFilterOpacity(),
+  );
   // Removed zoomedUrl state
-  
+
   const lastKeyDownTime = useRef<number>(0);
   const touchCount = useRef<number>(0);
   const lastTouchTime = useRef<number>(0);
@@ -170,15 +180,32 @@ export function Reader({
       setLoading(true);
       setIsRestoring(true);
       log('[Reader] Loading panels for:', chapterUrl);
-      const urls = await BatotoService.getChapterPanels(chapterUrl);
+      // Determine source from manga object if available, or try URL detection
+      const sourceId = manga?.source;
+      const source = sourceManager.resolveSource(sourceId || chapterUrl);
+
+      let urls: string[] = [];
+      if (source) {
+        urls = await source.getChapterPages(chapterUrl);
+      } else {
+        logError('[Reader] No source found for chapter:', chapterUrl);
+      }
       log('[Reader] Received panels:', urls.length);
       setPanels(urls);
 
       if (manga) {
-        const savedPosition = await StorageService.getReaderPositionForManga(manga.id);
+        const savedPosition = await StorageService.getReaderPositionForManga(
+          manga.id,
+        );
 
-        if (savedPosition && normalizeUrl(savedPosition.chapterUrl) === normalizeUrl(chapterUrl)) {
-          const restoredPage = Math.min(savedPosition.panelIndex, urls.length - 1);
+        if (
+          savedPosition &&
+          normalizeUrl(savedPosition.chapterUrl) === normalizeUrl(chapterUrl)
+        ) {
+          const restoredPage = Math.min(
+            savedPosition.panelIndex,
+            urls.length - 1,
+          );
           log('[Reader] Found position to restore:', restoredPage);
           setCurrentPage(restoredPage);
           setRestoredPageIndex(restoredPage);
@@ -201,7 +228,7 @@ export function Reader({
 
   const handleTap = (e: any) => {
     const now = Date.now();
-    
+
     // Reset count if too much time passed since last tap (300ms)
     if (now - lastTouchTime.current > 300) {
       touchCount.current = 0;
@@ -226,8 +253,8 @@ export function Reader({
     // Set a timer to process single tap
     touchResetTimer.current = setTimeout(() => {
       if (touchCount.current === 1) {
-         // Single Tap -> Toggle Controls
-         toggleControls();
+        // Single Tap -> Toggle Controls
+        toggleControls();
       }
       // Reset count
       touchCount.current = 0;
@@ -240,52 +267,72 @@ export function Reader({
 
   const scrollDown = (intensity = 1.0) => {
     // For vertical mode, we want to scroll down exactly one viewport height
-    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    const runtime =
+      typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
       // SystemInfo dimensions are typically physical pixels, but scrollBy expects logical units (px/dp)
-      const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
+      const si =
+        (globalThis as any).SystemInfo ||
+        (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
-      const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      
+      const screenHeightLogical = si?.screenHeight
+        ? si.screenHeight / pixelRatio
+        : 800;
+
       // Use user setting, but scale by intensity (e.g. 0.25 for keys => 15% screen)
       const baseSpeed = SettingsStore.getScrollSpeed();
-      const scrollDistance = Math.floor(screenHeightLogical * baseSpeed * intensity);
+      const scrollDistance = Math.floor(
+        screenHeightLogical * baseSpeed * intensity,
+      );
 
-      log(`[Reader] Scroll DOWN: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`);
+      log(
+        `[Reader] Scroll DOWN: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`,
+      );
 
-      runtime.createSelectorQuery()
+      runtime
+        .createSelectorQuery()
         .select('#reader-list')
         .invoke({
           method: 'scrollBy',
           params: {
             offset: scrollDistance,
-            animated: true
-          }
+            animated: true,
+          },
         })
         .exec();
     }
   };
 
   const scrollUp = (intensity = 1.0) => {
-    const runtime = typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
+    const runtime =
+      typeof lynx !== 'undefined' ? lynx : (globalThis as any).lynx;
     if (runtime) {
-      const si = (globalThis as any).SystemInfo || (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
+      const si =
+        (globalThis as any).SystemInfo ||
+        (typeof SystemInfo !== 'undefined' ? SystemInfo : null);
       const pixelRatio = si?.pixelRatio || 1;
-      const screenHeightLogical = si?.screenHeight ? (si.screenHeight / pixelRatio) : 800;
-      
+      const screenHeightLogical = si?.screenHeight
+        ? si.screenHeight / pixelRatio
+        : 800;
+
       const baseSpeed = SettingsStore.getScrollSpeed();
-      const scrollDistance = Math.floor(screenHeightLogical * baseSpeed * intensity);
+      const scrollDistance = Math.floor(
+        screenHeightLogical * baseSpeed * intensity,
+      );
 
-      log(`[Reader] Scroll UP: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`);
+      log(
+        `[Reader] Scroll UP: speed=${baseSpeed}, intensity=${intensity}, dist=${scrollDistance}`,
+      );
 
-      runtime.createSelectorQuery()
+      runtime
+        .createSelectorQuery()
         .select('#reader-list')
         .invoke({
           method: 'scrollBy',
           params: {
             offset: -scrollDistance,
-            animated: true
-          }
+            animated: true,
+          },
         })
         .exec();
     }
@@ -361,7 +408,6 @@ export function Reader({
       }
     };
 
-
     // Try to register with GlobalEventEmitter (correct Lynx API)
     if (globalEventEmitter && globalEventEmitter.addListener) {
       try {
@@ -373,7 +419,9 @@ export function Reader({
         logError('[Reader] GlobalEventEmitter.addListener failed:', e?.message);
       }
     } else {
-      log('[Reader] GlobalEventEmitter not available, trying lynx.on fallback...');
+      log(
+        '[Reader] GlobalEventEmitter not available, trying lynx.on fallback...',
+      );
       // Fallback to lynx.on (older API)
       try {
         if (typeof lynx !== 'undefined' && (lynx as any).on) {
@@ -400,7 +448,14 @@ export function Reader({
   // Save position when page changes (debounced)
   useEffect(() => {
     // CRITICAL: Block all saves until we are 100% sure we are in "tracking" mode
-    if (isRestoring || !positionRestored || !manga || loading || panels.length === 0) return;
+    if (
+      isRestoring ||
+      !positionRestored ||
+      !manga ||
+      loading ||
+      panels.length === 0
+    )
+      return;
 
     const timeoutId = setTimeout(() => {
       log('[Reader] SYNCING: Saving current position:', currentPage);
@@ -408,7 +463,15 @@ export function Reader({
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [currentPage, manga, chapterUrl, loading, panels.length, positionRestored, isRestoring]);
+  }, [
+    currentPage,
+    manga,
+    chapterUrl,
+    loading,
+    panels.length,
+    positionRestored,
+    isRestoring,
+  ]);
 
   const handleToggleFavorite = async () => {
     if (!manga) return;
@@ -429,7 +492,7 @@ export function Reader({
       focusable={true}
       focus-index="0"
     >
-      <view className={showControls ? "Reader-header" : "Reader-header hidden"}>
+      <view className={showControls ? 'Reader-header' : 'Reader-header hidden'}>
         <view
           className="Reader-header-left"
           bindtap={onBack}
@@ -495,23 +558,18 @@ export function Reader({
             )),
             ...(hasNextChapter && onNextChapter
               ? [
-                <list-item
-                  key="next-chapter"
-                  item-key="next-chapter"
-                  full-span
-                >
-                  <view className="Reader-footer-nav">
-                    <view
-                      className="Reader-next-btn"
-                      bindtap={onNextChapter}
-                    >
-                      <text className="Reader-next-text">
-                        Next Chapter ›
-                      </text>
+                  <list-item
+                    key="next-chapter"
+                    item-key="next-chapter"
+                    full-span
+                  >
+                    <view className="Reader-footer-nav">
+                      <view className="Reader-next-btn" bindtap={onNextChapter}>
+                        <text className="Reader-next-text">Next Chapter ›</text>
+                      </view>
                     </view>
-                  </view>
-                </list-item>,
-              ]
+                  </list-item>,
+                ]
               : []),
           ]
         )}

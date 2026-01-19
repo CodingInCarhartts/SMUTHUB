@@ -1,5 +1,5 @@
-import { Component, type ReactNode, type ErrorInfo } from 'react';
-import { BUNDLE_VERSION, BUNDLE_COMMIT_HASH } from '../services/update';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { BUNDLE_COMMIT_HASH, BUNDLE_VERSION } from '../services/update';
 import './ErrorBoundary.css';
 
 interface ErrorBoundaryProps {
@@ -17,7 +17,10 @@ interface ErrorBoundaryState {
  * ErrorBoundary catches JavaScript errors anywhere in the child component tree,
  * logs them, and displays a fallback UI instead of a blank screen.
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -35,7 +38,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // Log error to console (captured by DebugLogService automatically)
     console.error('[ErrorBoundary] Caught error:', error.message);
     console.error('[ErrorBoundary] Stack:', error.stack || 'N/A');
-    console.error('[ErrorBoundary] Component Stack:', errorInfo.componentStack || 'N/A');
+    console.error(
+      '[ErrorBoundary] Component Stack:',
+      errorInfo.componentStack || 'N/A',
+    );
 
     this.setState({ errorInfo });
 
@@ -43,7 +49,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.reportErrorToServer(error, errorInfo);
   }
 
-  private async reportErrorToServer(error: Error, errorInfo: ErrorInfo): Promise<void> {
+  private async reportErrorToServer(
+    error: Error,
+    errorInfo: ErrorInfo,
+  ): Promise<void> {
     try {
       const errorReport = {
         type: 'ERROR_BOUNDARY_CRASH',
@@ -58,9 +67,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       };
 
       // Log the error report (will be captured by DebugLogService)
-      console.log('[ErrorBoundary] Error report:', JSON.stringify(errorReport).substring(0, 500));
+      console.log(
+        '[ErrorBoundary] Error report:',
+        JSON.stringify(errorReport).substring(0, 500),
+      );
     } catch (reportError) {
-      console.error('[ErrorBoundary] Failed to prepare error report:', reportError);
+      console.error(
+        '[ErrorBoundary] Failed to prepare error report:',
+        reportError,
+      );
     }
   }
 
