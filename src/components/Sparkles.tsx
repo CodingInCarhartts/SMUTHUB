@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from '@lynx-js/react';
+import { type ReactNode, useEffect, useState } from '@lynx-js/react';
 import { ACTIVE_EVENT } from '../config';
 import './Sparkles.css';
 
@@ -18,14 +18,14 @@ const generateSparkle = (
   mode: 'sparkle' | 'fall' | 'drift' = 'sparkle',
 ): Sparkle => {
   const isFall = mode === 'fall';
-  
+
   return {
     id: Math.random().toString(36).slice(2),
     createdAt: Date.now(),
     color,
     size: Math.floor(Math.random() * 20) + 15,
     style: {
-      top: isFall ? '-40px' : (Math.floor(Math.random() * 100) + '%'),
+      top: isFall ? '-40px' : Math.floor(Math.random() * 100) + '%',
       left: Math.floor(Math.random() * 100) + '%',
       zIndex: 2,
     },
@@ -42,12 +42,12 @@ interface Props {
   enabled?: boolean;
 }
 
-export const Sparkles = ({ 
-  color = ACTIVE_EVENT.color, 
+export const Sparkles = ({
+  color = ACTIVE_EVENT.color,
   icon = ACTIVE_EVENT.icon,
   mode = ACTIVE_EVENT.mode as any,
-  children, 
-  enabled = ACTIVE_EVENT.enabled 
+  children,
+  enabled = ACTIVE_EVENT.enabled,
 }: Props) => {
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
 
@@ -57,25 +57,29 @@ export const Sparkles = ({
       return;
     }
 
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const newSparkle = generateSparkle(color, icon, mode);
-      
-      setSparkles(current => {
-        const lifetime = mode === 'fall' ? 3000 : (mode === 'drift' ? 2000 : 750);
-        const filtered = current.filter(s => (now - s.createdAt) < lifetime);
-        
-        if (filtered.length >= 12) return filtered;
-        return [...filtered, newSparkle];
-      });
-    }, mode === 'sparkle' ? 400 : 800);
+    const interval = setInterval(
+      () => {
+        const now = Date.now();
+        const newSparkle = generateSparkle(color, icon, mode);
+
+        setSparkles((current) => {
+          const lifetime =
+            mode === 'fall' ? 3000 : mode === 'drift' ? 2000 : 750;
+          const filtered = current.filter((s) => now - s.createdAt < lifetime);
+
+          if (filtered.length >= 12) return filtered;
+          return [...filtered, newSparkle];
+        });
+      },
+      mode === 'sparkle' ? 400 : 800,
+    );
 
     return () => clearInterval(interval);
   }, [enabled, color, icon, mode]);
 
   return (
     <view className="SparklesWrapper">
-      {sparkles.map(sparkle => (
+      {sparkles.map((sparkle) => (
         <text
           key={sparkle.id}
           className={`SparkleInstance mode-${sparkle.mode}`}
@@ -88,9 +92,7 @@ export const Sparkles = ({
           {sparkle.icon}
         </text>
       ))}
-      <view className="SparkleChildWrapper">
-        {children}
-      </view>
+      <view className="SparkleChildWrapper">{children}</view>
     </view>
   );
 };

@@ -44,6 +44,10 @@
   padding: 10px 2px 0 2px;
 }
 
+.MangaCard-source {
+  margin-bottom: 4px;
+}
+
 .MangaCard-title {
   font-size: 15px;
   font-weight: 600;

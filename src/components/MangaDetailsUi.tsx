@@ -71,7 +71,9 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
               ← Back
             </text>
             <view
-              className={isFavorite ? 'DetailsFavorite active' : 'DetailsFavorite'}
+              className={
+                isFavorite ? 'DetailsFavorite active' : 'DetailsFavorite'
+              }
               bindtap={handleToggleFavorite}
             >
               <text className="DetailsFavorite-icon">

@@ -5,7 +5,11 @@ import './HistoryView.css';
 
 interface Props {
   onBack: () => void;
-  onSelectHistoryItem: (manga: Manga, chapterUrl?: string, chapterTitle?: string) => void;
+  onSelectHistoryItem: (
+    manga: Manga,
+    chapterUrl?: string,
+    chapterTitle?: string,
+  ) => void;
 }
 
 import { timeAgo } from '../utils/formatters';
@@ -13,7 +17,9 @@ import { timeAgo } from '../utils/formatters';
 export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
   const [history, setHistory] = useState<ViewedManga[]>([]);
   const [loading, setLoading] = useState(true);
-  const [latestUpdates, setLatestUpdates] = useState<Map<string, Manga>>(new Map());
+  const [latestUpdates, setLatestUpdates] = useState<Map<string, Manga>>(
+    new Map(),
+  );
 
   useEffect(() => {
     loadHistory();
@@ -72,12 +78,14 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
           <view className="HistoryView-list">
             {history.map((item) => {
               const remoteManga = latestUpdates.get(item.manga.id);
-              const hasUpdate = remoteManga 
-                ? StorageService.checkForUpdates(item.manga, remoteManga) 
+              const hasUpdate = remoteManga
+                ? StorageService.checkForUpdates(item.manga, remoteManga)
                 : false;
-              
+
               if (remoteManga) {
-                 console.log(`[HistoryView] Item ${item.manga.title}: hasUpdate=${hasUpdate} (Remote: ${remoteManga.latestChapterUrl} vs Local: ${item.manga.latestChapterUrl})`);
+                console.log(
+                  `[HistoryView] Item ${item.manga.title}: hasUpdate=${hasUpdate} (Remote: ${remoteManga.latestChapterUrl} vs Local: ${item.manga.latestChapterUrl})`,
+                );
               }
 
               return (
@@ -96,7 +104,7 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
                       {item.manga.title}
                     </text>
                     <view className="HistoryView-item-meta">
-                       {item.lastChapterTitle && (
+                      {item.lastChapterTitle && (
                         <text className="HistoryView-item-chapter">
                           📖 {item.lastChapterTitle}
                         </text>
@@ -105,7 +113,7 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
                         <view className="HistoryView-item-badge-container">
                           <text className="HistoryView-item-badge">NEW</text>
                         </view>
-                       )}
+                      )}
                     </view>
                     <text className="HistoryView-item-time">
                       {timeAgo(item.viewedAt)}

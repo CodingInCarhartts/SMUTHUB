@@ -1,11 +1,11 @@
 import { useState } from '@lynx-js/react'; // Ensure useEffect is imported
 import { DebugLogService } from '../services/debugLog';
-import { StorageService } from '../services/storage';
 import { SettingsStore } from '../services/settings';
-import { UpdateService, BUNDLE_VERSION } from '../services/update';
+import { StorageService } from '../services/storage';
+import { BUNDLE_VERSION, UpdateService } from '../services/update';
 import { NetworkInspector } from './NetworkInspector';
-import { SyncMonitor } from './SyncMonitor';
 import { StateInspector } from './StateInspector';
+import { SyncMonitor } from './SyncMonitor';
 import './Settings.css';
 
 export function DeveloperOptions() {
@@ -17,8 +17,12 @@ export function DeveloperOptions() {
   const [debugReport, setDebugReport] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
   const [deviceIdOverrideInput, setDeviceIdOverrideInput] = useState('');
-  const [debugOutlines, setDebugOutlines] = useState(SettingsStore.getDebugOutlines());
-  const [mockUpdates, setMockUpdates] = useState(SettingsStore.get().mockUpdates || false);
+  const [debugOutlines, setDebugOutlines] = useState(
+    SettingsStore.getDebugOutlines(),
+  );
+  const [mockUpdates, setMockUpdates] = useState(
+    SettingsStore.get().mockUpdates || false,
+  );
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketBody, setTicketBody] = useState('');
@@ -33,75 +37,86 @@ export function DeveloperOptions() {
     setCopyStatus('🔄 Fetching Config...');
 
     try {
-       // Dynamically import to ensure circular deps don't bite, although import at top is fine.
-       // Re-using the service directly.
-       const { SupabaseService } = await import('../services/supabase');
-       const webhookUrl = await SupabaseService.getGlobalConfig('discord_webhook_url');
+      // Dynamically import to ensure circular deps don't bite, although import at top is fine.
+      // Re-using the service directly.
+      const { SupabaseService } = await import('../services/supabase');
+      const webhookUrl = await SupabaseService.getGlobalConfig(
+        'discord_webhook_url',
+      );
 
-       if (!webhookUrl) {
-           setCopyStatus('❌ Config Error (DB)');
-           console.error('[DeveloperOptions] ' + 
-             'Missing "discord_webhook_url" in Supabase table "app_config". ' + 
-             'Please add this key/value pair in your database.');
-           setTimeout(() => setCopyStatus(''), 4000);
-           return;
-       }
+      if (!webhookUrl) {
+        setCopyStatus('❌ Config Error (DB)');
+        console.error(
+          '[DeveloperOptions] ' +
+            'Missing "discord_webhook_url" in Supabase table "app_config". ' +
+            'Please add this key/value pair in your database.',
+        );
+        setTimeout(() => setCopyStatus(''), 4000);
+        return;
+      }
 
-       setCopyStatus('🚀 Sending...');
+      setCopyStatus('🚀 Sending...');
 
-       // Get native version synchronously if available
-       let nativeVersion = 'N/A';
-       try {
-         if (typeof NativeModules !== 'undefined' && NativeModules.NativeUpdaterModule && NativeModules.NativeUpdaterModule.getNativeVersion) {
-           nativeVersion = NativeModules.NativeUpdaterModule.getNativeVersion();
-         }
-       } catch (e) {
-         console.warn('[DeveloperOptions] Failed to get native version', e);
-       }
+      // Get native version synchronously if available
+      let nativeVersion = 'N/A';
+      try {
+        if (
+          typeof NativeModules !== 'undefined' &&
+          NativeModules.NativeUpdaterModule &&
+          NativeModules.NativeUpdaterModule.getNativeVersion
+        ) {
+          nativeVersion = NativeModules.NativeUpdaterModule.getNativeVersion();
+        }
+      } catch (e) {
+        console.warn('[DeveloperOptions] Failed to get native version', e);
+      }
 
-       const payload = {
-         username: 'Supa Support',
-         embeds: [
-           {
-             title: `Ticket: ${ticketSubject}`,
-             description: ticketBody,
-             color: 15258703, // Pink-ish
-             fields: [
-               { name: 'Device ID', value: deviceId || 'Unknown', inline: true },
-               { name: 'App Version', value: BUNDLE_VERSION, inline: true },
-               { name: 'Native Version', value: nativeVersion, inline: true },
-               { name: 'Timestamp', value: new Date().toISOString() }
-             ],
-             footer: { text: 'Submitted via Developer Options' }
-           }
-         ]
-       };
+      const payload = {
+        username: 'Supa Support',
+        embeds: [
+          {
+            title: `Ticket: ${ticketSubject}`,
+            description: ticketBody,
+            color: 15258703, // Pink-ish
+            fields: [
+              { name: 'Device ID', value: deviceId || 'Unknown', inline: true },
+              { name: 'App Version', value: BUNDLE_VERSION, inline: true },
+              { name: 'Native Version', value: nativeVersion, inline: true },
+              { name: 'Timestamp', value: new Date().toISOString() },
+            ],
+            footer: { text: 'Submitted via Developer Options' },
+          },
+        ],
+      };
 
-       const response = await fetch(webhookUrl, {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-         },
-         body: JSON.stringify(payload),
-       });
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-       if (response.ok) {
-         setCopyStatus('✅ Sent!');
-         setTimeout(() => {
-             setShowTicketModal(false);
-             setTicketSubject('');
-             setTicketBody('');
-             setCopyStatus('');
-         }, 1500);
-       } else {
-         const errText = await response.text();
-         console.error('[DeveloperOptions] Discord API Error:', response.status, errText);
-         setCopyStatus(`❌ Error ${response.status}`);
-       }
-
+      if (response.ok) {
+        setCopyStatus('✅ Sent!');
+        setTimeout(() => {
+          setShowTicketModal(false);
+          setTicketSubject('');
+          setTicketBody('');
+          setCopyStatus('');
+        }, 1500);
+      } else {
+        const errText = await response.text();
+        console.error(
+          '[DeveloperOptions] Discord API Error:',
+          response.status,
+          errText,
+        );
+        setCopyStatus(`❌ Error ${response.status}`);
+      }
     } catch (e: any) {
-       console.error('[DeveloperOptions] Submission failed:', e);
-       setCopyStatus(`❌ Error: ${e.message || 'Network'}`);
+      console.error('[DeveloperOptions] Submission failed:', e);
+      setCopyStatus(`❌ Error: ${e.message || 'Network'}`);
     }
   };
 
@@ -110,13 +125,12 @@ export function DeveloperOptions() {
     setDebugOutlines(newVal);
     SettingsStore.setDebugOutlines(newVal);
   };
-  
+
   const handleToggleMockUpdates = () => {
     const newVal = !mockUpdates;
     setMockUpdates(newVal);
     SettingsStore.setMockUpdates(newVal);
   };
-
 
   const handleSetDeviceOverride = () => {
     if (!deviceIdOverrideInput) {
@@ -135,7 +149,6 @@ export function DeveloperOptions() {
     setCopyStatus('✅ Override Cleared');
     setTimeout(() => setCopyStatus(''), 2000);
   };
-
 
   const handleOpenDebugConsole = async () => {
     // Gather context for the report
@@ -164,15 +177,14 @@ export function DeveloperOptions() {
       storageValues,
       supabaseStatus: {
         lastSync: 'See console logs',
-        note: 'Supabase sync runs in background via SyncEngine'
-      }
+        note: 'Supabase sync runs in background via SyncEngine',
+      },
     });
 
     setDebugReport(report);
     setShowDebugConsole(true);
     setCopyStatus('');
   };
-
 
   const handleSaveToDb = async () => {
     setCopyStatus('⏳ Saving to database...');
@@ -202,23 +214,27 @@ export function DeveloperOptions() {
         version: BUNDLE_VERSION,
         storageValues,
         supabaseStatus: {
-           status: 'Captured via DeveloperOptions'
-        }
+          status: 'Captured via DeveloperOptions',
+        },
       });
 
-      const success = await SupabaseService.upsert('debug_logs', {
-        device_id: deviceId,
-        // Legacy support (optional, can be removed)
-        report: debugReport, 
-        // New Structured Data
-        app_version: structuredReport.app_version,
-        environment_info: structuredReport.environment_info,
-        settings: structuredReport.settings,
-        supabase_status: structuredReport.supabase_status,
-        storage_state: structuredReport.storage_state,
-        console_logs: structuredReport.console_logs,
-        created_at: new Date().toISOString(),
-      }, 'device_id');
+      const success = await SupabaseService.upsert(
+        'debug_logs',
+        {
+          device_id: deviceId,
+          // Legacy support (optional, can be removed)
+          report: debugReport,
+          // New Structured Data
+          app_version: structuredReport.app_version,
+          environment_info: structuredReport.environment_info,
+          settings: structuredReport.settings,
+          supabase_status: structuredReport.supabase_status,
+          storage_state: structuredReport.storage_state,
+          console_logs: structuredReport.console_logs,
+          created_at: new Date().toISOString(),
+        },
+        'device_id',
+      );
 
       if (success) {
         setCopyStatus('✅ Debug log saved to database!');
@@ -259,53 +275,60 @@ export function DeveloperOptions() {
   };
 
   const handleVerifyUpdates = async () => {
-     setCopyStatus('🔍 Verifying updates...');
-     try {
-       // Force check (bypass throttle)
-       const updatesMap = await StorageService.checkFavoritesForUpdates(true);
-       const updates = Array.from(updatesMap.values());
-       
-       setCopyStatus(`✅ Check complete: ${updates.length} items found.`);
+    setCopyStatus('🔍 Verifying updates...');
+    try {
+      // Force check (bypass throttle)
+      const updatesMap = await StorageService.checkFavoritesForUpdates(true);
+      const updates = Array.from(updatesMap.values());
 
-       // Prepare report
-       const { SupabaseService } = await import('../services/supabase');
-       const deviceId = StorageService.getDeviceId();
-       
-       const report = {
-          verification_type: 'chapter_update_check',
-          timestamp: new Date().toISOString(),
-          results: updates.map(m => ({
-            id: m.id,
-            title: m.title,
-            latest_chapter: m.latestChapter,
-            latest_url: m.latestChapterUrl,
-            latest_id: m.latestChapterId
-          })),
-          log_summary: `Checked ${updates.length} items. Force=true.`
-       };
+      setCopyStatus(`✅ Check complete: ${updates.length} items found.`);
 
-       await SupabaseService.upsert('debug_logs', {
-          device_id: deviceId,
-          report: JSON.stringify(report, null, 2),
-          console_logs: ['[DeveloperOptions] Verification run completed'],
-          created_at: new Date().toISOString()
-       });
+      // Prepare report
+      const { SupabaseService } = await import('../services/supabase');
+      const deviceId = StorageService.getDeviceId();
 
-       setCopyStatus('✅ Verification saved to DB!');
-     } catch (e: any) {
-       console.error('[DeveloperOptions] Verification failed:', e);
-       setCopyStatus(`❌ Failed: ${e.message}`);
-     }
-     
-     // Clear status
-     setTimeout(() => setCopyStatus(''), 3000);
+      const report = {
+        verification_type: 'chapter_update_check',
+        timestamp: new Date().toISOString(),
+        results: updates.map((m) => ({
+          id: m.id,
+          title: m.title,
+          latest_chapter: m.latestChapter,
+          latest_url: m.latestChapterUrl,
+          latest_id: m.latestChapterId,
+        })),
+        log_summary: `Checked ${updates.length} items. Force=true.`,
+      };
+
+      await SupabaseService.upsert('debug_logs', {
+        device_id: deviceId,
+        report: JSON.stringify(report, null, 2),
+        console_logs: ['[DeveloperOptions] Verification run completed'],
+        created_at: new Date().toISOString(),
+      });
+
+      setCopyStatus('✅ Verification saved to DB!');
+    } catch (e: any) {
+      console.error('[DeveloperOptions] Verification failed:', e);
+      setCopyStatus(`❌ Failed: ${e.message}`);
+    }
+
+    // Clear status
+    setTimeout(() => setCopyStatus(''), 3000);
   };
 
   const handleRefreshReport = async () => {
     const settings = SettingsStore.get();
     const deviceId = StorageService.getDeviceId();
     const storageValues: Record<string, string | null> = {};
-    const keys = ['batoto:favorites', 'batoto:history', 'batoto:settings', 'batoto:filters', 'batoto:device_id', 'batoto:reader_position'];
+    const keys = [
+      'batoto:favorites',
+      'batoto:history',
+      'batoto:settings',
+      'batoto:filters',
+      'batoto:device_id',
+      'batoto:reader_position',
+    ];
     for (const key of keys) {
       storageValues[key] = await StorageService.getNativeItemSync(key);
     }
@@ -314,7 +337,7 @@ export function DeveloperOptions() {
       settings,
       deviceId,
       version: BUNDLE_VERSION,
-      storageValues
+      storageValues,
     });
     setDebugReport(report);
     setCopyStatus('🔄 Refreshed');
@@ -336,7 +359,6 @@ export function DeveloperOptions() {
           </view>
         </view>
 
-
         <view className="Settings-card">
           {/* Persona Override - Icon + Input Row */}
           <view className="Settings-item-left">
@@ -344,7 +366,7 @@ export function DeveloperOptions() {
             <view className="Settings-item-text">
               <input
                 className="Settings-input-inline"
-                // @ts-ignore
+                // @ts-expect-error
                 value={deviceIdOverrideInput}
                 bindinput={(e: any) => setDeviceIdOverrideInput(e.detail.value)}
                 placeholder="Device ID / UUID"
@@ -365,7 +387,11 @@ export function DeveloperOptions() {
               <text className="Settings-button-text">CLEAR</text>
             </view>
             <view
-              className={deviceIdOverrideInput ? 'Settings-button primary' : 'Settings-button primary disabled'}
+              className={
+                deviceIdOverrideInput
+                  ? 'Settings-button primary'
+                  : 'Settings-button primary disabled'
+              }
               bindtap={handleSetDeviceOverride}
             >
               <text className="Settings-button-text">APPLY</text>
@@ -396,7 +422,10 @@ export function DeveloperOptions() {
           <text className="Settings-item-chevron">›</text>
         </view>
 
-        <view className="Settings-item" bindtap={() => setShowNetworkInspector(true)}>
+        <view
+          className="Settings-item"
+          bindtap={() => setShowNetworkInspector(true)}
+        >
           <view className="Settings-item-left">
             <text className="Settings-item-icon">📡</text>
             <view className="Settings-item-text">
@@ -409,7 +438,10 @@ export function DeveloperOptions() {
           <text className="Settings-item-chevron">›</text>
         </view>
 
-        <view className="Settings-item" bindtap={() => setShowSyncMonitor(true)}>
+        <view
+          className="Settings-item"
+          bindtap={() => setShowSyncMonitor(true)}
+        >
           <view className="Settings-item-left">
             <text className="Settings-item-icon">🔄</text>
             <view className="Settings-item-text">
@@ -422,7 +454,10 @@ export function DeveloperOptions() {
           <text className="Settings-item-chevron">›</text>
         </view>
 
-        <view className="Settings-item" bindtap={() => setShowStateInspector(true)}>
+        <view
+          className="Settings-item"
+          bindtap={() => setShowStateInspector(true)}
+        >
           <view className="Settings-item-left">
             <text className="Settings-item-icon">💾</text>
             <view className="Settings-item-text">
@@ -446,7 +481,9 @@ export function DeveloperOptions() {
             </view>
           </view>
           <view
-            className={debugOutlines ? 'Settings-toggle active' : 'Settings-toggle'}
+            className={
+              debugOutlines ? 'Settings-toggle active' : 'Settings-toggle'
+            }
             bindtap={handleToggleDebugOutlines}
           >
             <view className="Settings-toggle-knob" />
@@ -464,14 +501,19 @@ export function DeveloperOptions() {
             </view>
           </view>
           <view
-            className={mockUpdates ? 'Settings-toggle active' : 'Settings-toggle'}
+            className={
+              mockUpdates ? 'Settings-toggle active' : 'Settings-toggle'
+            }
             bindtap={handleToggleMockUpdates}
           >
             <view className="Settings-toggle-knob" />
           </view>
         </view>
 
-        <view className="Settings-item" bindtap={() => setShowTicketModal(true)}>
+        <view
+          className="Settings-item"
+          bindtap={() => setShowTicketModal(true)}
+        >
           <view className="Settings-item-left">
             <text className="Settings-item-icon">🎫</text>
             <view className="Settings-item-text">
@@ -483,7 +525,6 @@ export function DeveloperOptions() {
           </view>
           <text className="Settings-item-chevron">›</text>
         </view>
-
       </view>
 
       {/* Ticket Modal */}
@@ -495,8 +536,15 @@ export function DeveloperOptions() {
             setCopyStatus('');
           }}
         >
-          <view className="DebugConsole-modal" catchtap={() => { }} style={{ height: 'auto', maxHeight: '90%', padding: '20px' }}>
-            <view className="DebugConsole-header" style={{ borderBottomWidth: 0, paddingBottom: 0 }}>
+          <view
+            className="DebugConsole-modal"
+            catchtap={() => {}}
+            style={{ height: 'auto', maxHeight: '90%', padding: '20px' }}
+          >
+            <view
+              className="DebugConsole-header"
+              style={{ borderBottomWidth: 0, paddingBottom: 0 }}
+            >
               <text className="DebugConsole-title">🎫 Submit Ticket</text>
               <view
                 className="DebugConsole-button"
@@ -505,36 +553,52 @@ export function DeveloperOptions() {
                 <text className="DebugConsole-button-text">✕</text>
               </view>
             </view>
-            
-            <view className="Settings-card" style={{ marginTop: '20px', marginBottom: 0 }}>
+
+            <view
+              className="Settings-card"
+              style={{ marginTop: '20px', marginBottom: 0 }}
+            >
               <text className="Settings-input-label">Subject</text>
               <input
                 className="Settings-input"
-                // @ts-ignore
+                // @ts-expect-error
                 value={ticketSubject}
                 bindinput={(e: any) => setTicketSubject(e.detail.value)}
                 placeholder="Brief summary..."
                 placeholder-style="color: var(--text-secondary);"
               />
-              
-              <text className="Settings-input-label" style={{ marginTop: '16px' }}>Description</text>
+
+              <text
+                className="Settings-input-label"
+                style={{ marginTop: '16px' }}
+              >
+                Description
+              </text>
               <textarea
                 className="Settings-input"
                 style={{ height: '120px', paddingTop: '10px' }}
-                // @ts-ignore
+                // @ts-expect-error
                 value={ticketBody}
                 bindinput={(e: any) => setTicketBody(e.detail.value)}
                 placeholder="Describe the issue or request..."
                 placeholder-style="color: var(--text-secondary);"
               />
 
-              <view className="Settings-button-row" style={{ marginTop: '24px' }}>
+              <view
+                className="Settings-button-row"
+                style={{ marginTop: '24px' }}
+              >
                 <view
                   className="Settings-button primary"
                   style={{ flex: 1, height: '44px' }}
                   bindtap={submitToDiscord}
                 >
-                  <text className="Settings-button-text" style={{ color: 'white' }}>Submit Ticket</text>
+                  <text
+                    className="Settings-button-text"
+                    style={{ color: 'white' }}
+                  >
+                    Submit Ticket
+                  </text>
                 </view>
               </view>
             </view>
@@ -548,7 +612,7 @@ export function DeveloperOptions() {
           className="DebugConsole-overlay"
           bindtap={() => setShowDebugConsole(false)}
         >
-          <view className="DebugConsole-modal" catchtap={() => { }}>
+          <view className="DebugConsole-modal" catchtap={() => {}}>
             <view className="DebugConsole-header">
               <text className="DebugConsole-title">🐛 Debug Console</text>
               <view
@@ -575,7 +639,9 @@ export function DeveloperOptions() {
                 className="DebugConsole-button"
                 bindtap={handleVerifyUpdates}
               >
-                <text className="DebugConsole-button-text">🔎 Batch Verify</text>
+                <text className="DebugConsole-button-text">
+                  🔎 Batch Verify
+                </text>
               </view>
               <view
                 className="DebugConsole-button primary"
@@ -623,7 +689,11 @@ export function DeveloperOptions() {
           className="DebugConsole-overlay"
           bindtap={() => setShowNetworkInspector(false)}
         >
-          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+          <view
+            className="DebugConsole-modal"
+            catchtap={() => {}}
+            style={{ padding: 0, backgroundColor: 'transparent' }}
+          >
             <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
               <text className="DebugConsole-title">📡 Network Inspector</text>
               <view className="DebugConsole-actions">
@@ -645,7 +715,11 @@ export function DeveloperOptions() {
           className="DebugConsole-overlay"
           bindtap={() => setShowSyncMonitor(false)}
         >
-          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+          <view
+            className="DebugConsole-modal"
+            catchtap={() => {}}
+            style={{ padding: 0, backgroundColor: 'transparent' }}
+          >
             <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
               <text className="DebugConsole-title">🔄 Sync Monitor</text>
               <view className="DebugConsole-actions">
@@ -667,7 +741,11 @@ export function DeveloperOptions() {
           className="DebugConsole-overlay"
           bindtap={() => setShowStateInspector(false)}
         >
-          <view className="DebugConsole-modal" catchtap={() => { }} style={{ padding: 0, backgroundColor: 'transparent' }}>
+          <view
+            className="DebugConsole-modal"
+            catchtap={() => {}}
+            style={{ padding: 0, backgroundColor: 'transparent' }}
+          >
             <view className="DebugConsole-header" style={{ marginBottom: 0 }}>
               <text className="DebugConsole-title">💾 State Inspector</text>
               <view className="DebugConsole-actions">

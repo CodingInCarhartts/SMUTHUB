@@ -123,7 +123,15 @@ export interface StructuredDebugReport {
   generated_at: string;
 }
 
-export type LogCategory = 'INIT' | 'NETWORK' | 'SYNC' | 'UI' | 'STORAGE' | 'UPDATE' | 'PERF' | 'GENERAL';
+export type LogCategory =
+  | 'INIT'
+  | 'NETWORK'
+  | 'SYNC'
+  | 'UI'
+  | 'STORAGE'
+  | 'UPDATE'
+  | 'PERF'
+  | 'GENERAL';
 
 export const DebugLogService = {
   /**
@@ -143,7 +151,12 @@ export const DebugLogService = {
   /**
    * Log an error with a category prefix and optional error object
    */
-  error(category: LogCategory, message: string, error?: Error, ...args: any[]): void {
+  error(
+    category: LogCategory,
+    message: string,
+    error?: Error,
+    ...args: any[]
+  ): void {
     console.error(`[${category}] ${message}`, error?.message || '', ...args);
     if (error?.stack) {
       console.error(`[${category}] Stack:`, error.stack);
@@ -172,22 +185,29 @@ export const DebugLogService = {
   },
 
   getStructuredReport(context?: DebugReportContext): StructuredDebugReport {
-     return {
-       app_version: context?.version || 'Unknown',
-       device_id: context?.deviceId || 'Unknown',
-       environment_info: {
-         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-         localStorageAvailable: typeof localStorage !== 'undefined',
-         cryptoAvailable: typeof crypto !== 'undefined',
-         systemInfo: typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo,
-         nativeModules: typeof NativeModules !== 'undefined' ? Object.keys(NativeModules) : [],
-       },
-       settings: context?.settings || {},
-       supabase_status: context?.supabaseStatus || {},
-       storage_state: context?.storageValues || {},
-       console_logs: logs,
-       generated_at: new Date().toISOString(),
-     };
+    return {
+      app_version: context?.version || 'Unknown',
+      device_id: context?.deviceId || 'Unknown',
+      environment_info: {
+        userAgent:
+          typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+        localStorageAvailable: typeof localStorage !== 'undefined',
+        cryptoAvailable: typeof crypto !== 'undefined',
+        systemInfo:
+          typeof SystemInfo !== 'undefined'
+            ? SystemInfo
+            : (globalThis as any).SystemInfo,
+        nativeModules:
+          typeof NativeModules !== 'undefined'
+            ? Object.keys(NativeModules)
+            : [],
+      },
+      settings: context?.settings || {},
+      supabase_status: context?.supabaseStatus || {},
+      storage_state: context?.storageValues || {},
+      console_logs: logs,
+      generated_at: new Date().toISOString(),
+    };
   },
 
   getDebugReport(context?: DebugReportContext): string {
@@ -215,7 +235,7 @@ export const DebugLogService = {
       `localStorage available: ${typeof localStorage !== 'undefined'}`,
     );
     report.push(`crypto available: ${typeof crypto !== 'undefined'}`);
-    
+
     // SystemInfo check
     try {
       const si =
@@ -236,7 +256,9 @@ export const DebugLogService = {
       const hasNative = typeof NativeModules !== 'undefined';
       report.push(`NativeModules available: ${hasNative}`);
       if (hasNative) {
-        report.push(`NativeModules keys: ${Object.keys(NativeModules).join(', ')}`);
+        report.push(
+          `NativeModules keys: ${Object.keys(NativeModules).join(', ')}`,
+        );
         const hasStorage = NativeModules.NativeLocalStorageModule !== undefined;
         report.push(`NativeLocalStorageModule available: ${hasStorage}`);
       }
@@ -271,7 +293,8 @@ export const DebugLogService = {
           const key = localStorage.key(i);
           if (key) {
             const val = localStorage.getItem(key);
-            const preview = val && val.length > 200 ? val.substring(0, 200) + '...' : val;
+            const preview =
+              val && val.length > 200 ? val.substring(0, 200) + '...' : val;
             report.push(`${key}: ${preview}`);
           }
         }
@@ -288,7 +311,8 @@ export const DebugLogService = {
     report.push('--- NATIVE STORAGE ---');
     if (context?.storageValues) {
       for (const [key, val] of Object.entries(context.storageValues)) {
-        const preview = val && val.length > 200 ? val.substring(0, 200) + '...' : val;
+        const preview =
+          val && val.length > 200 ? val.substring(0, 200) + '...' : val;
         report.push(`${key}: ${preview || '(null/empty)'}`);
       }
     } else {

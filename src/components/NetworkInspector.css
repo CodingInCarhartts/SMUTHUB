@@ -1,180 +1,179 @@
 .NetworkInspector {
-    display: flex;
-    flex-direction: column;
-    height: 400px;
-    background-color: var(--surface);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  background-color: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
 }
 
 .NetworkInspector-header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: var(--glass);
-    border-bottom: 1px solid var(--accent-border);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--glass);
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-title {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 14px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .NetworkInspector-btn {
-    padding: 4px 8px;
-    background-color: var(--accent-soft);
-    border-radius: 4px;
+  padding: 4px 8px;
+  background-color: var(--accent-soft);
+  border-radius: 4px;
 }
 
 .NetworkInspector-btn:active {
-    background-color: var(--accent-border);
+  background-color: var(--accent-border);
 }
 
 .NetworkInspector-btn-text {
-    color: var(--text-accent);
-    font-size: 12px;
-    font-weight: bold;
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .NetworkInspector-list {
-    flex: 1;
-    background-color: var(--bg-main);
+  flex: 1;
+  background-color: var(--bg-main);
 }
 
 .NetworkInspector-item {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--accent-border);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-item:active {
-    background-color: var(--accent-soft);
+  background-color: var(--accent-soft);
 }
 
 .NetworkInspector-item.selected {
-    background-color: var(--accent-soft);
-    border-left: 3px solid var(--text-accent);
+  background-color: var(--accent-soft);
+  border-left: 3px solid var(--text-accent);
 }
 
 .NetworkInspector-item-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .NetworkInspector-method {
-    font-size: 11px;
-    font-weight: bold;
-    padding: 2px 4px;
-    border-radius: 2px;
-    color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 2px;
+  color: #fff;
 }
 
 .NetworkInspector-method.GET {
-    background-color: #0d47a1;
+  background-color: #0d47a1;
 }
 
 .NetworkInspector-method.POST {
-    background-color: #1b5e20;
+  background-color: #1b5e20;
 }
 
 .NetworkInspector-status {
-    font-size: 11px;
-    font-weight: bold;
-    color: var(--text-primary);
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-primary);
 }
 
 .NetworkInspector-duration {
-    font-size: 10px;
-    color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-secondary);
 }
 
 .NetworkInspector-url {
-    font-size: 11px;
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .NetworkInspector-empty {
-    color: var(--text-secondary);
-    text-align: center;
-    margin-top: 20px;
-    font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
 }
 
 /* Details Overlay */
 .NetworkInspector-details-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
 .NetworkInspector-details {
-    width: 90%;
-    height: 80%;
-    background-color: var(--surface);
-    border-radius: 8px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--accent-border);
+  width: 90%;
+  height: 80%;
+  background-color: var(--surface);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-details-header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--accent-border);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .NetworkInspector-details-title {
-    color: var(--text-primary);
-    font-weight: bold;
-    font-size: 16px;
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 16px;
 }
 
 .NetworkInspector-close {
-    color: var(--text-secondary);
-    font-size: 20px;
-    padding: 4px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 4px;
 }
 
 .NetworkInspector-section {
-    color: var(--text-accent);
-    font-size: 12px;
-    font-weight: bold;
-    margin-top: 12px;
-    margin-bottom: 4px;
-
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 12px;
+  margin-bottom: 4px;
 }
 
 .NetworkInspector-section.error {
-    color: #ff5252;
+  color: #ff5252;
 }
 
 .NetworkInspector-kv {
-    color: var(--text-primary);
-    font-size: 11px;
-    margin-bottom: 4px;
-    font-family: monospace;
+  color: var(--text-primary);
+  font-size: 11px;
+  margin-bottom: 4px;
+  font-family: monospace;
 }
 
 .NetworkInspector-kv.error {
-    color: #ff8a80;
+  color: #ff8a80;
 }

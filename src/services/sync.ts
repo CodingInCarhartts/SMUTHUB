@@ -1,7 +1,7 @@
-import { getNativeItemSync, setNativeItemSync } from './nativeStorage';
-import { SupabaseService } from './supabase';
 import { SYNC_HEARTBEAT_INTERVAL_MS } from '../config';
+import { getNativeItemSync, setNativeItemSync } from './nativeStorage';
 import { PerformanceService } from './perf';
+import { SupabaseService } from './supabase';
 
 export type OperationType = 'UPSERT' | 'DELETE';
 
@@ -23,11 +23,13 @@ export const SyncEngine = {
 
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   },
 
   notify() {
-    this.listeners.forEach(l => l());
+    this.listeners.forEach((l) => l());
   },
 
   isSyncing(): boolean {
@@ -38,7 +40,10 @@ export const SyncEngine = {
    * Add an operation to the persistent queue
    */
   async enqueue(op: Operation): Promise<void> {
-    console.log(`[SyncEngine] Enqueueing ${op.type} for ${op.table}:`, JSON.stringify(op.payload).substring(0, 200));
+    console.log(
+      `[SyncEngine] Enqueueing ${op.type} for ${op.table}:`,
+      JSON.stringify(op.payload).substring(0, 200),
+    );
     const queue = await this.getQueue();
     queue.push(op);
     await this.saveQueue(queue);
@@ -84,17 +89,24 @@ export const SyncEngine = {
           this.notify();
         } else {
           // If execution fails (e.g., network error), stop and retry later
-          console.warn('[SyncEngine] Operation failed, stopping queue processing');
+          console.warn(
+            '[SyncEngine] Operation failed, stopping queue processing',
+          );
           break;
         }
       }
     } catch (e: any) {
-      console.error('[SyncEngine] Critical error during queue processing:', e?.message || e);
+      console.error(
+        '[SyncEngine] Critical error during queue processing:',
+        e?.message || e,
+      );
     } finally {
       PerformanceService.endTimer('SyncEngine.processQueue');
       isSyncing = false;
       this.notify();
-      console.log(`[SyncEngine] Finished processing. Remaining: ${queue.length}`);
+      console.log(
+        `[SyncEngine] Finished processing. Remaining: ${queue.length}`,
+      );
     }
   },
 
@@ -107,11 +119,19 @@ export const SyncEngine = {
         // Find conflict column based on table
         let conflictColumn = 'id';
         if (op.table === 'settings') conflictColumn = 'device_id';
-        if (op.table === 'favorites' || op.table === 'history' || op.table === 'reader_positions') {
+        if (
+          op.table === 'favorites' ||
+          op.table === 'history' ||
+          op.table === 'reader_positions'
+        ) {
           conflictColumn = 'device_id,manga_id';
         }
 
-        const success = await SupabaseService.upsert(op.table, op.payload, conflictColumn);
+        const success = await SupabaseService.upsert(
+          op.table,
+          op.payload,
+          conflictColumn,
+        );
         return success;
       } else if (op.type === 'DELETE') {
         const deviceId = op.payload.device_id;
@@ -122,11 +142,14 @@ export const SyncEngine = {
         // but our current SupabaseService.delete is a bit simplified.
         // If it's a many-to-many style table, we need complex filters.
         if (op.table === 'favorites' || op.table === 'history') {
-          const success = await SupabaseService.request(`/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`, {
-            method: 'DELETE',
-            // Ensure we get a response body to confirm success vs error
-             headers: { Prefer: 'return=representation' } 
-          });
+          const success = await SupabaseService.request(
+            `/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`,
+            {
+              method: 'DELETE',
+              // Ensure we get a response body to confirm success vs error
+              headers: { Prefer: 'return=representation' },
+            },
+          );
           return success !== null;
         }
 
@@ -148,21 +171,26 @@ export const SyncEngine = {
     if (!raw) return [];
     try {
       // Zombie Check: If raw string is massive, we might have a corrupt or clogged queue
-      if (raw.length > 500000) { // 500kb safety limit
-         console.warn('[SyncEngine] ZOMBIE QUEUE DETECTED (Size > 500kb). PURGING QUEUE TO RESTORE SYNC.');
-         await this.saveQueue([]);
-         return [];
+      if (raw.length > 500000) {
+        // 500kb safety limit
+        console.warn(
+          '[SyncEngine] ZOMBIE QUEUE DETECTED (Size > 500kb). PURGING QUEUE TO RESTORE SYNC.',
+        );
+        await this.saveQueue([]);
+        return [];
       }
 
       const queue = JSON.parse(raw);
-      
+
       // Secondary safety check for item count
       if (Array.isArray(queue) && queue.length > 500) {
-         console.warn('[SyncEngine] ZOMBIE QUEUE DETECTED (Count > 500). PURGING QUEUE TO RESTORE SYNC.');
-         await this.saveQueue([]);
-         return [];
+        console.warn(
+          '[SyncEngine] ZOMBIE QUEUE DETECTED (Count > 500). PURGING QUEUE TO RESTORE SYNC.',
+        );
+        await this.saveQueue([]);
+        return [];
       }
-      
+
       return queue;
     } catch {
       return [];
@@ -179,13 +207,13 @@ export const SyncEngine = {
   async getPendingDeletions(table: string): Promise<Set<string>> {
     const queue = await this.getQueue();
     const deletions = new Set<string>();
-    queue.forEach(op => {
+    queue.forEach((op) => {
       if (op.type === 'DELETE' && op.table === table && op.payload.manga_id) {
         deletions.add(op.payload.manga_id);
       }
     });
     return deletions;
-  }
+  },
 };
 
 // Initialize network heartbeat for background sync

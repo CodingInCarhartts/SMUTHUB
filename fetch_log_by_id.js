@@ -2,9 +2,9 @@ const SUPABASE_URL =
   'https://exymyvbkjsttqsnifedq.supabase.co/rest/v1/debug_logs';
 const SUPABASE_KEY = 'sb_publishable_tyLE5ronU6B5LAGta5GBjA_ZSqpzHyz';
 
-async function fetchLogs() {
-  const url = `${SUPABASE_URL}?select=id,device_id,created_at,app_version&order=created_at.desc&limit=10`;
-  console.log(`Fetching from: ${url}`);
+async function fetchLogById(id) {
+  const url = `${SUPABASE_URL}?id=eq.${id}&select=*`;
+  console.log(`Fetching log ${id} from: ${url}`);
 
   try {
     const response = await fetch(url, {
@@ -23,11 +23,20 @@ async function fetchLogs() {
     }
 
     const data = await response.json();
-    console.log('Recent Log Entries:');
-    console.log(JSON.stringify(data, null, 2));
+    if (data.length > 0) {
+      console.log('\n--- REPORT CONTENT ---\n');
+      console.log(data[0].report);
+    } else {
+      console.log('Log not found.');
+    }
   } catch (error) {
-    console.error('❌ Failed to fetch logs:', error);
+    console.error('❌ Failed to fetch log:', error);
   }
 }
 
-fetchLogs();
+const logId = process.argv[2];
+if (logId) {
+  fetchLogById(logId);
+} else {
+  console.log('Please provide a log ID');
+}

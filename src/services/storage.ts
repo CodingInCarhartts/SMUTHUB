@@ -1,11 +1,13 @@
+import {
+  HISTORY_LIMIT_CLOUD,
+  HISTORY_LIMIT_LOCAL,
+  NATIVE_DEVICE_ID_TIMEOUT_MS,
+} from '../config';
 import { BatotoService } from './batoto';
 import type { Manga, SearchFilters } from './batoto/types';
 import { logCapture } from './debugLog';
-import { SupabaseService } from './supabase';
-import { SyncEngine } from './sync';
+import type { Manga as UnifiedManga } from './manga/types';
 import { MigrationService } from './migration';
-import { HISTORY_LIMIT_LOCAL, HISTORY_LIMIT_CLOUD, NATIVE_DEVICE_ID_TIMEOUT_MS } from '../config';
-
 import {
   getNativeItem,
   getNativeItemSync,
@@ -13,6 +15,8 @@ import {
   setNativeItem,
   setNativeItemSync,
 } from './nativeStorage';
+import { SupabaseService } from './supabase';
+import { SyncEngine } from './sync';
 
 // Helper to log with capture (console override doesn't work in Lynx)
 const log = (...args: any[]) => logCapture('log', ...args);
@@ -26,7 +30,7 @@ export function normalizeUrl(url: string | undefined): string {
 
 // Types
 export interface ViewedManga {
-  manga: Manga;
+  manga: Manga & { source?: string };
   lastChapterId?: string;
   lastChapterTitle?: string;
   lastPageIndex?: number;
@@ -137,11 +141,11 @@ async function initializeFromNativeStorage(): Promise<void> {
 
   // Pre-fetch device ID from NativeUtilsModule
   try {
-    const modules = (NativeModules as any);
+    const modules = NativeModules as any;
     const utilsModule = modules?.NativeUtilsModule;
     log('[Storage] Checking NativeUtilsModule:', {
       exists: !!utilsModule,
-      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function'
+      hasGetDeviceId: typeof utilsModule?.getDeviceId === 'function',
     });
 
     if (utilsModule && typeof utilsModule.getDeviceId === 'function') {
@@ -153,12 +157,19 @@ async function initializeFromNativeStorage(): Promise<void> {
         });
         // Timeout just in case
         setTimeout(() => {
-          logWarn(`[Storage] Native getDeviceId timed out after ${NATIVE_DEVICE_ID_TIMEOUT_MS}ms`);
+          logWarn(
+            `[Storage] Native getDeviceId timed out after ${NATIVE_DEVICE_ID_TIMEOUT_MS}ms`,
+          );
           resolve(null);
         }, NATIVE_DEVICE_ID_TIMEOUT_MS);
       });
 
-      if (nativeId && nativeId.length > 5 && nativeId !== 'android' && nativeId !== 'undefined') {
+      if (
+        nativeId &&
+        nativeId.length > 5 &&
+        nativeId !== 'android' &&
+        nativeId !== 'undefined'
+      ) {
         NATIVE_DEVICE_ID = nativeId;
         // Also ensure it is saved locally to avoid regeneration if hardware ID fetch is slow next time
         setLocal(STORAGE_KEYS.DEVICE_ID, nativeId);
@@ -200,7 +211,6 @@ async function initializeFromNativeStorage(): Promise<void> {
   log('[Storage] Native storage initialization complete');
 }
 
-
 // Storage Service - Hybrid (Local First + Background Sync via REST)
 export const StorageService = {
   // ============ DEVICE ID ============
@@ -210,14 +220,21 @@ export const StorageService = {
     if (SESSION_DEVICE_ID) return SESSION_DEVICE_ID;
 
     // 1.5 Check Override
-    const override = getLocal<string | null>(STORAGE_KEYS.DEVICE_ID_OVERRIDE, null);
+    const override = getLocal<string | null>(
+      STORAGE_KEYS.DEVICE_ID_OVERRIDE,
+      null,
+    );
     if (override && override.length > 0) {
       SESSION_DEVICE_ID = override;
       return override;
     }
 
     // 2. Prioritize Real Native Device ID (fetched during init)
-    if (NATIVE_DEVICE_ID && NATIVE_DEVICE_ID.length > 5 && NATIVE_DEVICE_ID !== 'android') {
+    if (
+      NATIVE_DEVICE_ID &&
+      NATIVE_DEVICE_ID.length > 5 &&
+      NATIVE_DEVICE_ID !== 'android'
+    ) {
       SESSION_DEVICE_ID = NATIVE_DEVICE_ID;
       return NATIVE_DEVICE_ID;
     }
@@ -231,7 +248,10 @@ export const StorageService = {
 
     // 4. Fallback to SystemInfo
     try {
-      const si = typeof SystemInfo !== 'undefined' ? SystemInfo : (globalThis as any).SystemInfo;
+      const si =
+        typeof SystemInfo !== 'undefined'
+          ? SystemInfo
+          : (globalThis as any).SystemInfo;
       if (si?.deviceId && si.deviceId.length > 5 && si.deviceId !== 'android') {
         const id = si.deviceId;
         setLocal(STORAGE_KEYS.DEVICE_ID, id);
@@ -305,29 +325,32 @@ export const StorageService = {
       );
       if (cloudData.length > 0) {
         let cloudFavorites = cloudData.map((row) => row.manga_data);
-        
+
         // Filter out items that are pending deletion in our local sync queue
         // to prevent them from "ghosting" back after being deleted locally
-        const pendingDeletions = await SyncEngine.getPendingDeletions('favorites');
+        const pendingDeletions =
+          await SyncEngine.getPendingDeletions('favorites');
         if (pendingDeletions.size > 0) {
-          cloudFavorites = cloudFavorites.filter(m => !pendingDeletions.has(m.id));
+          cloudFavorites = cloudFavorites.filter(
+            (m) => !pendingDeletions.has(m.id),
+          );
         }
-        
+
         // Smart Merge: Union of Local and Cloud
         // This ensures we don't lose locally added favorites that haven't synced yet
         // AND we don't lose cloud favorites that were added on another device
         const currentLocal = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
         const mergedMap = new Map<string, Manga>();
-        
+
         // Add all cloud items
-        cloudFavorites.forEach(m => mergedMap.set(m.id, m));
-        
-        // Add all local items (local takes precedence if metadata is newer, 
+        cloudFavorites.forEach((m) => mergedMap.set(m.id, m));
+
+        // Add all local items (local takes precedence if metadata is newer,
         // but for favorites usually just existence matters. We keep local version to be safe)
-        currentLocal.forEach(m => mergedMap.set(m.id, m));
-        
+        currentLocal.forEach((m) => mergedMap.set(m.id, m));
+
         const mergedFavorites = Array.from(mergedMap.values());
-        
+
         // Only update if generic "length" check or deep equality implies change?
         // Simply setting it is safe as long as we merged correct.
         setLocal(STORAGE_KEYS.FAVORITES, mergedFavorites);
@@ -339,15 +362,17 @@ export const StorageService = {
 
   async addFavorite(manga: Manga): Promise<void> {
     const deviceId = this.getDeviceId();
-    console.log(`[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`);
+    console.log(
+      `[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`,
+    );
     const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
-    
+
     // Check duplication by ID strictly
     if (!favorites.some((m) => m.id === manga.id)) {
       // Add to local immediately
       const newFavorites = [manga, ...favorites];
       setLocal(STORAGE_KEYS.FAVORITES, newFavorites);
-      
+
       // Enqueue sync
       await SyncEngine.enqueue({
         type: 'UPSERT',
@@ -356,9 +381,9 @@ export const StorageService = {
           device_id: deviceId,
           manga_id: manga.id,
           manga_data: manga,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     } else {
       console.log(`[Storage] Favorite already exists for ${manga.id}`);
@@ -377,9 +402,9 @@ export const StorageService = {
       table: 'favorites',
       payload: {
         device_id: this.getDeviceId(),
-        manga_id: mangaId
+        manga_id: mangaId,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   },
 
@@ -417,15 +442,15 @@ export const StorageService = {
         const mergedMap = new Map<string, ViewedManga>();
 
         // 1. Add Cloud items first
-        cloudHistory.forEach(item => {
+        cloudHistory.forEach((item) => {
           mergedMap.set(item.manga.id, item);
         });
 
         // 2. Overlay Local items if they are newer
         // We re-fetch local here to catch any changes that happened during the await
         const currentLocal = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
-        
-        currentLocal.forEach(localItem => {
+
+        currentLocal.forEach((localItem) => {
           const cloudItem = mergedMap.get(localItem.manga.id);
           if (!cloudItem) {
             // Only in local
@@ -434,20 +459,25 @@ export const StorageService = {
             // Conflict: Check timestamps
             const localDate = new Date(localItem.viewedAt).getTime();
             const cloudDate = new Date(cloudItem.viewedAt).getTime();
-            
+
             if (localDate > cloudDate) {
-               // Local is newer (e.g. user just read a chapter but sync hasn't finished)
-               mergedMap.set(localItem.manga.id, localItem);
-               console.log(`[Storage] Conflict resolved: Keeping LOCAL for ${localItem.manga.title} (Newer)`);
+              // Local is newer (e.g. user just read a chapter but sync hasn't finished)
+              mergedMap.set(localItem.manga.id, localItem);
+              console.log(
+                `[Storage] Conflict resolved: Keeping LOCAL for ${localItem.manga.title} (Newer)`,
+              );
             } else {
-               // Cloud is newer (or same), keep cloud (already in map)
+              // Cloud is newer (or same), keep cloud (already in map)
             }
           }
         });
 
         // 3. Convert back to array and sort
         const mergedHistory = Array.from(mergedMap.values())
-          .sort((a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime())
+          .sort(
+            (a, b) =>
+              new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime(),
+          )
           .slice(0, HISTORY_LIMIT_LOCAL);
 
         setLocal(STORAGE_KEYS.HISTORY, mergedHistory);
@@ -483,7 +513,7 @@ export const StorageService = {
         last_chapter_title: chapterTitle,
         viewed_at: new Date().toISOString(),
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   },
 
@@ -495,14 +525,17 @@ export const StorageService = {
       type: 'DELETE',
       table: 'history',
       payload: { device_id: deviceId },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   },
 
   // ============ SETTINGS ============
 
   async getSettings(): Promise<AppSettings> {
-    const local = getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    const local = getLocal<AppSettings>(
+      STORAGE_KEYS.SETTINGS,
+      DEFAULT_SETTINGS,
+    );
 
     (async () => {
       const deviceId = this.getDeviceId();
@@ -517,7 +550,8 @@ export const StorageService = {
           devMode: row.dev_mode ?? DEFAULT_SETTINGS.devMode,
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
           privacyFilter: row.privacy_filter ?? DEFAULT_SETTINGS.privacyFilter,
-          privacyFilterOpacity: row.privacy_filter_opacity ?? DEFAULT_SETTINGS.privacyFilterOpacity,
+          privacyFilterOpacity:
+            row.privacy_filter_opacity ?? DEFAULT_SETTINGS.privacyFilterOpacity,
         };
         setLocal(STORAGE_KEYS.SETTINGS, settings);
       }
@@ -527,7 +561,10 @@ export const StorageService = {
   },
 
   async saveSettings(settings: Partial<AppSettings>): Promise<void> {
-    const current = getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    const current = getLocal<AppSettings>(
+      STORAGE_KEYS.SETTINGS,
+      DEFAULT_SETTINGS,
+    );
     const updated = { ...current, ...settings };
     setLocal(STORAGE_KEYS.SETTINGS, updated);
 
@@ -541,9 +578,9 @@ export const StorageService = {
         scroll_speed: updated.scrollSpeed,
         privacy_filter: updated.privacyFilter,
         privacy_filter_opacity: updated.privacyFilterOpacity,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   },
 
@@ -582,7 +619,9 @@ export const StorageService = {
       scrollPosition,
       timestamp: new Date().toISOString(),
     };
-    console.log(`[Storage] Saving reader position: manga=${mangaId}, panel=${panelIndex}, device=${deviceId}`);
+    console.log(
+      `[Storage] Saving reader position: manga=${mangaId}, panel=${panelIndex}, device=${deviceId}`,
+    );
     setLocal(STORAGE_KEYS.READER_POSITION, position);
 
     (async () => {
@@ -596,12 +635,14 @@ export const StorageService = {
           panel_index: panelIndex,
           updated_at: position.timestamp,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     })();
   },
 
-  async getReaderPositionForManga(mangaId: string): Promise<ReaderPosition | null> {
+  async getReaderPositionForManga(
+    mangaId: string,
+  ): Promise<ReaderPosition | null> {
     const local = this.getReaderPosition();
     if (local && local.mangaId === mangaId) return local;
 
@@ -609,7 +650,7 @@ export const StorageService = {
       const deviceId = this.getDeviceId();
       const data = await SupabaseService.getAll<any>(
         'reader_positions',
-        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`
+        `?select=chapter_url,panel_index,updated_at&device_id=eq.${deviceId}&manga_id=eq.${mangaId}&limit=1`,
       );
 
       if (data && data.length > 0) {
@@ -659,7 +700,7 @@ export const StorageService = {
         type: 'DELETE',
         table: 'favorites',
         payload: { device_id: deviceId },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     } catch (e) {
       logWarn('[Storage] clearAllData failed:', e);
@@ -704,7 +745,9 @@ export const StorageService = {
     // 1. Prefer ID-based comparison (Robuster)
     if (localManga.latestChapterId && remoteManga.latestChapterId) {
       if (localManga.latestChapterId !== remoteManga.latestChapterId) {
-        log(`[Storage] Update detected via ID: Local=${localManga.latestChapterId} vs Remote=${remoteManga.latestChapterId}`);
+        log(
+          `[Storage] Update detected via ID: Local=${localManga.latestChapterId} vs Remote=${remoteManga.latestChapterId}`,
+        );
         return true;
       }
       return false;
@@ -718,21 +761,25 @@ export const StorageService = {
 
     // If local has no info (legacy data) but remote does, assume it's new
     if (!localManga.latestChapterUrl) {
-      log('[Storage] Update assumed (Legacy local data missing latestChapterUrl)');
+      log(
+        '[Storage] Update assumed (Legacy local data missing latestChapterUrl)',
+      );
       return true;
     }
-    
+
     // Normalize function to handle trailing slashes or protocol diffs if needed
     const normalize = (u: string) => u.replace(/\/+$/, '').toLowerCase().trim();
-    
+
     const local = normalize(localManga.latestChapterUrl);
     const remote = normalize(remoteManga.latestChapterUrl);
-    
+
     if (local !== remote) {
-      log(`[Storage] Update detected via URL: Local=${local} vs Remote=${remote}`);
+      log(
+        `[Storage] Update detected via URL: Local=${local} vs Remote=${remote}`,
+      );
       return true;
     }
-    
+
     return false;
   },
 
@@ -740,23 +787,31 @@ export const StorageService = {
    * Check for updates on user's favorites.
    * force = true bypasses the 1-hour throttle.
    */
-  async checkFavoritesForUpdates(force: boolean = false): Promise<Map<string, Manga>> {
+  async checkFavoritesForUpdates(
+    force: boolean = false,
+  ): Promise<Map<string, Manga>> {
     try {
       const settings = await this.getSettings();
-      log(`[Storage] checkFavoritesForUpdates. Force=${force}, Mock=${!!settings.mockUpdates}`);
+      log(
+        `[Storage] checkFavoritesForUpdates. Force=${force}, Mock=${!!settings.mockUpdates}`,
+      );
 
       if (settings.mockUpdates) {
-        log('[Storage] Mock Updates ENABLED - Forcing updates on history items');
+        log(
+          '[Storage] Mock Updates ENABLED - Forcing updates on history items',
+        );
         const mockMap = new Map<string, Manga>();
         const currentHistory = await this.getHistory();
-        
-        currentHistory.forEach(item => {
+
+        currentHistory.forEach((item) => {
           const mockManga = { ...item.manga };
-          mockManga.latestChapterUrl = (item.manga.latestChapterUrl || '') + '_mock_update';
-          mockManga.latestChapter = 'NEW ' + (item.manga.latestChapter || 'Chapter');
+          mockManga.latestChapterUrl =
+            (item.manga.latestChapterUrl || '') + '_mock_update';
+          mockManga.latestChapter =
+            'NEW ' + (item.manga.latestChapter || 'Chapter');
           mockMap.set(item.manga.id, mockManga);
         });
-        
+
         return mockMap;
       }
 
@@ -764,58 +819,59 @@ export const StorageService = {
       const LAST_CHECK_KEY = 'batoto:last_update_check';
       const CACHED_UPDATES_KEY = 'batoto:cached_updates';
       const ONE_HOUR = 60 * 60 * 1000;
-      
+
       const now = Date.now();
-      
+
       if (!force) {
         const lastCheckStr = await getNativeItemSync(LAST_CHECK_KEY);
         const lastCheck = lastCheckStr ? parseInt(lastCheckStr, 10) : 0;
-        const shouldCheck = (now - lastCheck > ONE_HOUR);
+        const shouldCheck = now - lastCheck > ONE_HOUR;
 
         if (!shouldCheck) {
-           log(`[Storage] Throttled update check (Last: ${new Date(lastCheck).toLocaleTimeString()}). Loading cache.`);
-           const cachedStr = await getNativeItemSync(CACHED_UPDATES_KEY);
-           if (cachedStr) {
-              try {
-                 const cachedList: Manga[] = JSON.parse(cachedStr);
-                 const map = new Map<string, Manga>();
-                 cachedList.forEach(m => map.set(m.id, m));
-                 return map;
-              } catch(e) {
-                 logError('[Storage] Failed to parse cached updates:', e);
-              }
-           }
-           return new Map();
+          log(
+            `[Storage] Throttled update check (Last: ${new Date(lastCheck).toLocaleTimeString()}). Loading cache.`,
+          );
+          const cachedStr = await getNativeItemSync(CACHED_UPDATES_KEY);
+          if (cachedStr) {
+            try {
+              const cachedList: Manga[] = JSON.parse(cachedStr);
+              const map = new Map<string, Manga>();
+              cachedList.forEach((m) => map.set(m.id, m));
+              return map;
+            } catch (e) {
+              logError('[Storage] Failed to parse cached updates:', e);
+            }
+          }
+          return new Map();
         }
       }
-      
+
       // Targeted Update Check: Favorites Only
       log('[Storage] Fetching targeted updates for Favorites...');
       const favorites = await this.getFavorites();
-      const ids = favorites.map(f => f.id);
-      
+      const ids = favorites.map((f) => f.id);
+
       if (ids.length === 0) {
-         log('[Storage] No favorites to check.');
-         return new Map();
+        log('[Storage] No favorites to check.');
+        return new Map();
       }
 
       const updates = await BatotoService.getBatchMangaInfo(ids);
       log(`[Storage] Fetched updates for ${updates.length} favorites`);
-      
+
       const updateMap = new Map<string, Manga>();
-      updates.forEach(m => updateMap.set(m.id, m));
+      updates.forEach((m) => updateMap.set(m.id, m));
 
       // Save Cache
       setNativeItemSync(CACHED_UPDATES_KEY, JSON.stringify(updates));
       setNativeItemSync(LAST_CHECK_KEY, now.toString());
-      
-      return updateMap;
 
+      return updateMap;
     } catch (e) {
       logError('[Storage] Failed to check for updates:', e);
       return new Map();
     }
-  }
+  },
 };
 
 // Export initialization promise so other modules can wait
@@ -832,6 +888,9 @@ export const storageReady = (async () => {
 
     log('[Storage] System is READY');
   } catch (e: any) {
-    logError('[Storage] Initialization sequence failed:', e?.message || e?.toString?.() || JSON.stringify(e) || e);
+    logError(
+      '[Storage] Initialization sequence failed:',
+      e?.message || e?.toString?.() || JSON.stringify(e) || e,
+    );
   }
 })();

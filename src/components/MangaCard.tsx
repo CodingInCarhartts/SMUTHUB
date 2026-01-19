@@ -1,10 +1,12 @@
 import { useEffect, useState } from '@lynx-js/react';
 import type { Manga } from '../services/batoto';
+import { SOURCE_UI_CONFIG } from '../services/manga/types';
 import { StorageService } from '../services/storage';
+import { SourceBadge } from './SourceBadge';
 import './MangaCard.css';
 
 interface Props {
-  manga: Manga;
+  manga: Manga & { source?: string };
   onSelect: (manga: Manga) => void;
   showFavoriteButton?: boolean;
 }
@@ -18,6 +20,8 @@ export function MangaCard({
     StorageService.isFavoriteSync(manga.id),
   );
   const [loading, setLoading] = useState(false);
+
+  const sourceConfig = manga.source ? SOURCE_UI_CONFIG[manga.source] : null;
 
   // Check actual favorite status async
   useEffect(() => {
@@ -65,6 +69,11 @@ export function MangaCard({
         )}
       </view>
       <view className="MangaCard-info">
+        {manga.source && (
+          <view className="MangaCard-source">
+            <SourceBadge source={manga.source} />
+          </view>
+        )}
         <text className="MangaCard-title">{manga.title}</text>
         {manga.latestChapter && (
           <text className="MangaCard-chapter">{manga.latestChapter}</text>
