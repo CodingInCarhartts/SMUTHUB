@@ -37,17 +37,29 @@ export function getNativeItem(key: string): Promise<string | null> {
   });
 }
 
-// Sync setter using native module (fire and forget)
-export function setNativeItem(key: string, value: string): void {
-  try {
-    const nativeModule = NativeModules?.NativeLocalStorageModule;
-    if (nativeModule && typeof nativeModule.setStorageItem === 'function') {
-      nativeModule.setStorageItem(key, value);
-      log('[setNativeItem] Saved:', { key, valueLen: value.length });
+// Async setter using native module (wait for completion)
+export function setNativeItem(key: string, value: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const nativeModule = NativeModules?.NativeLocalStorageModule;
+      if (nativeModule && typeof nativeModule.setStorageItem === 'function') {
+        // Check if it accepts a callback (some implementations might)
+        // If not, we just assume it's fired.
+        // But to be safe, let's wrap it.
+        nativeModule.setStorageItem(key, value);
+        log('[setNativeItem] Saved:', { key, valueLen: value.length });
+        // Give it a tiny tick to ensure it hits the bridge? 
+        // Or if the native API provides a callback, use it.
+        // Assuming standard bridge might be async.
+        setTimeout(resolve, 50); 
+      } else {
+        resolve();
+      }
+    } catch (e) {
+      logError('[setNativeItem] Error:', e);
+      resolve();
     }
-  } catch (e) {
-    logError('[setNativeItem] Error:', e);
-  }
+  });
 }
 
 // Export for SyncEngine

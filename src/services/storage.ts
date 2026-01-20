@@ -108,7 +108,7 @@ function getLocal<T>(key: string, defaultValue: T): T {
   return defaultValue;
 }
 
-function setLocal<T>(key: string, value: T): void {
+async function setLocal<T>(key: string, value: T): Promise<void> {
   const strValue = JSON.stringify(value);
 
   // Always update memory cache
@@ -124,7 +124,7 @@ function setLocal<T>(key: string, value: T): void {
   }
 
   // Also save to native storage
-  setNativeItem(key, strValue);
+  return setNativeItem(key, strValue);
 }
 
 // Initialize device ID from native storage on startup
@@ -692,8 +692,8 @@ export const StorageService = {
     return getLocal<string | null>(STORAGE_KEYS.UPDATE_ATTEMPT, null);
   },
 
-  setLastUpdateAttempt(hash: string): void {
-    setLocal(STORAGE_KEYS.UPDATE_ATTEMPT, hash);
+  async setLastUpdateAttempt(hash: string): Promise<void> {
+    await setLocal(STORAGE_KEYS.UPDATE_ATTEMPT, hash);
   },
 
   clearLastUpdateAttempt(): void {
