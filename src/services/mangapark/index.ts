@@ -13,6 +13,11 @@ export const MangaparkService = {
   name: 'MangaPark',
   baseUrl: 'https://mangapark.net',
   isNsfwSource: false,
+  headers: {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    Referer: 'https://mangapark.net',
+  },
 
   async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
     try {

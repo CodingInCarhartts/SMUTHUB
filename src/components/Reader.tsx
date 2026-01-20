@@ -33,7 +33,15 @@ interface Props {
   onNextChapter: () => void;
 }
 
-function ReaderPanel({ url, index }: { url: string; index: number }) {
+function ReaderPanel({
+  url,
+  index,
+  headers,
+}: {
+  url: string;
+  index: number;
+  headers?: Record<string, string>;
+}) {
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -42,6 +50,15 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
     retryCount > 0
       ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
       : url;
+
+  // Construct source object for Lynx/RN image component
+  const imageSource = headers
+    ? {
+        uri: currentUrl,
+        headers: headers,
+        // Some libraries use 'headers' inside the object, Lynx native usually supports this structure
+      }
+    : currentUrl; // Fallback to string if no headers (though standardizing on object is safer if supported)
 
   useEffect(() => {
     log(`[ReaderPanel #${index}] URL: ${url} (retry: ${retryCount})`);
@@ -103,9 +120,9 @@ function ReaderPanel({ url, index }: { url: string; index: number }) {
         </view>
       ) : (
         <image
-          src={currentUrl}
+          src={imageSource as any} // Cast to any to bypass strict Lynx types if they just expect string normally
           className="Reader-panel"
-          mode="scaleToFill" // As requested
+          mode="scaleToFill"
           bindload={handleLoad}
           binderror={handleError}
           style={{ width: '100%', height: '100%' }}
@@ -175,6 +192,10 @@ export function Reader({
     return unsubscribe;
   }, []);
 
+  const [headers, setHeaders] = useState<Record<string, string> | undefined>(
+    undefined,
+  );
+
   useEffect(() => {
     const loadPanels = async () => {
       setLoading(true);
@@ -183,6 +204,11 @@ export function Reader({
       // Determine source from manga object if available, or try URL detection
       const sourceId = manga?.source;
       const source = sourceManager.resolveSource(sourceId || chapterUrl);
+
+      // Extract headers from source if available
+      if (source?.headers) {
+        setHeaders(source.headers);
+      }
 
       let urls: string[] = [];
       if (source) {
@@ -553,7 +579,7 @@ export function Reader({
                   }
                 }}
               >
-                <ReaderPanel url={url} index={index} />
+                <ReaderPanel url={url} index={index} headers={headers} />
               </list-item>
             )),
             ...(hasNextChapter && onNextChapter

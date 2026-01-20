@@ -56,6 +56,7 @@ export interface MangaSource {
   getMangaDetails(idOrUrl: string): Promise<MangaDetails | null>;
   getChapterPages(chapterIdOrUrl: string): Promise<string[]>;
   getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }>;
+  headers?: Record<string, string>;
 }
 
 export const GENRE_API_MAPPING: Record<string, string> = {
