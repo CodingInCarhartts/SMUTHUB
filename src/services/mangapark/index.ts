@@ -219,74 +219,18 @@ export const MangaparkService = {
 
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     try {
-      log('Fetching home feed');
-      const response = await fetch(this.baseUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Referer: this.baseUrl,
-        },
-      });
-
-      log(`Home feed status: ${response.status}`);
-      const html = await response.text();
-      log(`HTML length: ${html.length}`);
+      log('Fetching home feed (via search aggregations)');
       
-      const root = parse(html);
+      const [popular, latest] = await Promise.all([
+          this.getPopular(),
+          this.getLatest()
+      ]);
 
-      // Debug selectors
-      const groupItems = root.querySelectorAll('div.group.relative');
-      const allLinks = root.querySelectorAll('a[href^="/title/"]');
+      log(`Home feed fetched: ${popular.length} popular, ${latest.length} latest`);
       
-      log(`Selector 'div.group.relative' found: ${groupItems.length} items`);
-      log(`Generic 'a[href^="/title/"]' found: ${allLinks.length} items`);
-
-      const popular: Manga[] = [];
-      const latest: Manga[] = [];
-
-      // If specific selector fails but we have links, fallback or use better logic
-      // For now, let's keep the logic but log the failure.
-      
-      // Select all comic items on the homepage
-      const items = root.querySelectorAll('div.group.relative');
-
-      for (const item of items) {
-        const titleEl = item.querySelector('h3 a, a.link-hover.font-bold');
-        const imgEl = item.querySelector('img');
-        const urlEl = item.querySelector('a[href^="/title/"]');
-
-        if (!titleEl || !urlEl) continue;
-
-        const url = urlEl.getAttribute('href') || '';
-        const idMatch = url.match(/\/title\/(\d+)/);
-        if (!idMatch) continue;
-        
-        const id = idMatch[1];
-        const title = titleEl.text.trim();
-        const cover = imgEl?.getAttribute('src') || '';
-
-        const manga: Manga = {
-            id: `mangapark:${id}`,
-            title,
-            url: `${this.baseUrl}${url}`,
-            cover,
-            source: 'mangapark',
-            // Basic extraction, authors/updates might be harder to get from grid
-        };
-        
-        // Distribute - for now just add to popular as the homepage is mostly that
-        // Mangapark mix them. We can try to distinguish by section if we had precise structure
-        // For MVP, we'll slice them.
-        popular.push(manga);
-      }
-
-      // If we extracted many, split them or fetch latest specifically if needed
-      // "Member Uploads" is usually the Latest section
-      // For now, let's just duplicates or slice for safety if we can't distinguish sections perfectly without more robust selectors
-      const mid = Math.floor(popular.length / 2);
       return {
-          popular: popular.slice(0, mid),
-          latest: popular.slice(mid),
+          popular,
+          latest,
       };
 
     } catch (e) {
