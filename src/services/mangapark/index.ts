@@ -59,10 +59,19 @@ export const MangaparkService = {
           const url = urlEl.getAttribute('href') || '';
           // ID is often in the URL: /title/12345/name
           const id = url.match(/\/title\/(\d+)/)?.[1] || ''; 
+          
+          let title = titleEl?.text?.trim();
+          if (!title || title === '' || title === 'Unknown') {
+              // Fallback to image alt text
+              title = imgEl?.getAttribute('alt')?.trim();
+          }
+           if (!title || title === '') {
+              title = 'Unknown';
+          }
 
           return {
             id: `mangapark:${id}`,
-            title: titleEl?.text?.trim() || 'Unknown',
+            title: title,
             url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
             cover: imgEl?.getAttribute('src') || '',
             authors: authorEl ? [authorEl.text.trim()] : [],
