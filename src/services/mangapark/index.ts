@@ -19,6 +19,21 @@ export const MangaparkService = {
     Referer: 'https://mangapark.net',
   },
 
+  fixUrl(url: string | undefined | null): string {
+    if (!url) return '';
+    let absoluteUrl = url;
+    if (url.startsWith('//')) {
+      absoluteUrl = `https:${url}`;
+    } else if (url.startsWith('/')) {
+      absoluteUrl = `${this.baseUrl}${url}`;
+    }
+
+    // REWRITE HOST: CDN mirrors (sXX.mpX.org) are often blocked (521/522).
+    // The main domain mangapark.net proxies these images reliably.
+    // Also works for /media/ and /thumb/ paths.
+    return absoluteUrl.replace(/https:\/\/[^/]+(\/(?:media|thumb|mpim|amim|mpup)\/)/, 'https://mangapark.net$1');
+  },
+
   async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
     try {
       log(`Searching for: ${query}`);
@@ -73,7 +88,7 @@ export const MangaparkService = {
             id: `mangapark:${id}`,
             title: title,
             url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
-            cover: imgEl?.getAttribute('src') || '',
+            cover: this.fixUrl(imgEl?.getAttribute('src')),
             authors: authorEl ? [authorEl.text.trim()] : [],
             source: 'mangapark',
           };
@@ -110,8 +125,7 @@ export const MangaparkService = {
       const root = parse(html);
 
       const title = root.querySelector('h3 a')?.text?.trim() || 'Unknown';
-      const cover =
-        root.querySelector('img.shadow-md')?.getAttribute('src') || '';
+      const cover = this.fixUrl(root.querySelector('img.shadow-md')?.getAttribute('src'));
       const desc = root.querySelector('.limit-html')?.text?.trim() || '';
 
       // Chapters
@@ -206,9 +220,7 @@ export const MangaparkService = {
                   const contentImages = images
                     .filter(url => !url.includes('/thumb/') && !url.includes('avatar'))
                     .map(url => {
-                        // REWRITE HOST: CDN mirrors (sXX.mpX.org) are often blocked (521/522).
-                        // The main domain mangapark.net proxies these images reliably.
-                        return url.replace(/https:\/\/[^/]+(\/media\/)/, 'https://mangapark.net$1');
+                        return this.fixUrl(url);
                     });
                   
                   if (contentImages.length > allImages.length) {

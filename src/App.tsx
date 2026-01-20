@@ -206,7 +206,7 @@ export function App() {
       logError('[App] fetchHomeFeed failed:', e);
       setHomeError(
         e.message ||
-          'Failed to connect to Batoto. Site might be down or protected.',
+          'Failed to connect to MangaPark. Site might be down or protected.',
       );
     } finally {
       setHomeLoading(false);
