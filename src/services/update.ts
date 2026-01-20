@@ -59,8 +59,8 @@ export interface NativeAppUpdate {
   commitHash?: string;
 }
 
-export const BUNDLE_VERSION = '1.0.154';
-export const BUNDLE_COMMIT_HASH = 'fe8037c'; // Will be injected by publish-ota.js
+export const BUNDLE_VERSION = '1.0.155';
+export const BUNDLE_COMMIT_HASH = '7f82658'; // Will be injected by publish-ota.js
 
 export const UpdateService = {
   /**
@@ -140,6 +140,35 @@ export const UpdateService = {
     console.log(
       `[UpdateService] Latest in DB: ${latest.version} (hash: ${latest.commitHash})`,
     );
+
+    // LOOP PROTECTION:
+    // If we just attempted this update (based on last_update_attempt)
+    // AND our BUNDLE_COMMIT_HASH is still different (update didn't take),
+    // then assume we downloaded a stale bundle and STOP.
+    const lastAttempt = StorageService.getLastUpdateAttempt();
+    if (
+      lastAttempt &&
+      lastAttempt === latest.commitHash &&
+      latest.commitHash !== BUNDLE_COMMIT_HASH
+    ) {
+      console.warn(
+        `[UpdateService] LOOP DETECTED! We already attempted update to ${lastAttempt} but are still on ${BUNDLE_COMMIT_HASH}. Aborting.`,
+      );
+      // Optional: Clear it if we want to retry later? No, wait for next version.
+      // But if user manually forces via "Check Update" button, we might want to bypass?
+      // For auto-check, definitely block.
+      return null;
+    }
+
+    // If we are here, it means either:
+    // 1. We haven't tried this update yet.
+    // 2. We DID try it, and it SUCCEEDED (so BUNDLE matches LastAttempt).
+    //    In case 2, we shouldn't be here if check below passes.
+
+    // If successfully updated, clear the flag
+    if (BUNDLE_COMMIT_HASH === lastAttempt) {
+      StorageService.clearLastUpdateAttempt();
+    }
 
     // Check if commit hash matches (primary check)
     if (latest.commitHash && latest.commitHash === BUNDLE_COMMIT_HASH) {
@@ -284,6 +313,12 @@ export const UpdateService = {
 
       if (update?.otaUrl && nativeUpdater && (nativeUpdater as any).setOtaUrl) {
         log(`[UpdateService] Setting remote OTA URL: ${update.otaUrl}`);
+        
+        // LOOP PROTECTION: Mark this hash as attempted
+        if (update.commitHash) {
+          StorageService.setLastUpdateAttempt(update.commitHash);
+        }
+
         (nativeUpdater as any).setOtaUrl(update.otaUrl);
 
         if ((nativeUpdater as any).triggerOtaReload) {

@@ -64,6 +64,7 @@ export const STORAGE_KEYS = {
   READER_POSITION: 'batoto:reader_position',
 
   SKIPPED_VERSION: 'batoto:skipped_version',
+  UPDATE_ATTEMPT: 'batoto:last_update_attempt',
   DEVICE_ID_OVERRIDE: 'batoto:device_id_override',
 };
 
@@ -677,7 +678,7 @@ export const StorageService = {
     setNativeItem(STORAGE_KEYS.READER_POSITION, '');
   },
 
-  // ============ UPDATE SKIP ============
+  // ============ UPDATE SKIP / ATTEMPT ============
 
   getSkippedVersion(): string | null {
     return getLocal<string | null>(STORAGE_KEYS.SKIPPED_VERSION, null);
@@ -685,6 +686,19 @@ export const StorageService = {
 
   setSkippedVersion(version: string): void {
     setLocal(STORAGE_KEYS.SKIPPED_VERSION, version);
+  },
+
+  getLastUpdateAttempt(): string | null {
+    return getLocal<string | null>(STORAGE_KEYS.UPDATE_ATTEMPT, null);
+  },
+
+  setLastUpdateAttempt(hash: string): void {
+    setLocal(STORAGE_KEYS.UPDATE_ATTEMPT, hash);
+  },
+
+  clearLastUpdateAttempt(): void {
+    memoryStorage.delete(STORAGE_KEYS.UPDATE_ATTEMPT);
+    setNativeItem(STORAGE_KEYS.UPDATE_ATTEMPT, '');
   },
 
   // ============ CLEAR ALL ============
