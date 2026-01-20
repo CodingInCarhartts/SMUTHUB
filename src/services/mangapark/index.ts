@@ -1,10 +1,12 @@
 import { parse } from 'node-html-parser';
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
 
+import { logCapture } from '../debugLog';
+
 // Helper for debug logging
-const log = (msg: string) => console.log(`[Mangapark] ${msg}`);
+const log = (msg: string) => logCapture('log', `[Mangapark] ${msg}`);
 const logError = (msg: string, e?: any) =>
-  console.error(`[Mangapark] ${msg}`, e);
+  logCapture('error', `[Mangapark] ${msg}`, e);
 
 export const MangaparkService = {
   id: 'mangapark',
