@@ -10,7 +10,7 @@ import {
 
 class SourceManager {
   private sources: Map<string, MangaSource> = new Map();
-  private defaultSource: string = 'mangago';
+  private defaultSource: string = 'mangapark';
 
   constructor() {
     // We will register sources here

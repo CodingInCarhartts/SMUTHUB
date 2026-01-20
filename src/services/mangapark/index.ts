@@ -35,17 +35,23 @@ export const MangaparkService: MangaSource = {
       // Select search results
       // Inspecting Mangapark structure (approximate, based on common patterns or previous knowledge)
       // Usually .item class or similar
-      const items = root.querySelectorAll('.row.mt-2.border-bottom.pb-2');
+      // Select search results
+      // Verified selector from homepage/search dump
+      const items = root.querySelectorAll('div.group.relative');
 
       return items
         .map((item) => {
-          const titleEl = item.querySelector('.fw-bold a');
+          const titleEl = item.querySelector('h3 a, a.link-hover.font-bold');
           const imgEl = item.querySelector('img');
-          const authorEl = item.querySelector('.text-muted');
+          // In search results, author might be missing or different
+          const authorEl = item.querySelector('.text-muted, .author'); 
 
-          const url = titleEl?.getAttribute('href') || '';
+          const urlEl = item.querySelector('a[href^="/title/"]');
+          if (!urlEl) return null;
+
+          const url = urlEl.getAttribute('href') || '';
           // ID is often in the URL: /title/12345/name
-          const id = url.match(/\/title\/(\d+)/)?.[1] || ''; // Fallback ID extraction
+          const id = url.match(/\/title\/(\d+)/)?.[1] || ''; 
 
           return {
             id: `mangapark:${id}`,
@@ -89,28 +95,49 @@ export const MangaparkService: MangaSource = {
 
       const title = root.querySelector('h3 a')?.text?.trim() || 'Unknown';
       const cover =
-        root.querySelector('.attr-cover img')?.getAttribute('src') || '';
+        root.querySelector('img.shadow-md')?.getAttribute('src') || '';
       const desc = root.querySelector('.limit-html')?.text?.trim() || '';
 
       // Chapters
-      // Mangapark has complex chapter lists.
-      const chapterItems = root.querySelectorAll('.chapter-item');
-      const chapters = chapterItems
-        .map((el) => {
-          const link = el.querySelector('a.link-dark');
-          if (!link) return null;
+      // Select all links and filter by chapter pattern
+      const allLinks = root.querySelectorAll('a');
+      const chapters = allLinks
+        .map((link) => {
+          const href = link.getAttribute('href');
+          if (!href) return null;
+          
+          // Mangapark chapter links usually look like: /title/ID-slug/ID-chapter-NUMBER
+          // or just contain "chapter-" segment
+          if (!href.includes('-chapter-')) return null;
 
-          const chUrl = link.getAttribute('href') || '';
+          // Some links might be "Read Chapter 1" buttons, duplication is fine or specific filtering
+          // We want the list items.
+          // Usually in a list container, but global filter is robust if we dedup
+          
           const chTitle = link.text.trim();
+          // Filter out "Read" buttons which might be "Start Reading"
+          if (chTitle === 'Start Reading') return null;
+          if (!chTitle) return null;
 
           return {
-            id: chUrl,
+            id: href,
             title: chTitle,
-            url: chUrl.startsWith('http') ? chUrl : `${this.baseUrl}${chUrl}`,
+            url: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
             source: 'mangapark',
           };
         })
         .filter((c) => c !== null) as any[];
+
+         // Dedup chapters by ID/URL
+        const uniqueChapters = new Map();
+        for (const ch of chapters) {
+            if (!uniqueChapters.has(ch.id)) {
+                uniqueChapters.set(ch.id, ch);
+            }
+        }
+        
+        // Sort chapters? usually they are in order on page
+        const finalChapters = Array.from(uniqueChapters.values());
 
       return {
         id: idOrUrl,
@@ -128,7 +155,6 @@ export const MangaparkService: MangaSource = {
   },
 
   async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
-    // Mangapark usually puts pages in a JSON variable `const load_pages = [...]`
     try {
       log(`Fetching chapter: ${chapterIdOrUrl}`);
       const response = await fetch(chapterIdOrUrl, {
@@ -142,18 +168,47 @@ export const MangaparkService: MangaSource = {
       const html = await response.text();
       const root = parse(html);
 
-      const scriptContent = root
-        .querySelectorAll('script')
-        .map((s) => s.text)
-        .join('\n');
-      const match = scriptContent.match(/load_pages\s*=\s*(\[.*?\])/s);
-
-      if (match) {
-        const json = JSON.parse(match[1]);
-        return json.map((p: any) => p.u); // 'u' is usually the url property
+      // Mangapark uses Qwik, so data is often in <script type="qwik/json">
+      const scripts = root.querySelectorAll('script[type="qwik/json"]');
+      
+      let allImages: string[] = [];
+      
+      // Strategy 1: Parse generic Qwik JSON and look for image patterns
+      for (const script of scripts) {
+          try {
+              const jsonStr = script.text; // .text usually contains the raw content provided by node-html-parser
+              // Flatten the JSON string to search for URLs
+              // We match standard image extensions. Mangapark images usually hosted on mpvim.org or similar
+              // We filter for large images, not thumbs, but thumbs often have 'thumb' in path
+              const matches = jsonStr.match(/https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)/g);
+              
+              if (matches) {
+                  const images = [...new Set(matches)]; // Unique
+                  // Filter out likely thumbnails or avatars if possible
+                  // Mangapark chapter images often have /media/mpup/ or similar
+                  // Avatars often have /thumb/
+                  const contentImages = images.filter(url => !url.includes('/thumb/') && !url.includes('avatar'));
+                  
+                  if (contentImages.length > allImages.length) {
+                      allImages = contentImages;
+                  }
+              }
+          } catch (e) {
+              // Ignore parse errors, try next
+          }
       }
 
-      return [];
+      // Fallback: Check strictly for load_pages if they revert
+      if (allImages.length === 0) {
+          const scriptContent = root.querySelectorAll('script').map((s) => s.text).join('\n');
+          const match = scriptContent.match(/load_pages\s*=\s*(\[.*?\])/s);
+          if (match) {
+            const json = JSON.parse(match[1]);
+            allImages = json.map((p: any) => p.u); 
+          }
+      }
+
+      return allImages;
     } catch (e) {
       logError('Chapter pages failed', e);
       return [];
@@ -161,8 +216,79 @@ export const MangaparkService: MangaSource = {
   },
 
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
-    return { popular: [], latest: [] };
+    try {
+      log('Fetching home feed');
+      const response = await fetch(this.baseUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Referer: this.baseUrl,
+        },
+      });
+
+      const html = await response.text();
+      const root = parse(html);
+
+      const popular: Manga[] = [];
+      const latest: Manga[] = [];
+
+      // Scrape Popular Updates
+      // Based on inspection, these are often in a container with specific headers or just the main grid
+      // Looking for "Popular Updates" header usually precedes the grid
+      // Simplified selector strategy: Look for items in the main grids
+      
+      // Select all comic items on the homepage
+      const items = root.querySelectorAll('div.group.relative');
+
+      for (const item of items) {
+        const titleEl = item.querySelector('h3 a, a.link-hover.font-bold');
+        const imgEl = item.querySelector('img');
+        const urlEl = item.querySelector('a[href^="/title/"]');
+
+        if (!titleEl || !urlEl) continue;
+
+        const url = urlEl.getAttribute('href') || '';
+        const idMatch = url.match(/\/title\/(\d+)/);
+        if (!idMatch) continue;
+        
+        const id = idMatch[1];
+        const title = titleEl.text.trim();
+        const cover = imgEl?.getAttribute('src') || '';
+
+        const manga: Manga = {
+            id: `mangapark:${id}`,
+            title,
+            url: `${this.baseUrl}${url}`,
+            cover,
+            source: 'mangapark',
+            // Basic extraction, authors/updates might be harder to get from grid
+        };
+        
+        // Distribute - for now just add to popular as the homepage is mostly that
+        // Mangapark mix them. We can try to distinguish by section if we had precise structure
+        // For MVP, we'll slice them.
+        popular.push(manga);
+      }
+
+      // If we extracted many, split them or fetch latest specifically if needed
+      // "Member Uploads" is usually the Latest section
+      // For now, let's just duplicates or slice for safety if we can't distinguish sections perfectly without more robust selectors
+      const mid = Math.floor(popular.length / 2);
+      return {
+          popular: popular.slice(0, mid),
+          latest: popular.slice(mid),
+      };
+
+    } catch (e) {
+      logError('Home feed failed', e);
+      return { popular: [], latest: [] };
+    }
   },
 
+  async getPopular(page = 1): Promise<Manga[]> {
+    return this.search('', { sortBy: 'rating' } as any); // Fallback to search sorted
+  },
 
-};
+  async getLatest(page = 1): Promise<Manga[]> {
+      return this.search('', { sortBy: 'latest' } as any); // Fallback to search sorted
+  },

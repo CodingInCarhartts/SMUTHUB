@@ -1,6 +1,6 @@
 {
   "name": "smuthub",
-  "version": "1.0.146",
+  "version": "1.0.147",
   "type": "module",
   "scripts": {
     "build": "rspeedy build",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@lynx-js/react": "^0.115.1",
     "@supabase/supabase-js": "^2.89.0",
-    "node-html-parser": "^7.0.1"
+    "node-html-parser": "^7.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",

@@ -195,7 +195,7 @@ export function App() {
     try {
       log('[App] fetchHomeFeed started');
       
-      const feed = await sourceManager.getSource('mangago')!.getHomeFeed();
+      const feed = await sourceManager.getSource('mangapark')!.getHomeFeed();
       setPopularMangas(feed.popular);
       setLatestMangas(feed.latest);
       
