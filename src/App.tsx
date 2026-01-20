@@ -194,16 +194,13 @@ export function App() {
     setHomeError(null);
     try {
       log('[App] fetchHomeFeed started');
-      // For home feed, we currently only support Batoto or we might want to aggregate
-      // Using Batoto explicitly for Home Feed for now as it has the structure
-      const batoto = sourceManager.getSource('batoto');
-      if (batoto) {
-        const feed = await batoto.getHomeFeed();
-        setPopularMangas(feed.popular);
-        setLatestMangas(feed.latest);
-        if (feed.popular.length === 0 && feed.latest.length === 0) {
-          setHomeError('Connected but found no content.');
-        }
+      
+      const feed = await sourceManager.getSource('mangago')!.getHomeFeed();
+      setPopularMangas(feed.popular);
+      setLatestMangas(feed.latest);
+      
+      if (feed.popular.length === 0 && feed.latest.length === 0) {
+        setHomeError('Connected but found no content.');
       }
     } catch (e: any) {
       logError('[App] fetchHomeFeed failed:', e);
