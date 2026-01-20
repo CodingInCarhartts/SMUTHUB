@@ -15,14 +15,14 @@ const storageReadyPromise = new Promise<void>((resolve) => {
 
 function markStorageReady() {
   if (storageInitialized) return;
-  console.log('[UpdateService] Storage ready marked');
+  log('[UpdateService] Storage ready marked');
   storageInitialized = true;
   resolveStorageReady();
 }
 
 // Wait for global storage to be ready
 storageReady.then(() => {
-  console.log('[UpdateService] Global storage ready signal received');
+  log('[UpdateService] Global storage ready signal received');
   markStorageReady();
 });
 
@@ -59,8 +59,8 @@ export interface NativeAppUpdate {
   commitHash?: string;
 }
 
-export const BUNDLE_VERSION = '1.0.161';
-export const BUNDLE_COMMIT_HASH = '30838ac'; // Will be injected by publish-ota.js
+export const BUNDLE_VERSION = '1.0.162';
+export const BUNDLE_COMMIT_HASH = '0b946a9'; // Will be injected by publish-ota.js
 
 export const UpdateService = {
   /**
@@ -120,24 +120,24 @@ export const UpdateService = {
   async checkUpdate(): Promise<AppUpdate | null> {
     // Wait for storage to be ready (so we have the skipped version)
     await storageReadyPromise;
-    console.log('[UpdateService] Starting update check...');
+    log('[UpdateService] Starting update check...');
 
     const now = Date.now();
     if (now - lastCheckTimestamp < UPDATE_CHECK_COOLDOWN_MS) {
-      console.log(
+      log(
         `[UpdateService] Skipping check (cooldown active: ${Math.round((UPDATE_CHECK_COOLDOWN_MS - (now - lastCheckTimestamp)) / 1000)}s left).`,
       );
       return null;
     }
     lastCheckTimestamp = now;
 
-    console.log('[UpdateService] Fetching from Supabase (app_updates)...');
+    log('[UpdateService] Fetching from Supabase (app_updates)...');
     const latest = await this.getLatestUpdate();
     if (!latest) {
-      console.log('[UpdateService] No update data found in Supabase');
+      log('[UpdateService] No update data found in Supabase');
       return null;
     }
-    console.log(
+    log(
       `[UpdateService] Latest in DB: ${latest.version} (hash: ${latest.commitHash})`,
     );
 
@@ -172,7 +172,7 @@ export const UpdateService = {
 
     // Check if commit hash matches (primary check)
     if (latest.commitHash && latest.commitHash === BUNDLE_COMMIT_HASH) {
-      console.log('[UpdateService] Commit hash matches. App is up to date.');
+      log('[UpdateService] Commit hash matches. App is up to date.');
       return null;
     }
 
@@ -182,7 +182,7 @@ export const UpdateService = {
       (skipped === latest.commitHash || skipped === latest.version) &&
       !latest.isMandatory
     ) {
-      console.log(
+      log(
         `[UpdateService] Version ${latest.version} is skipped by user.`,
       );
       return null;
@@ -190,7 +190,7 @@ export const UpdateService = {
 
     // If commit hash differs, there's an update
     if (latest.commitHash && latest.commitHash !== BUNDLE_COMMIT_HASH) {
-      console.log(
+      log(
         `[UpdateService] NEW UPDATE FOUND! Hash mismatch: ${latest.commitHash} vs ${BUNDLE_COMMIT_HASH}`,
       );
       return latest;
@@ -198,16 +198,16 @@ export const UpdateService = {
 
     // Fallback to semver comparison for legacy entries without commit_hash
     const comparison = this.compareVersions(latest.version, BUNDLE_VERSION);
-    console.log(
+    log(
       `[UpdateService] Fallback semver compare: ${latest.version} vs ${BUNDLE_VERSION} => Result: ${comparison}`,
     );
 
     if (comparison > 0) {
-      console.log('[UpdateService] NEW UPDATE FOUND (via semver fallback)!');
+      log('[UpdateService] NEW UPDATE FOUND (via semver fallback)!');
       return latest;
     }
 
-    console.log('[UpdateService] App is up to date.');
+    log('[UpdateService] App is up to date.');
     return null;
   },
 

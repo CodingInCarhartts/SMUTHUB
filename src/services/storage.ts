@@ -188,6 +188,8 @@ async function initializeFromNativeStorage(): Promise<void> {
     STORAGE_KEYS.HISTORY,
     STORAGE_KEYS.FILTERS,
     STORAGE_KEYS.READER_POSITION,
+    STORAGE_KEYS.UPDATE_ATTEMPT,
+    STORAGE_KEYS.SKIPPED_VERSION,
   ];
 
   for (const key of keys) {
