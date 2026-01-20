@@ -228,16 +228,24 @@ export const MangaparkService = {
         },
       });
 
+      log(`Home feed status: ${response.status}`);
       const html = await response.text();
+      log(`HTML length: ${html.length}`);
+      
       const root = parse(html);
+
+      // Debug selectors
+      const groupItems = root.querySelectorAll('div.group.relative');
+      const allLinks = root.querySelectorAll('a[href^="/title/"]');
+      
+      log(`Selector 'div.group.relative' found: ${groupItems.length} items`);
+      log(`Generic 'a[href^="/title/"]' found: ${allLinks.length} items`);
 
       const popular: Manga[] = [];
       const latest: Manga[] = [];
 
-      // Scrape Popular Updates
-      // Based on inspection, these are often in a container with specific headers or just the main grid
-      // Looking for "Popular Updates" header usually precedes the grid
-      // Simplified selector strategy: Look for items in the main grids
+      // If specific selector fails but we have links, fallback or use better logic
+      // For now, let's keep the logic but log the failure.
       
       // Select all comic items on the homepage
       const items = root.querySelectorAll('div.group.relative');
