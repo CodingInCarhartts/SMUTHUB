@@ -59,8 +59,8 @@ export interface NativeAppUpdate {
   commitHash?: string;
 }
 
-export const BUNDLE_VERSION = '1.0.144';
-export const BUNDLE_COMMIT_HASH = 'bc340d0'; // Will be injected by publish-ota.js
+export const BUNDLE_VERSION = '1.0.145';
+export const BUNDLE_COMMIT_HASH = 'a03c5d5'; // Will be injected by publish-ota.js
 
 export const UpdateService = {
   /**
