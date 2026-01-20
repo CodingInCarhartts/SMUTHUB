@@ -45,66 +45,15 @@ function ReaderPanel({
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
-  const [imageSrc, setImageSrc] = useState<string>('');
-  const [isLoadingBlob, setIsLoadingBlob] = useState(false);
+
+  const currentUrl =
+    retryCount > 0
+      ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
+      : url;
 
   useEffect(() => {
-    let active = true;
-    const loadWithHeaders = async () => {
-      // If we have headers, we MUST fetch manually, as Lynx <image> likely doesn't support headers object
-      if (headers) {
-        setIsLoadingBlob(true);
-        try {
-          // Add a timestamp to avoid cache issues on retry
-          const fetchUrl = retryCount > 0 
-           ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
-           : url;
-           
-          log(`[ReaderPanel #${index}] Fetching blob with headers: ${fetchUrl}`);
-          const response = await fetch(fetchUrl, {
-             method: 'GET',
-             headers: headers,
-          });
-          
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          
-          const blob = await response.blob();
-          
-          // Convert to Base64
-          const reader = new FileReader();
-          reader.onloadend = () => {
-             if (active && reader.result) {
-                 setImageSrc(reader.result as string);
-                 setIsLoadingBlob(false);
-                 log(`[ReaderPanel #${index}] Blob loaded, size: ${blob.size}`);
-             }
-          };
-          reader.onerror = (e) => {
-              throw new Error('FileReader failed');
-          };
-          reader.readAsDataURL(blob);
-          
-        } catch (e: any) {
-          if (active) {
-            logError(`[ReaderPanel #${index}] Blob fetch failed`, e);
-            handleError({ detail: { errMsg: e.message } });
-            setIsLoadingBlob(false);
-          }
-        }
-      } else {
-        // Standard loading
-         const currentUrl =
-          retryCount > 0
-            ? `${url}${url.includes('?') ? '&' : '?'}retry=${retryCount}`
-            : url;
-        setImageSrc(currentUrl);
-      }
-    };
-
-    loadWithHeaders();
-    
-    return () => { active = false; };
-  }, [url, index, retryCount, headers]); // Re-run if headers change (unlikely but safe)
+    log(`[ReaderPanel #${index}] URL: ${currentUrl}`);
+  }, [currentUrl, index]);
 
   // ... (rest of the component)
 
@@ -164,7 +113,7 @@ function ReaderPanel({
         </view>
       ) : (
         <image
-          src={imageSrc}
+          src={currentUrl}
           className="Reader-panel"
           mode="scaleToFill"
           bindload={handleLoad}
