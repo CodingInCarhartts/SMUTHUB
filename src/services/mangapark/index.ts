@@ -6,7 +6,7 @@ const log = (msg: string) => console.log(`[Mangapark] ${msg}`);
 const logError = (msg: string, e?: any) =>
   console.error(`[Mangapark] ${msg}`, e);
 
-export const MangaparkService: MangaSource = {
+export const MangaparkService = {
   id: 'mangapark',
   name: 'MangaPark',
   baseUrl: 'https://mangapark.net',
@@ -40,7 +40,7 @@ export const MangaparkService: MangaSource = {
       const items = root.querySelectorAll('div.group.relative');
 
       return items
-        .map((item) => {
+        .map((item): Manga | null => {
           const titleEl = item.querySelector('h3 a, a.link-hover.font-bold');
           const imgEl = item.querySelector('img');
           // In search results, author might be missing or different
@@ -62,7 +62,7 @@ export const MangaparkService: MangaSource = {
             source: 'mangapark',
           };
         })
-        .filter((m) => m.id !== 'mangapark:');
+        .filter((m): m is Manga => m !== null && m.id !== 'mangapark:');
     } catch (e) {
       logError('Search failed', e);
       return [];
@@ -292,3 +292,4 @@ export const MangaparkService: MangaSource = {
   async getLatest(page = 1): Promise<Manga[]> {
       return this.search('', { sortBy: 'latest' } as any); // Fallback to search sorted
   },
+};
