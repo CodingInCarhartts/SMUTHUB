@@ -203,7 +203,13 @@ export const MangaparkService = {
                   // Filter out likely thumbnails or avatars if possible
                   // Mangapark chapter images often have /media/mpup/ or similar
                   // Avatars often have /thumb/
-                  const contentImages = images.filter(url => !url.includes('/thumb/') && !url.includes('avatar'));
+                  const contentImages = images
+                    .filter(url => !url.includes('/thumb/') && !url.includes('avatar'))
+                    .map(url => {
+                        // REWRITE HOST: CDN mirrors (sXX.mpX.org) are often blocked (521/522).
+                        // The main domain mangapark.net proxies these images reliably.
+                        return url.replace(/https:\/\/[^/]+(\/media\/)/, 'https://mangapark.net$1');
+                    });
                   
                   if (contentImages.length > allImages.length) {
                       allImages = contentImages;
