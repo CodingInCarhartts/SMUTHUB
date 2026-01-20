@@ -56,6 +56,10 @@ export class BatotoClient {
    * Tries to find the fastest responding mirror that supports the API
    */
   public async initialize(): Promise<void> {
+    // Batoto is dead. Disable probing.
+    log('[SmutHub] Batoto is shutdown. Skipping mirror probe.');
+    return;
+    
     if (this.activeMirror) return;
 
     log('[SmutHub] Resolving mirrors...');
