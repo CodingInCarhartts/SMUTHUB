@@ -6,7 +6,7 @@ import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
 const log = (msg: string) => console.log(`[Mangago] ${msg}`);
 const logError = (msg: string, e?: any) => console.error(`[Mangago] ${msg}`, e);
 
-export const MangagoService: MangaSource = {
+export const MangagoService = {
   id: 'mangago',
   name: 'Mangago',
   baseUrl: 'https://mangago.me',
