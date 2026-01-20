@@ -10,7 +10,7 @@ import {
 
 class SourceManager {
   private sources: Map<string, MangaSource> = new Map();
-  private defaultSource: string = 'batoto';
+  private defaultSource: string = 'mangago';
 
   constructor() {
     // We will register sources here
@@ -34,11 +34,20 @@ class SourceManager {
 
   // Helper to determine source from ID or URL
   resolveSource(idOrUrl: string): MangaSource | undefined {
+    // Legacy mapping: old Batoto IDs (pure numbers) or batoto URLs
     if (idOrUrl.includes('batoto') || /^\d+$/.test(idOrUrl)) {
+      // Warn: Batoto is dead, but we might still resolve the service object
+      // so it can return "Service Unavailable" or similar.
       return this.sources.get('batoto');
     }
-    // Add logic for other sources as they are added
-    // e.g. if (idOrUrl.startsWith('mangago:')) return this.sources.get('mangago');
+    
+    if (idOrUrl.startsWith('mangago:') || idOrUrl.includes('mangago.me')) {
+        return this.sources.get('mangago');
+    }
+    
+    if (idOrUrl.startsWith('mangapark:') || idOrUrl.includes('mangapark.net')) {
+        return this.sources.get('mangapark');
+    }
 
     // Fallback based on known prefixes if we implement namespacing
     const prefix = idOrUrl.split(':')[0];
@@ -48,6 +57,8 @@ class SourceManager {
 
     return this.sources.get(this.defaultSource);
   }
+
+
 
   async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     // For now, search across all sources or just default?
