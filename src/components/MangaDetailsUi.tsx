@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from '@lynx-js/react';
-import type { MangaDetails } from '../services/batoto';
+import type { MangaDetails } from '../services/types';
 import { StorageService } from '../services/storage';
 import './MangaDetailsUi.css';
 
@@ -124,7 +124,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
 
         {/* Genres, these need to be badges, but non intrusive. */}
         <scroll-view className="GenreRow" scroll-x>
-          {details.genres?.map((g) => (
+          {details.genres?.map((g: string) => (
             <text key={g} className="GenreTag">
               {g}
             </text>

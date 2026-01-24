@@ -1,5 +1,5 @@
 import { useCallback, useState } from '@lynx-js/react';
-import type { SearchFilters } from '../services/batoto/types';
+import type { SearchFilters } from '../services/types';
 import './SearchFilters.css';
 
 interface Props {
@@ -160,10 +160,10 @@ export function SearchFiltersModal({
   );
 
   const toggleGenre = (genre: string) => {
-    setFilters((prev) => ({
+    setFilters((prev: SearchFilters) => ({
       ...prev,
       genres: prev.genres.includes(genre)
-        ? prev.genres.filter((g) => g !== genre)
+        ? prev.genres.filter((g: string) => g !== genre)
         : [...prev.genres, genre],
     }));
   };
@@ -214,7 +214,7 @@ export function SearchFiltersModal({
                   filters.sort === s.value ? 'Chip Chip-active' : 'Chip'
                 }
                 bindtap={() =>
-                  setFilters((prev) => ({ ...prev, sort: s.value as any }))
+                  setFilters((prev: SearchFilters) => ({ ...prev, sort: s.value as any }))
                 }
               >
                 <text
@@ -239,7 +239,7 @@ export function SearchFiltersModal({
                   filters.status === s.value ? 'Chip Chip-active' : 'Chip'
                 }
                 bindtap={() =>
-                  setFilters((prev) => ({ ...prev, status: s.value as any }))
+                  setFilters((prev: SearchFilters) => ({ ...prev, status: s.value as any }))
                 }
               >
                 <text

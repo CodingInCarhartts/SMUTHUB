@@ -1,5 +1,5 @@
 import { useEffect, useState } from '@lynx-js/react';
-import type { Manga } from '../services/batoto';
+import type { Manga } from '../services/types';
 import { StorageService } from '../services/storage';
 import './MangaCard.css';
 

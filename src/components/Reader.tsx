@@ -10,7 +10,7 @@ import {
   RETRY_DELAY_INCREMENT,
   SWIPE_THRESHOLD_PX,
 } from '../config';
-import { BatotoService, type Manga } from '../services/batoto';
+import type { Manga } from '../services/types';
 import { logCapture } from '../services/debugLog';
 import { SettingsStore } from '../services/settings';
 import { sourceManager } from '../services/sourceManager';
