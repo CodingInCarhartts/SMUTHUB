@@ -27,9 +27,41 @@ function fixUrl(url: string | undefined | null): string {
   return url;
 }
 
+// Helper for fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 10000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const fetchPromise = fetch(url, {
+      ...options,
+      signal: controller.signal as any, // Lynx might strictly type signal
+    });
+
+    // Fallback race in case signal is ignored by environment
+    const timeoutPromise = new Promise<Response>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Request timed out after ${timeout}ms`)),
+        timeout,
+      ),
+    );
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    clearTimeout(id);
+    return response;
+  } catch (e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
 async function getPopular(): Promise<Manga[]> {
   try {
-    const response = await fetch(BASE_URL, { headers: HEADERS });
+    const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
     const html = await response.text();
     const root = parse(html);
 
@@ -59,7 +91,7 @@ async function getPopular(): Promise<Manga[]> {
 async function getLatest(): Promise<Manga[]> {
   try {
     const url = `${BASE_URL}/latest`;
-    const response = await fetch(url, { headers: HEADERS });
+    const response = await fetchWithTimeout(url, { headers: HEADERS });
     const html = await response.text();
     const root = parse(html);
 
@@ -102,7 +134,7 @@ export const MangaparkService: MangaSource = {
       log(`Searching for: ${query}`);
       const url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
 
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: this.headers,
       });
 
@@ -149,7 +181,7 @@ export const MangaparkService: MangaSource = {
         : `${this.baseUrl}/manga/${idOrUrl.replace('mangapark:', '')}`;
       log(`Fetching details: ${url}`);
 
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: this.headers,
       });
 
@@ -208,7 +240,7 @@ export const MangaparkService: MangaSource = {
   async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
     try {
       log(`Fetching chapter: ${chapterIdOrUrl}`);
-      const response = await fetch(chapterIdOrUrl, {
+      const response = await fetchWithTimeout(chapterIdOrUrl, {
         headers: this.headers,
       });
 
