@@ -207,6 +207,15 @@ export const MangaparkService: MangaSource = {
         }
       }
 
+      // 1. Browsing Mode (Filters only, no text): Server-side filtered.
+      // 2. Searching Mode (Text + Filters): Client-side filtered.
+      if (!hasQuery) {
+        log(
+          `[Search] Browse Mode: Trusting server results (${results.length})`,
+        );
+        return results;
+      }
+
       let filteredResults = results;
 
       if (hasGenres && filters?.genres?.length) {
@@ -217,13 +226,14 @@ export const MangaparkService: MangaSource = {
         if (requiredGenreIds.length > 0) {
           const beforeCount = filteredResults.length;
           filteredResults = filteredResults.filter((manga) => {
+            // In search mode, we MUST have genreIds to verify the target
             if (!manga.genreIds || manga.genreIds.length === 0) {
-              return true;
+              return false; // Strict targeting
             }
             return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
           });
           log(
-            `[Search] Client filter: ${beforeCount} -> ${filteredResults.length} (${requiredGenreIds.join(', ')})`,
+            `[Search] Search Mode Filter: ${beforeCount} -> ${filteredResults.length} (Targeted: ${requiredGenreIds.join(', ')})`,
           );
         }
       }
