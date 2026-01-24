@@ -213,7 +213,10 @@ export const MangaparkService: MangaSource = {
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     try {
       log('Fetching home feed');
-      const [popular, latest] = await Promise.all([this.getPopular(), this.getLatest()]);
+      const [popular, latest] = await Promise.all([
+        this.getPopular!(),
+        this.getLatest!(),
+      ]);
 
       return {
         popular,
