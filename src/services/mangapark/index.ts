@@ -1,5 +1,5 @@
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
-import { logCapture } from '../debugLog';
+import { logCapture, mapGenreToApi } from '../types';
 
 // Helper for debug logging
 const log = (msg: string) => logCapture('log', `[Mangapark] ${msg}`);
@@ -67,13 +67,13 @@ export const MangaparkService: MangaSource = {
 
   async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     try {
-      let url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
+      // Use /manga endpoint (Directory) for all filtered and keyword searches
+      let url = `${this.baseUrl}/manga?title=${encodeURIComponent(query)}`;
       
       if (filters) {
-          // Add Order
-          if (filters.sort && filters.sort !== 'views_d030') {
-              url += `&order=${filters.sort}`;
-          }
+          // Add Order (Default to 'latest' if not views_d030)
+          const order = filters.sort === 'views_d030' ? '' : filters.sort;
+          if (order) url += `&order=${order}`;
 
           // Add Status
           if (filters.status && filters.status !== 'all') {
@@ -85,16 +85,16 @@ export const MangaparkService: MangaSource = {
               url += `&status=${statusMap[filters.status]}`;
           }
 
-          // Add Genres (include_genre_chk)
+          // Add Genres (Multi-param)
           if (filters.genres && filters.genres.length > 0) {
-              const { mapGenreToApi } = await import('../types');
               filters.genres.forEach(g => {
                   const slug = mapGenreToApi(g);
-                  url += `&include_genre_chk=${slug}`;
+                  if (slug) url += `&include_genre_chk=${slug}`;
               });
           }
       }
 
+      log(`[Search] Query: "${query}", URL: ${url}`);
       const html = await fetchSafe(url, { headers: HEADERS });
 
       const results: Manga[] = [];
