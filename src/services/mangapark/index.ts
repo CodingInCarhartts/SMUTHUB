@@ -65,9 +65,36 @@ export const MangaparkService: MangaSource = {
   isNsfwSource: false,
   headers: HEADERS,
 
-  async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
+  async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     try {
-      const url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
+      let url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
+      
+      if (filters) {
+          // Add Order
+          if (filters.sort && filters.sort !== 'views_d030') {
+              url += `&order=${filters.sort}`;
+          }
+
+          // Add Status
+          if (filters.status && filters.status !== 'all') {
+              const statusMap: Record<string, string> = {
+                  'ongoing': '1',
+                  'completed': '2',
+                  'cancelled': '0'
+              };
+              url += `&status=${statusMap[filters.status]}`;
+          }
+
+          // Add Genres (include_genre_chk)
+          if (filters.genres && filters.genres.length > 0) {
+              const { mapGenreToApi } = await import('../types');
+              filters.genres.forEach(g => {
+                  const slug = mapGenreToApi(g);
+                  url += `&include_genre_chk=${slug}`;
+              });
+          }
+      }
+
       const html = await fetchSafe(url, { headers: HEADERS });
 
       const results: Manga[] = [];

@@ -39,11 +39,10 @@ export interface Page {
 
 export interface SearchFilters {
   genres: string[];
-  status: 'all' | 'ongoing' | 'completed' | 'hiatus';
-  sort: 'views_d030' | 'views_d007' | 'update' | 'create';
+  status: 'all' | 'ongoing' | 'completed' | 'cancelled';
+  sort: 'latest' | 'new' | 'az' | 'numc' | 'views_d030';
   nsfw: boolean;
   page?: number;
-  // Source-specific filters can be added here
 }
 
 export interface MangaSource {
@@ -62,48 +61,55 @@ export interface MangaSource {
 }
 
 export const GENRE_API_MAPPING: Record<string, string> = {
-  'Yaoi(BL)': 'yaoi',
-  'Yuri(GL)': 'yuri',
-  'Seinen(M)': 'seinen',
-  'Bara(ML)': 'bara',
-  'Shoujo(G)': 'shoujo',
-  'Shounen(B)': 'shounen',
-  'Josei(W)': 'josei',
-  'Kodomo(Kid)': 'kodomo',
-  'Shoujo ai': 'shoujo_ai',
-  'Shounen ai': 'shounen_ai',
-  'Netorare/NTR': 'netorare',
-  'Cheating/Infidelity': 'cheating_infidelity',
-  Netori: 'netori',
-  'Slice of Life': 'slice_of_life',
-  'SM/BDSM/SUB-DOM': 'sm_bdsm',
-  '4-Koma': '4-koma',
-  'Childhood Friends': 'childhood_friends',
-  'College life': 'college_life',
-  'Contest winning': 'contest_winning',
-  Crossdressing: 'crossdressing',
-  "Emperor's daughter": 'emperors_daughter',
-  'Full Color': 'full_color',
-  'Gender Bender': 'gender_bender',
-  Genderswap: 'genderswap',
-  'Magical Girls': 'magical_girls',
-  'Martial Arts': 'martial_arts',
-  'Monster Girls': 'monster_girls',
-  'Office Workers': 'office_workers',
-  'Post-Apocalyptic': 'post_apocalyptic',
-  'Read Direction': 'read_direction',
-  'Royal family': 'royal_family',
-  'School Life': 'school_life',
-  'Silver & Golden': 'silver_golden',
-  'Super Power': 'super_power',
-  Supernatural: 'supernatural',
-  Survival: 'survival',
-  'Time Travel': 'time_travel',
-  'Tower Climbing': 'tower_climbing',
-  'Traditional Games': 'traditional_games',
-  Transmigration: 'transmigration',
-  'Virtual Reality': 'virtual_reality',
-  'Video Games': 'video_games',
+    '4-Koma': '4-koma',
+    'Action': 'action',
+    'Adult': 'adult',
+    'Adventure': 'adventure',
+    'Artbook': 'artbook',
+    'Award Winning': 'award-winning',
+    'Comedy': 'comedy',
+    'Cooking': 'cooking',
+    'Doujinshi': 'doujinshi',
+    'Drama': 'drama',
+    'Ecchi': 'ecchi',
+    'Fantasy': 'fantasy',
+    'Gender Bender': 'gender-bender',
+    'Harem': 'harem',
+    'Historical': 'historical',
+    'Horror': 'horror',
+    'Isekai': 'isekai',
+    'Josei': 'josei',
+    'Loli': 'loli',
+    'Manhua': 'manhua',
+    'Manhwa': 'manhwa',
+    'Martial Arts': 'martial-arts',
+    'Mecha': 'mecha',
+    'Medical': 'medical',
+    'Music': 'music',
+    'Mystery': 'mystery',
+    'One Shot': 'one-shot',
+    'Overpowered MC': 'overpowered-mc',
+    'Psychological': 'psychological',
+    'Reincarnation': 'reincarnation',
+    'Romance': 'romance',
+    'School Life': 'school-life',
+    'Sci-fi': 'sci-fi',
+    'Seinen': 'seinen',
+    'Shota': 'shota',
+    'Shoujo': 'shoujo',
+    'Shoujo Ai': 'shoujo-ai',
+    'Shounen': 'shounen',
+    'Shounen Ai': 'shounen-ai',
+    'Slice of Life': 'slice-of-life',
+    'Sports': 'sports',
+    'Super Power': 'super-power',
+    'Supernatural': 'supernatural',
+    'Survival': 'survival',
+    'Time Travel': 'time-travel',
+    'Tragedy': 'tragedy',
+    'Webtoon': 'webtoon',
+    'Yaoi': 'yaoi',
+    'Yuri': 'yuri'
 };
 
 export const mapGenreToApi = (genre: string): string => {
