@@ -430,7 +430,9 @@ export function App() {
                       <Sparkles>
                         <text className="HomeTitle">{randomHeaderTitle}</text>
                       </Sparkles>
-                      <text style={{ fontSize: '10px', color: '#999', marginTop: '4px' }}>v1.0.187</text>
+                      <view style={{ padding: '4px', backgroundColor: '#ee5566', borderRadius: '4px', marginTop: '4px' }}>
+                        <text style={{ fontSize: '10px', color: 'white' }}>LIVE VERSION 1.0.188</text>
+                      </view>
                     </view>
                   <scroll-view
                     className="MangaList"
