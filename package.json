@@ -1,6 +1,6 @@
 {
   "name": "smuthub",
-  "version": "1.0.183",
+  "version": "1.0.184",
   "type": "module",
   "scripts": {
     "build": "rspeedy build",
@@ -26,7 +26,7 @@
     "@rsbuild/plugin-type-check": "1.3.1",
     "@types/react": "^18.3.25",
     "supabase": "^2.70.5",
-    "typescript": "~5.9.3",
+    "typescript": "~5.7.3",
     "vitest": "^4.0.16"
   },
   "engines": {
