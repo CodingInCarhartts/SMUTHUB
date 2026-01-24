@@ -62,78 +62,6 @@ async function fetchWithTimeout(
   }
 }
 
-async function getPopular(): Promise<Manga[]> {
-  try {
-    log('Getting popular manga...');
-    const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
-    
-    const text = await response.text();
-    log(`[Popular] Body length: ${text.length}`);
-    if (text.length < 500) {
-        logWarn(`[Popular] Suspiciously short body: ${text.substring(0, 100)}`);
-    }
-
-    const root = parse(text); // Use text variable
-    const items = root.querySelectorAll('#hot_book .item');
-    log(`[Popular] Found ${items.length} items`);
-
-    if (items.length > 0) {
-      return items.map((item) => {
-        const a = item.querySelector('.title a');
-        const img = item.querySelector('img');
-        const href = a?.getAttribute('href') || '';
-        return {
-          id: `mangapark:${href.split('/').pop()}`,
-          title: a?.text.trim() || 'Unknown',
-          url: href,
-          cover: fixUrl(img?.getAttribute('src')),
-          source: 'mangapark',
-        };
-      });
-    }
-
-    log('[Popular] Fallback to search');
-    return MangaparkService.search('');
-  } catch (e) {
-    logError('Popular failed', e);
-    return [];
-  }
-}
-
-async function getLatest(): Promise<Manga[]> {
-  try {
-    const url = `${BASE_URL}/latest`;
-    const response = await fetchWithTimeout(url, { headers: HEADERS });
-    const html = await response.text();
-    const root = parse(html);
-
-    const items = root.querySelectorAll('#book_list .item');
-
-    return items
-      .map((item): Manga | null => {
-        const a = item.querySelector('.text .title a');
-        const img = item.querySelector('.media .wrap_img img');
-        const href = a?.getAttribute('href') || '';
-        const genreEls = item.querySelectorAll('.text .genres a');
-
-        if (!a) return null;
-
-        return {
-          id: `mangapark:${href.split('/').pop()}`,
-          title: a.text.trim(),
-          url: href,
-          cover: fixUrl(img?.getAttribute('src')),
-          genres: genreEls.map((g) => g.text.trim()),
-          source: 'mangapark',
-        };
-      })
-      .filter((m): m is Manga => m !== null);
-  } catch (e) {
-    logError('Latest failed', e);
-    return [];
-  }
-}
-
 export const MangaparkService: MangaSource = {
   id: 'mangapark',
   name: 'MangaPark',
@@ -285,7 +213,7 @@ export const MangaparkService: MangaSource = {
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     try {
       log('Fetching home feed');
-      const [popular, latest] = await Promise.all([getPopular(), getLatest()]);
+      const [popular, latest] = await Promise.all([this.getPopular(), this.getLatest()]);
 
       return {
         popular,
@@ -294,6 +222,78 @@ export const MangaparkService: MangaSource = {
     } catch (e) {
       logError('Home feed failed', e);
       return { popular: [], latest: [] };
+    }
+  },
+
+  async getPopular(): Promise<Manga[]> {
+    try {
+      log('Getting popular manga...');
+      const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
+      
+      const text = await response.text();
+      log(`[Popular] Body length: ${text.length}`);
+      if (text.length < 500) {
+          logWarn(`[Popular] Suspiciously short body: ${text.substring(0, 100)}`);
+      }
+
+      const root = parse(text); 
+      const items = root.querySelectorAll('#hot_book .item');
+      log(`[Popular] Found ${items.length} items`);
+
+      if (items.length > 0) {
+        return items.map((item) => {
+          const a = item.querySelector('.title a');
+          const img = item.querySelector('img');
+          const href = a?.getAttribute('href') || '';
+          return {
+            id: `mangapark:${href.split('/').pop()}`,
+            title: a?.text.trim() || 'Unknown',
+            url: href,
+            cover: fixUrl(img?.getAttribute('src')),
+            source: 'mangapark',
+          };
+        });
+      }
+
+      log('[Popular] Fallback to search');
+      return this.search('');
+    } catch (e) {
+      logError('Popular failed', e);
+      return [];
+    }
+  },
+
+  async getLatest(): Promise<Manga[]> {
+    try {
+      const url = `${BASE_URL}/latest`;
+      const response = await fetchWithTimeout(url, { headers: HEADERS });
+      const html = await response.text();
+      const root = parse(html);
+
+      const items = root.querySelectorAll('#book_list .item');
+
+      return items
+        .map((item): Manga | null => {
+          const a = item.querySelector('.text .title a');
+          const img = item.querySelector('.media .wrap_img img');
+          const href = a?.getAttribute('href') || '';
+          const genreEls = item.querySelectorAll('.text .genres a');
+
+          if (!a) return null;
+
+          return {
+            id: `mangapark:${href.split('/').pop()}`,
+            title: a.text.trim(),
+            url: href,
+            cover: fixUrl(img?.getAttribute('src')),
+            genres: genreEls.map((g) => g.text.trim()),
+            source: 'mangapark',
+          };
+        })
+        .filter((m): m is Manga => m !== null);
+    } catch (e) {
+      logError('Latest failed', e);
+      return [];
     }
   },
 };
