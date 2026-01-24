@@ -58,9 +58,13 @@ function captureLog(level: LogEntry['level'], args: any[]) {
 
 // Direct capture function that doesn't rely on console override
 export function logCapture(level: LogEntry['level'], ...args: any[]) {
-  captureLog(level, args);
-  if (originalConsole[level]) {
-    originalConsole[level](...args);
+  // SIMPLIFIED: Just call console directly to avoid crash
+  if (level === 'log' || level === 'info' || level === 'debug') {
+      console.log(...args);
+  } else if (level === 'warn') {
+      console.warn(...args);
+  } else if (level === 'error') {
+      console.error(...args);
   }
 }
 
