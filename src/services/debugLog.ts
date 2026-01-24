@@ -93,9 +93,10 @@ const overrideConsole = (target: any) => {
 };
 
 // Override on both console and globalThis.console
-overrideConsole(console);
+// SAFETY FIX: Do not override global console to prevent Lynx runtime crash on main thread
+// overrideConsole(console);
 if (globalThis.console && globalThis.console !== console) {
-  overrideConsole(globalThis.console);
+  // overrideConsole(globalThis.console);
 }
 
 // Add an immediate test log to verify capture is working
