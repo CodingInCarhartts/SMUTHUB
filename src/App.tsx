@@ -6,23 +6,23 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { FavoritesView } from './components/FavoritesView';
 import { HistoryView } from './components/HistoryView';
 import { MangaCard } from './components/MangaCard';
-import { MangaDetailsUi } from './components/MangaDetailsUi'; 
+import { MangaDetailsUi } from './components/MangaDetailsUi';
 import { Reader } from './components/Reader';
 import { Search } from './components/Search';
 import { SearchFiltersModal } from './components/SearchFilters';
 import { Settings } from './components/Settings';
 import { Sparkles } from './components/Sparkles';
 import { UpdateModal } from './components/UpdateModal';
-import {
-  type Chapter,
-  type Manga,
-  type MangaDetails,
-  type SearchFilters,
-} from './services/types';
 import { logCapture } from './services/debugLog';
 import { SettingsStore } from './services/settings';
 import { sourceManager } from './services/sourceManager';
 import { normalizeUrl, StorageService } from './services/storage';
+import type {
+  Chapter,
+  Manga,
+  MangaDetails,
+  SearchFilters,
+} from './services/types';
 import {
   type AppUpdate,
   type NativeAppUpdate,
@@ -98,19 +98,19 @@ export function App() {
   const triggerUpdateCheck = useCallback(async () => {
     log('[App] Checking for OTA updates...');
     try {
-        const update = await UpdateService.checkUpdate();
-        if (update) {
-          log('[App] OTA Update found:', update.version);
-          setPendingUpdate(update);
-        }
-        log('[App] Checking for Native updates...');
-        const nativeUpdate = await UpdateService.checkNativeUpdate();
-        if (nativeUpdate) {
-          log('[App] Native Update found:', nativeUpdate.version);
-          setPendingNativeUpdate(nativeUpdate);
-        }
+      const update = await UpdateService.checkUpdate();
+      if (update) {
+        log('[App] OTA Update found:', update.version);
+        setPendingUpdate(update);
+      }
+      log('[App] Checking for Native updates...');
+      const nativeUpdate = await UpdateService.checkNativeUpdate();
+      if (nativeUpdate) {
+        log('[App] Native Update found:', nativeUpdate.version);
+        setPendingNativeUpdate(nativeUpdate);
+      }
     } catch (e) {
-        logError('[App] Update check error:', e);
+      logError('[App] Update check error:', e);
     }
   }, []);
 
@@ -119,16 +119,16 @@ export function App() {
     setHomeError(null);
     try {
       log('[App] fetchHomeFeed started');
-      
+
       const source = sourceManager.getSource('mangapark');
       if (!source) {
-          throw new Error('MangaPark source not registered');
+        throw new Error('MangaPark source not registered');
       }
 
       const feed = await source.getHomeFeed();
       setPopularMangas(feed.popular);
       setLatestMangas(feed.latest);
-      
+
       if (feed.popular.length === 0 && feed.latest.length === 0) {
         setHomeError('Connected but found no content.');
       }
@@ -153,7 +153,7 @@ export function App() {
       setCurrentFilters(savedFilters);
       log('[App] Loaded saved filters:', savedFilters);
     }
-    
+
     // Check for updates shortly after boot
     const timer = setTimeout(triggerUpdateCheck, 3000);
     return () => clearTimeout(timer);
@@ -218,16 +218,19 @@ export function App() {
       setCurrentFilters(filters);
       setShowFilters(false);
       StorageService.saveFilters(filters);
-      await loadBrowse(filters);
+      await loadBrowse({
+        ...filters,
+        word: searchQuery,
+      } as any);
     },
-    [loadBrowse],
+    [loadBrowse, searchQuery],
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
     log(`[App] Selected manga: ${manga.title}`);
     setSelectedManga(manga);
     setView('details');
-    setSettingsSubview('main'); 
+    setSettingsSubview('main');
     setLoading(true);
     const source = sourceManager.resolveSource(
       manga.source || manga.url || manga.id,
@@ -246,7 +249,7 @@ export function App() {
     async (manga: Manga, chapterUrl?: string, chapterTitle?: string) => {
       log(`[App] History resume: ${manga.title}`);
       setSelectedManga(manga);
-      setSettingsSubview('main'); 
+      setSettingsSubview('main');
 
       if (chapterUrl) {
         setSelectedChapterUrl(chapterUrl);
@@ -356,7 +359,7 @@ export function App() {
           nsfw: false,
         });
       } else {
-        setTab('search'); 
+        setTab('search');
         handleApplyFilters({
           genres: [genre.toLowerCase()],
           sort: 'views_d030',
@@ -398,6 +401,11 @@ export function App() {
     ];
   }, []);
 
+  const searchLoadingText =
+    searchQuery.trim() && currentFilters?.genres?.length
+      ? 'Filtering results...'
+      : 'Searching the library...';
+
   return (
     <ErrorBoundary>
       <view
@@ -425,11 +433,13 @@ export function App() {
             <>
               {tab === 'home' && (
                 <view className="Home">
-                    <view className="HomeHeader">
-                      <Sparkles>
-                        <text className="HomeTitle">Release v1.0.212 (Filters Fixed)</text>
-                      </Sparkles>
-                    </view>
+                  <view className="HomeHeader">
+                    <Sparkles>
+                      <text className="HomeTitle">
+                        Release v1.0.212 (Filters Fixed)
+                      </text>
+                    </Sparkles>
+                  </view>
                   <scroll-view
                     className="MangaList"
                     scroll-y
@@ -543,9 +553,7 @@ export function App() {
                     {loading ? (
                       <view className="LoadingContainer">
                         <view className="LoadingSpinner" />
-                        <text className="StatusText">
-                          Searching the library...
-                        </text>
+                        <text className="StatusText">{searchLoadingText}</text>
                       </view>
                     ) : mangas.length > 0 ? (
                       mangas.map((m) => (

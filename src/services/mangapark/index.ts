@@ -17,6 +17,61 @@ const HEADERS = {
 
 const BASE_URL = 'https://mangakatana.com';
 
+const GENRE_ID_BY_SLUG: Record<string, number> = {
+  '4-koma': 44,
+  action: 14,
+  adult: 18,
+  adventure: 15,
+  artbook: 46,
+  'award-winning': 45,
+  comedy: 2,
+  cooking: 39,
+  doujinshi: 25,
+  drama: 3,
+  ecchi: 23,
+  erotica: 34,
+  fantasy: 24,
+  'gender-bender': 33,
+  gore: 11,
+  harem: 20,
+  historical: 26,
+  horror: 37,
+  isekai: 49,
+  josei: 4,
+  loli: 42,
+  manhua: 38,
+  manhwa: 10,
+  'martial-arts': 22,
+  mecha: 28,
+  medical: 41,
+  music: 47,
+  mystery: 5,
+  'one-shot': 32,
+  'overpowered-mc': 50,
+  psychological: 6,
+  reincarnation: 52,
+  romance: 7,
+  'school-life': 8,
+  'sci-fi': 16,
+  seinen: 19,
+  'sexual-violence': 31,
+  shota: 43,
+  shoujo: 27,
+  'shoujo-ai': 35,
+  shounen: 17,
+  'shounen-ai': 29,
+  'slice-of-life': 9,
+  sports: 12,
+  'super-power': 48,
+  supernatural: 21,
+  survival: 51,
+  'time-travel': 53,
+  tragedy: 30,
+  webtoon: 36,
+  yaoi: 40,
+  yuri: 13,
+};
+
 function fixUrl(url: string | undefined | null): string {
   if (!url) return '';
   if (url.startsWith('//')) {
@@ -74,7 +129,7 @@ export const MangaparkService: MangaSource = {
       const params: string[] = [];
 
       if (hasQuery) {
-        params.push(`search=${encodeURIComponent(trimmedQuery)}`);
+        params.push(`s=${encodeURIComponent(trimmedQuery)}`);
       }
 
       if (filters) {
@@ -115,6 +170,13 @@ export const MangaparkService: MangaSource = {
       blocks.shift(); // discard header
 
       for (const block of blocks) {
+        const genreDataMatch = block.match(/data-genre="([^"]*)"/);
+        const genreIds = genreDataMatch
+          ? genreDataMatch[1]
+              .split(',')
+              .map((id) => Number.parseInt(id.trim(), 10))
+              .filter((id) => Number.isFinite(id))
+          : undefined;
         const titleMatch = block.match(
           /<h3 class="title">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/,
         );
@@ -137,10 +199,32 @@ export const MangaparkService: MangaSource = {
             url: href,
             cover: imgMatch ? fixUrl(imgMatch[1]) : '',
             genres,
+            genreIds: genreIds && genreIds.length > 0 ? genreIds : undefined,
             source: 'mangapark',
           });
         }
       }
+
+      if (hasQuery && filters?.genres?.length) {
+        const requiredGenreIds = filters.genres
+          .map((genre) => GENRE_ID_BY_SLUG[mapGenreToApi(genre)])
+          .filter((id): id is number => Number.isFinite(id));
+
+        if (requiredGenreIds.length > 0) {
+          const beforeCount = results.length;
+          const filtered = results.filter((manga) => {
+            if (!manga.genreIds || manga.genreIds.length === 0) {
+              return true;
+            }
+            return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
+          });
+          log(
+            `[Search] Client filter: ${beforeCount} -> ${filtered.length} (${requiredGenreIds.join(', ')})`,
+          );
+          return filtered;
+        }
+      }
+
       return results;
     } catch (e) {
       logError('Search failed', e);
