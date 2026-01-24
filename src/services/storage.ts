@@ -3,8 +3,7 @@ import {
   HISTORY_LIMIT_LOCAL,
   NATIVE_DEVICE_ID_TIMEOUT_MS,
 } from '../config';
-import { BatotoService } from './batoto';
-import type { Manga, SearchFilters } from './batoto/types';
+import type { Manga, SearchFilters } from './types';
 import { logCapture } from './debugLog';
 import { MigrationService } from './migration';
 import {
@@ -866,7 +865,8 @@ export const StorageService = {
         return new Map();
       }
 
-      const updates = await BatotoService.getBatchMangaInfo(ids);
+      // NOTE: Batoto is removed, avoiding batch fetch for now.
+      const updates: Manga[] = []; 
       log(`[Storage] Fetched updates for ${updates.length} favorites`);
 
       const updateMap = new Map<string, Manga>();

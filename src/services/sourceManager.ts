@@ -1,4 +1,3 @@
-import { BatotoService } from './batoto';
 import { MangagoService } from './mangago';
 import { MangaparkService } from './mangapark';
 import {
@@ -14,7 +13,6 @@ class SourceManager {
 
   constructor() {
     // We will register sources here
-    this.registerSource(BatotoService);
     this.registerSource(MangagoService);
     this.registerSource(MangaparkService);
   }
@@ -34,19 +32,16 @@ class SourceManager {
 
   // Helper to determine source from ID or URL
   resolveSource(idOrUrl: string): MangaSource | undefined {
-    // Legacy mapping: old Batoto IDs (pure numbers) or batoto URLs
-    if (idOrUrl.includes('batoto') || /^\d+$/.test(idOrUrl)) {
-      // Warn: Batoto is dead, but we might still resolve the service object
-      // so it can return "Service Unavailable" or similar.
-      return this.sources.get('batoto');
-    }
-    
     if (idOrUrl.startsWith('mangago:') || idOrUrl.includes('mangago.me')) {
         return this.sources.get('mangago');
     }
     
-    if (idOrUrl.startsWith('mangapark:') || idOrUrl.includes('mangapark.net')) {
-        return this.sources.get('mangapark');
+    if (
+      idOrUrl.startsWith('mangapark:') ||
+      idOrUrl.includes('mangapark.net') ||
+      idOrUrl.includes('mangakatana.com')
+    ) {
+      return this.sources.get('mangapark');
     }
 
     // Fallback based on known prefixes if we implement namespacing
@@ -61,15 +56,32 @@ class SourceManager {
 
 
   async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
-    // For now, search across all sources or just default?
-    // Let's search default for now, or allow specifying source in filters
-    // Ideally we aggregate, but pagination makes that hard.
-
-    // Simple implementation: Search default source
+    // Try default source first
     const source = this.sources.get(this.defaultSource);
     if (source) {
-      return source.search(query, filters);
+      try {
+        const results = await source.search(query, filters);
+        if (results.length > 0) return results;
+      } catch (e) {
+        console.error(`[SourceManager] Default source (${this.defaultSource}) failed:`, e);
+      }
     }
+
+    // Fallback to other available sources
+    console.log('[SourceManager] Attempting fallback sources...');
+    for (const [id, src] of this.sources.entries()) {
+      if (id === this.defaultSource) continue;
+      try {
+        const results = await src.search(query, filters);
+        if (results.length > 0) {
+          console.log(`[SourceManager] Success using fallback: ${id}`);
+          return results;
+        }
+      } catch (e) {
+        console.error(`[SourceManager] Fallback source (${id}) failed:`, e);
+      }
+    }
+
     return [];
   }
 }

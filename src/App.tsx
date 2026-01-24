@@ -14,12 +14,11 @@ import { Settings } from './components/Settings';
 import { Sparkles } from './components/Sparkles';
 import { UpdateModal } from './components/UpdateModal';
 import {
-  BatotoService,
   type Chapter,
   type Manga,
   type MangaDetails,
   type SearchFilters,
-} from './services/batoto';
+} from './services/types';
 import { logCapture } from './services/debugLog';
 import { SettingsStore } from './services/settings';
 import { sourceManager } from './services/sourceManager';
@@ -162,7 +161,7 @@ export function App() {
         word: (filters as any)?.word, // Search query
       };
       log('[App] Browse params:', JSON.stringify(browseParams));
-      // Use sourceManager to search (defaults to batoto for now, or we could add source selection in filters)
+      // Use sourceManager to search (defaults to mangapark now, with fallback)
       // Passing browseParams as filters
       const results = await sourceManager.search(browseParams.word || '', {
         ...filters,
