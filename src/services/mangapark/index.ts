@@ -154,7 +154,8 @@ export const MangaparkService: MangaSource = {
         if (filters.genres && filters.genres.length > 0) {
           filters.genres.forEach((g) => {
             const slug = mapGenreToApi(g);
-            if (slug) params.push(`include_genre_chk=${slug}`);
+            const genreId = slug ? GENRE_ID_BY_SLUG[slug] : undefined;
+            if (genreId) params.push(`include_genre_chk=${genreId}`);
           });
         }
       }
