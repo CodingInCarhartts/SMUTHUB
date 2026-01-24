@@ -3,11 +3,13 @@ import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
 
 import { logCapture } from '../debugLog';
 
-// Helper for debug logging
+// Helper for debug logging - STRING ONLY NO OBJECTS
 const log = (msg: string) => logCapture('log', `[Mangapark] ${msg}`);
-const logError = (msg: string, e?: any) =>
-  logCapture('error', `[Mangapark] ${msg}`, e);
-const logWarn = (msg: string) => logCapture('warn', `[Mangapark] ${msg}`);
+const logError = (msg: string, e?: any) => {
+    // Sanitize error object to simple string to prevent bridge serialization crash
+    const errStr = e ? (e.message || String(e)) : 'Unknown Error';
+    logCapture('error', `[Mangapark] ${msg}: ${errStr}`);
+};
 
 const HEADERS = {
   'User-Agent':
@@ -28,38 +30,31 @@ function fixUrl(url: string | undefined | null): string {
   return url;
 }
 
-// Helper for fetch with timeout
-async function fetchWithTimeout(
+// SAFE FETCH - No AbortController
+async function fetchSafe(
   url: string,
   options: RequestInit = {},
-  timeout = 10000,
+  timeout = 15000,
 ): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
   try {
-    log(`[Fetch] Starting request to ${url} (timeout: ${timeout}ms)`);
-    const fetchPromise = fetch(url, {
-      ...options,
-      signal: controller.signal as any, // Lynx might strictly type signal
+    log(`[Fetch] -> ${url}`);
+    
+    // Simple Promise race for timeout
+    const fetchPromise = fetch(url, options);
+    
+    // Create a timeout promise that rejects
+    const timeoutPromise = new Promise<Response>((_, reject) => {
+        setTimeout(() => reject(new Error(`Timeout ${timeout}ms`)), timeout);
     });
 
-    // Fallback race in case signal is ignored by environment
-    const timeoutPromise = new Promise<Response>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Request timed out after ${timeout}ms`)),
-        timeout,
-      ),
-    );
-
     const response = await Promise.race([fetchPromise, timeoutPromise]);
-    clearTimeout(id);
-    log(`[Fetch] Response received: ${response.status} ${response.statusText}`);
+    
+    log(`[Fetch] <- ${response.status} ${response.statusText}`);
     return response;
-  } catch (e) {
-    clearTimeout(id);
-    logError(`[Fetch] Failed: ${url}`, e);
-    throw e;
+  } catch (e: any) {
+    const msg = e.message || String(e);
+    logError(`[Fetch] Failed: ${url}`, msg);
+    throw new Error(msg);
   }
 }
 
@@ -75,7 +70,7 @@ export const MangaparkService: MangaSource = {
       log(`Searching for: ${query}`);
       const url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
 
-      const response = await fetchWithTimeout(url, {
+      const response = await fetchSafe(url, {
         headers: this.headers,
       });
 
@@ -122,7 +117,7 @@ export const MangaparkService: MangaSource = {
         : `${this.baseUrl}/manga/${idOrUrl.replace('mangapark:', '')}`;
       log(`Fetching details: ${url}`);
 
-      const response = await fetchWithTimeout(url, {
+      const response = await fetchSafe(url, {
         headers: this.headers,
       });
 
@@ -181,7 +176,7 @@ export const MangaparkService: MangaSource = {
   async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
     try {
       log(`Fetching chapter: ${chapterIdOrUrl}`);
-      const response = await fetchWithTimeout(chapterIdOrUrl, {
+      const response = await fetchSafe(chapterIdOrUrl, {
         headers: this.headers,
       });
 
@@ -218,14 +213,9 @@ export const MangaparkService: MangaSource = {
   async getPopular(): Promise<Manga[]> {
     try {
       log('getPopular: Start');
-      const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
-      log('getPopular: Fetch complete');
+      const response = await fetchSafe(BASE_URL, { headers: HEADERS });
       
       const text = await response.text();
-      log(`[Popular] Body length: ${text.length}`);
-      if (text.length < 500) {
-          logWarn(`[Popular] Suspiciously short body: ${text.substring(0, 100)}`);
-      }
 
       const root = parse(text); 
       const items = root.querySelectorAll('#hot_book .item');
@@ -258,8 +248,8 @@ export const MangaparkService: MangaSource = {
     try {
       log('getLatest: Start');
       const url = `${BASE_URL}/latest`;
-      const response = await fetchWithTimeout(url, { headers: HEADERS });
-      log('getLatest: Fetch complete');
+      const response = await fetchSafe(url, { headers: HEADERS });
+      
       const html = await response.text();
       const root = parse(html);
 
