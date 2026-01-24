@@ -12,12 +12,19 @@ class SourceManager {
   private defaultSource: string = 'mangapark';
 
   constructor() {
+    console.log('[SourceManager] Initializing...');
     // We will register sources here
     this.registerSource(MangagoService);
     this.registerSource(MangaparkService);
+    console.log(`[SourceManager] Registry size: ${this.sources.size}`);
+    console.log(`[SourceManager] Keys: ${Array.from(this.sources.keys()).join(', ')}`);
   }
 
   registerSource(source: MangaSource) {
+    if (!source || !source.id) {
+        console.error('[SourceManager] Invalid source registration attempt', source);
+        return;
+    }
     this.sources.set(source.id, source);
     console.log(`[SourceManager] Registered source: ${source.id}`);
   }
