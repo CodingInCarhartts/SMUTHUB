@@ -427,7 +427,7 @@ export function App() {
                 <view className="Home">
                     <view className="HomeHeader">
                       <Sparkles>
-                        <text className="HomeTitle">v1.0.207 (Regex Parser)</text>
+                        <text className="HomeTitle">Release v1.0.208</text>
                       </Sparkles>
                     </view>
                   <scroll-view

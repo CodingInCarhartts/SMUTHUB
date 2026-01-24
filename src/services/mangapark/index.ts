@@ -237,6 +237,9 @@ export const MangaparkService: MangaSource = {
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
     try {
       log('Fetching home feed...');
+      if (!this.getPopular || !this.getLatest) {
+          throw new Error('Scrapers not implemented');
+      }
       const [popular, latest] = await Promise.all([
         this.getPopular(),
         this.getLatest(),
