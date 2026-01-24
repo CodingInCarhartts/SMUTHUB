@@ -235,7 +235,17 @@ export const MangaparkService: MangaSource = {
   },
 
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
-    return { popular: [], latest: [] };
+    try {
+      log('Fetching home feed...');
+      const [popular, latest] = await Promise.all([
+        this.getPopular(),
+        this.getLatest(),
+      ]);
+      return { popular, latest };
+    } catch (e) {
+      logError('getHomeFeed failed', e);
+      return { popular: [], latest: [] };
+    }
   },
 
   async getPopular(): Promise<Manga[]> {
