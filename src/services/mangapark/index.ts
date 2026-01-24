@@ -125,10 +125,15 @@ export const MangaparkService: MangaSource = {
     try {
       const trimmedQuery = query.trim();
       const hasQuery = trimmedQuery.length > 0;
-      const basePath = hasQuery ? `${this.baseUrl}/` : `${this.baseUrl}/manga`;
+      const hasGenres = Boolean(filters?.genres?.length);
+      const basePath = hasGenres
+        ? `${this.baseUrl}/manga`
+        : hasQuery
+          ? `${this.baseUrl}/`
+          : `${this.baseUrl}/manga`;
       const params: string[] = [];
 
-      if (hasQuery) {
+      if (hasQuery && !hasGenres) {
         params.push(`s=${encodeURIComponent(trimmedQuery)}`);
       }
 
@@ -206,27 +211,40 @@ export const MangaparkService: MangaSource = {
         }
       }
 
-      if (hasQuery && filters?.genres?.length) {
+      let filteredResults = results;
+
+      if (hasGenres && filters?.genres?.length) {
         const requiredGenreIds = filters.genres
           .map((genre) => GENRE_ID_BY_SLUG[mapGenreToApi(genre)])
           .filter((id): id is number => Number.isFinite(id));
 
         if (requiredGenreIds.length > 0) {
-          const beforeCount = results.length;
-          const filtered = results.filter((manga) => {
+          const beforeCount = filteredResults.length;
+          filteredResults = filteredResults.filter((manga) => {
             if (!manga.genreIds || manga.genreIds.length === 0) {
               return true;
             }
             return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
           });
           log(
-            `[Search] Client filter: ${beforeCount} -> ${filtered.length} (${requiredGenreIds.join(', ')})`,
+            `[Search] Client filter: ${beforeCount} -> ${filteredResults.length} (${requiredGenreIds.join(', ')})`,
           );
-          return filtered;
         }
       }
 
-      return results;
+      if (hasGenres && hasQuery) {
+        const queryLower = trimmedQuery.toLowerCase();
+        const beforeCount = filteredResults.length;
+        const textFiltered = filteredResults.filter((manga) =>
+          manga.title.toLowerCase().includes(queryLower),
+        );
+        log(
+          `[Search] Text filter: ${beforeCount} -> ${textFiltered.length} (${trimmedQuery})`,
+        );
+        return textFiltered;
+      }
+
+      return filteredResults;
     } catch (e) {
       logError('Search failed', e);
       return [];
