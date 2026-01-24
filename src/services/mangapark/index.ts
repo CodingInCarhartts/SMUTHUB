@@ -70,42 +70,33 @@ export const MangaparkService: MangaSource = {
       const url = `${this.baseUrl}/?search=${encodeURIComponent(query)}`;
       const html = await fetchSafe(url, { headers: HEADERS });
 
-      // Regex for search results (MangaKatana structure)
-      // <div class="item"> ... <a href="...">Title</a> ... <img src="..."> ... </div>
-      const itemRegex = /<div class="item">([\s\S]*?)<\/div>\s*<\/div>/g;
-      const titleLinkRegex = /<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/;
-      const imgRegex = /<img[^>]+src="([^"]+)"/;
-      const genreRegex = /<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g;
-
       const results: Manga[] = [];
-      let match;
-      
-      while ((match = itemRegex.exec(html)) !== null) {
-        const block = match[1];
-        const titleMatch = block.match(titleLinkRegex);
+      const blocks = html.split('<div class="item"');
+      blocks.shift(); // discard header
+
+      for (const block of blocks) {
+        const titleMatch = block.match(/<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/);
         if (titleMatch) {
             const href = titleMatch[1];
             const title = titleMatch[2];
-            const imgMatch = block.match(imgRegex);
-            const cover = imgMatch ? fixUrl(imgMatch[1]) : '';
+            const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
             
             const genres: string[] = [];
-            let gMatch;
-            while ((gMatch = genreRegex.exec(block)) !== null) {
-                genres.push(gMatch[1]);
+            const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g);
+            for (const gm of genreMatches) {
+                genres.push(gm[1]);
             }
 
             results.push({
                 id: `mangapark:${href.split('/').pop()}`,
                 title: title.trim(),
                 url: href,
-                cover,
+                cover: imgMatch ? fixUrl(imgMatch[1]) : '',
                 genres,
                 source: 'mangapark'
             });
         }
       }
-      
       return results;
     } catch (e) {
       logError('Search failed', e);
@@ -122,7 +113,6 @@ export const MangaparkService: MangaSource = {
       
       const html = await fetchSafe(url, { headers: HEADERS });
 
-      // Extract details via Regex
       const titleMatch = html.match(/<h1 class="heading">([^<]+)<\/h1>/);
       const title = titleMatch ? titleMatch[1].trim() : 'Unknown';
 
@@ -131,59 +121,42 @@ export const MangaparkService: MangaSource = {
 
       const descMatch = html.match(/<div class="summary">([\s\S]*?)<\/div>/);
       const descRaw = descMatch ? descMatch[1] : '';
-      // Simple strip tags for desc
       const description = descRaw.replace(/<[^>]+>/g, '').trim();
 
       const statusMatch = html.match(/<div class="status [^"]+">([^<]+)<\/div>/);
       const status = statusMatch ? statusMatch[1].trim() : '';
 
-      // Authors
       const authors: string[] = [];
       const authorBlockMatch = html.match(/<div class="authors">([\s\S]*?)<\/div>/);
       if (authorBlockMatch) {
-          const aRegex = /<a[^>]+>([^<]+)<\/a>/g;
-          let am;
-          while ((am = aRegex.exec(authorBlockMatch[1])) !== null) {
-              authors.push(am[1]);
-          }
+          const ams = authorBlockMatch[1].matchAll(/<a[^>]+>([^<]+)<\/a>/g);
+          for (const am of ams) authors.push(am[1]);
       }
 
-      // Genres
       const genres: string[] = [];
       const genreBlockMatch = html.match(/<div class="genres">([\s\S]*?)<\/div>/);
       if (genreBlockMatch) {
-          const gRegex = /<a[^>]+>([^<]+)<\/a>/g;
-          let gm;
-          while ((gm = gRegex.exec(genreBlockMatch[1])) !== null) {
-              genres.push(gm[1]);
-          }
+          const gms = genreBlockMatch[1].matchAll(/<a[^>]+>([^<]+)<\/a>/g);
+          for (const gm of gms) genres.push(gm[1]);
       }
 
-      // Chapters - Table rows
       const chapters: any[] = [];
-      const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/g;
-      const linkRegex = /<a href="([^"]+)">([^<]+)<\/a>/;
-      const timeRegex = /<div class="update_time">([^<]+)<\/div>/;
-
-      // Find the chapters table first to limit scope
       const tableMatch = html.match(/<div class="chapters">([\s\S]*?)<\/table>/);
       if (tableMatch) {
           const tableContent = tableMatch[1];
-          let rowMatch;
-          while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
-              const row = rowMatch[1];
-              const linkM = row.match(linkRegex);
+          const rowMatches = tableContent.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g);
+          for (const rm of rowMatches) {
+              const row = rm[1];
+              const linkM = row.match(/<a href="([^"]+)">([^<]+)<\/a>/);
               if (linkM) {
                   const chUrl = linkM[1];
                   const chTitle = linkM[2];
-                  const timeM = row.match(timeRegex);
-                  const time = timeM ? timeM[1] : '';
-
+                  const timeM = row.match(/<div class="update_time">([^<]+)<\/div>/);
                   chapters.push({
                       id: chUrl,
                       title: chTitle.trim(),
                       url: chUrl,
-                      uploadDate: time.trim(),
+                      uploadDate: timeM ? timeM[1].trim() : '',
                       source: 'mangapark'
                   });
               }
@@ -211,22 +184,15 @@ export const MangaparkService: MangaSource = {
   async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
     try {
       const html = await fetchSafe(chapterIdOrUrl, { headers: HEADERS });
-
-      // MangaKatana stores images in script variables
-      // var ytach = ["url1", "url2"];
       const scriptRegex = /var\s+[a-z0-9]+\s*=\s*\[(.*?)\];/gis;
-      
       let match;
       while ((match = scriptRegex.exec(html)) !== null) {
         const arrayStr = match[1];
-        // Extract all URLs
         const urls = arrayStr.match(/https?:\/\/[^'"]+/g);
-
         if (urls && urls.length > 5) {
           return [...new Set(urls)].map((u) => u.replace(/\\/g, ''));
         }
       }
-
       return [];
     } catch (e) {
       logError('Chapter pages failed', e);
@@ -257,31 +223,18 @@ export const MangaparkService: MangaSource = {
       const html = await fetchSafe(BASE_URL, { headers: HEADERS });
       
       const results: Manga[] = [];
-      
-      // Target #hot_book .item
-      // <div class="item"> ... <div class="wrap_img"><a href="url"><img src="img"></a></div> ... <h3 class="title"><a href="url">Title</a></h3>
-      // We can iterate over class="item" blocks inside the hot_book area?
-      // Or just standard regex for item blocks if distinctive.
-      
-      // Let's refine the regex to be safer.
-      const itemRegex = /<div class="item"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/g;
-      
-      // Narrow to hot_book section to avoid latest mixup
-      const hotSectionMatch = html.match(/<div id="hot_book">([\s\S]*?)<div id="ugh"/); 
-      // id="ugh" might not exist, usually follows hot_book. 
-      // Safe bet: The hot_book div usually ends before "Latest Updates".
-      
-      const contentToScan = hotSectionMatch ? hotSectionMatch[1] : html;
+      const hotSectionMatch = html.match(/<div id="hot_book">([\s\S]*?)(?:<div id="ugh"|<div id="book_list"|<!--)/); 
+      const content = hotSectionMatch ? hotSectionMatch[1] : html;
 
-      let match;
-      while ((match = itemRegex.exec(contentToScan)) !== null) {
-          const block = match[1];
+      const blocks = content.split('<div class="item"');
+      blocks.shift();
+
+      for (const block of blocks) {
           const linkMatch = block.match(/<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/);
           if (linkMatch) {
               const href = linkMatch[1];
               const title = linkMatch[2];
               const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
-              
               results.push({
                 id: `mangapark:${href.split('/').pop()}`,
                 title: title.trim(),
@@ -291,11 +244,8 @@ export const MangaparkService: MangaSource = {
               });
           }
       }
-      
       log(`[Popular] Found ${results.length} items`);
-      if (results.length > 0) return results;
-
-      return this.search('');
+      return results.length > 0 ? results : this.search('');
     } catch (e) {
       logError('Popular failed', e);
       return [];
@@ -309,25 +259,19 @@ export const MangaparkService: MangaSource = {
       const html = await fetchSafe(url, { headers: HEADERS });
 
       const results: Manga[] = [];
-      const itemRegex = /<div class="item">([\s\S]*?)<\/div>\s*<\/div>/g;
-      
-      let match;
-      while ((match = itemRegex.exec(html)) !== null) {
-          const block = match[1];
-          // Title
+      const blocks = html.split('<div class="item"');
+      blocks.shift();
+
+      for (const block of blocks) {
           const linkMatch = block.match(/<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/);
           if (linkMatch) {
               const href = linkMatch[1];
               const title = linkMatch[2];
-              // Image
               const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
-              // Genres
+              
               const genres: string[] = [];
-              const gRegex = /<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g;
-              let gm;
-              while ((gm = gRegex.exec(block)) !== null) {
-                  genres.push(gm[1]);
-              }
+              const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g);
+              for (const gm of genreMatches) genres.push(gm[1]);
 
               results.push({
                 id: `mangapark:${href.split('/').pop()}`,
@@ -339,7 +283,7 @@ export const MangaparkService: MangaSource = {
               });
           }
       }
-      
+      log(`[Latest] Found ${results.length} items`);
       return results;
     } catch (e) {
       logError('Latest failed', e);
