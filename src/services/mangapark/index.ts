@@ -1,5 +1,6 @@
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
-import { logCapture, mapGenreToApi } from '../types';
+import { mapGenreToApi } from '../types';
+import { logCapture } from '../debugLog';
 
 // Helper for debug logging
 const log = (msg: string) => logCapture('log', `[Mangapark] ${msg}`);
