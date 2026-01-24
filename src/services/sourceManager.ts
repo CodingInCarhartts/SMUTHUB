@@ -15,7 +15,7 @@ class SourceManager {
     // console.log('[SourceManager] Initializing...');
     // We will register sources here
     // this.registerSource(MangagoService); // DISABLED FOR DIAGNOSTIC 1.0.197
-    this.registerSource(MangaparkService);
+    // this.registerSource(MangaparkService); // DISABLED FOR DIAGNOSTIC 1.0.200
     // console.log(`[SourceManager] Registry size: ${this.sources.size}`);
     // console.log(`[SourceManager] Keys: ${Array.from(this.sources.keys()).join(', ')}`);
   }
