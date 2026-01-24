@@ -126,18 +126,14 @@ export const MangaparkService: MangaSource = {
       const trimmedQuery = query.trim();
       const hasQuery = trimmedQuery.length > 0;
       const hasGenres = Boolean(filters?.genres?.length);
-      const basePath = hasGenres
-        ? `${this.baseUrl}/manga`
-        : hasQuery
-          ? `${this.baseUrl}/`
-          : `${this.baseUrl}/manga`;
+      const basePath = hasQuery ? `${this.baseUrl}/` : `${this.baseUrl}/manga`;
       const params: string[] = [];
 
-      if (hasQuery && !hasGenres) {
+      if (hasQuery) {
         params.push(`s=${encodeURIComponent(trimmedQuery)}`);
       }
 
-      if (filters) {
+      if (!hasQuery && filters) {
         // Add Order (Default to 'latest' if not views_d030)
         const order = filters.sort === 'views_d030' ? '' : filters.sort;
         if (order) params.push(`order=${order}`);
@@ -230,18 +226,6 @@ export const MangaparkService: MangaSource = {
             `[Search] Client filter: ${beforeCount} -> ${filteredResults.length} (${requiredGenreIds.join(', ')})`,
           );
         }
-      }
-
-      if (hasGenres && hasQuery) {
-        const queryLower = trimmedQuery.toLowerCase();
-        const beforeCount = filteredResults.length;
-        const textFiltered = filteredResults.filter((manga) =>
-          manga.title.toLowerCase().includes(queryLower),
-        );
-        log(
-          `[Search] Text filter: ${beforeCount} -> ${textFiltered.length} (${trimmedQuery})`,
-        );
-        return textFiltered;
       }
 
       return filteredResults;
