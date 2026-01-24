@@ -406,7 +406,7 @@ export function App() {
         <view
           className={view === 'browse' ? 'Content Content-with-nav' : 'Content'}
         >
-          {view === 'details' && selectedManga && (
+          {view === 'details' && selectedManga && mangaDetails ? (
             <MangaDetailsUi
               manga={selectedManga}
               details={mangaDetails}
@@ -414,7 +414,14 @@ export function App() {
               onBack={handleBack}
               onSelectChapter={handleSelectChapter}
             />
-          )}
+          ) : view === 'details' && selectedManga ? (
+            <view className="LoadingContainer">
+              <view className="LoadingPulse">
+                <text className="LoadingIcon">📖</text>
+              </view>
+              <text className="StatusText">Opening the story...</text>
+            </view>
+          ) : null}
 
           {view === 'browse' && (
             <>
