@@ -7,6 +7,7 @@ import { logCapture } from '../debugLog';
 const log = (msg: string) => logCapture('log', `[Mangapark] ${msg}`);
 const logError = (msg: string, e?: any) =>
   logCapture('error', `[Mangapark] ${msg}`, e);
+const logWarn = (msg: string) => logCapture('warn', `[Mangapark] ${msg}`);
 
 const HEADERS = {
   'User-Agent':
