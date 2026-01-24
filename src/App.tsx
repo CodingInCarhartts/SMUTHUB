@@ -1,30 +1,39 @@
-// Direct Poison Test: node-html-parser
-import { useState, useEffect } from '@lynx-js/react';
-import { parse } from 'node-html-parser';
-
 export function App() {
   const [status, setStatus] = useState('Idle');
+  const [data, setData] = useState<string>('');
 
-  useEffect(() => {
+  const runFetch = async () => {
+    setStatus('Fetching...');
     try {
-        console.log("Testing parser...");
-        const root = parse('<div id="test">Hello</div>');
-        console.log("Parser result:", root.querySelector('#test')?.text);
-        setStatus('Parser Loaded OK');
-    } catch(e: any) {
-        console.error("Parser Died:", e);
-        setStatus('Parser Crashed: ' + e.message);
+      const source = sourceManager.getSource('mangapark');
+      if (!source) throw new Error('No source');
+      const feed = await source.getHomeFeed();
+      setData(`Success! Popular: ${feed.popular.length}, Latest: ${feed.latest.length}`);
+      setStatus('Done');
+    } catch (e: any) {
+      setData('Error: ' + e.message);
+      setStatus('Error');
     }
-  }, []);
+  };
 
   return (
-    <view className="Main" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#1a1a1a' }}>
-      <text style={{ fontSize: '24px', color: '#ff4d4f', marginBottom: '10px' }}>PARSER TEST 1.0.196</text>
-      <text style={{ fontSize: '14px', color: '#ccc' }}>Is node-html-parser safety?</text>
+    <view className="Main" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#1a1a1a', padding: '20px' }}>
+      <text style={{ fontSize: '20px', color: '#ff4d4f', marginBottom: '20px' }}>DIAGNOSTIC 1.0.197</text>
       
-      <view style={{ marginTop: '30px', padding: '20px', backgroundColor: '#ee5566', borderRadius: '10px' }}>
-        <text style={{ color: 'white', fontWeight: 'bold' }}>{status}</text>
+      <text style={{ color: 'white', marginBottom: '20px' }}>Mangago: DISABLED</text>
+      <text style={{ color: 'white', marginBottom: '20px' }}>Init Logs: DISABLED</text>
+      <text style={{ color: 'white', marginBottom: '20px' }}>Status: {status}</text>
+      
+      <view 
+        bindtap={runFetch}
+        style={{ padding: '15px', backgroundColor: '#ee5566', borderRadius: '8px', marginBottom: '20px' }}
+      >
+        <text style={{ color: 'white', fontWeight: 'bold' }}>TEST NETWORK FETCH</text>
       </view>
+
+      <scroll-view scroll-y style={{ height: '200px', width: '100%', backgroundColor: '#333' }}>
+        <text style={{ color: '#ccc', fontSize: '12px' }}>{data || 'No data yet'}</text>
+      </scroll-view>
     </view>
   );
 }
