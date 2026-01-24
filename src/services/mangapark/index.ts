@@ -37,6 +37,7 @@ async function fetchWithTimeout(
   const id = setTimeout(() => controller.abort(), timeout);
 
   try {
+    log(`[Fetch] Starting request to ${url} (timeout: ${timeout}ms)`);
     const fetchPromise = fetch(url, {
       ...options,
       signal: controller.signal as any, // Lynx might strictly type signal
@@ -52,20 +53,30 @@ async function fetchWithTimeout(
 
     const response = await Promise.race([fetchPromise, timeoutPromise]);
     clearTimeout(id);
+    log(`[Fetch] Response received: ${response.status} ${response.statusText}`);
     return response;
   } catch (e) {
     clearTimeout(id);
+    logError(`[Fetch] Failed: ${url}`, e);
     throw e;
   }
 }
 
 async function getPopular(): Promise<Manga[]> {
   try {
+    log('Getting popular manga...');
     const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
-    const html = await response.text();
-    const root = parse(html);
+    
+    const text = await response.text();
+    log(`[Popular] Body length: ${text.length}`);
+    if (text.length < 500) {
+        logWarn(`[Popular] Suspiciously short body: ${text.substring(0, 100)}`);
+    }
 
+    const root = parse(text); // Use text variable
     const items = root.querySelectorAll('#hot_book .item');
+    log(`[Popular] Found ${items.length} items`);
+
     if (items.length > 0) {
       return items.map((item) => {
         const a = item.querySelector('.title a');
@@ -81,6 +92,7 @@ async function getPopular(): Promise<Manga[]> {
       });
     }
 
+    log('[Popular] Fallback to search');
     return MangaparkService.search('');
   } catch (e) {
     logError('Popular failed', e);
