@@ -1,11 +1,6 @@
 import { MangagoService } from './mangago';
 import { MangaparkService } from './mangapark';
-import {
-  type Manga,
-  type MangaDetails,
-  type MangaSource,
-  type SearchFilters,
-} from './types';
+import type { Manga, MangaDetails, MangaSource, SearchFilters } from './types';
 
 class SourceManager {
   private sources: Map<string, MangaSource> = new Map();
@@ -22,8 +17,11 @@ class SourceManager {
 
   registerSource(source: MangaSource) {
     if (!source || !source.id) {
-        console.error('[SourceManager] Invalid source registration attempt', source);
-        return;
+      console.error(
+        '[SourceManager] Invalid source registration attempt',
+        source,
+      );
+      return;
     }
     this.sources.set(source.id, source);
     console.log(`[SourceManager] Registered source: ${source.id}`);
@@ -40,9 +38,9 @@ class SourceManager {
   // Helper to determine source from ID or URL
   resolveSource(idOrUrl: string): MangaSource | undefined {
     if (idOrUrl.startsWith('mangago:') || idOrUrl.includes('mangago.me')) {
-        return this.sources.get('mangago');
+      return this.sources.get('mangago');
     }
-    
+
     if (
       idOrUrl.startsWith('mangapark:') ||
       idOrUrl.includes('mangapark.net') ||
@@ -60,17 +58,19 @@ class SourceManager {
     return this.sources.get(this.defaultSource);
   }
 
-
-
   async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     // Try default source first
     const source = this.sources.get(this.defaultSource);
     if (source) {
       try {
         const results = await source.search(query, filters);
-        if (results.length > 0) return results;
+        // We return the results even if empty, as long as the search succeeded
+        return results;
       } catch (e) {
-        console.error(`[SourceManager] Default source (${this.defaultSource}) failed:`, e);
+        console.error(
+          `[SourceManager] Default source (${this.defaultSource}) failed:`,
+          e,
+        );
       }
     }
 

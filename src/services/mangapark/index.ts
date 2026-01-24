@@ -226,9 +226,10 @@ export const MangaparkService: MangaSource = {
         if (requiredGenreIds.length > 0) {
           const beforeCount = filteredResults.length;
           filteredResults = filteredResults.filter((manga) => {
-            // In search mode, we MUST have genreIds to verify the target
+            // In search mode, if we have metadata, we verify it.
+            // If metadata is missing, we allow it through to avoid zero-result searches.
             if (!manga.genreIds || manga.genreIds.length === 0) {
-              return false; // Strict targeting
+              return true;
             }
             return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
           });

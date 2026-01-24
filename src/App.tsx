@@ -1,6 +1,12 @@
 // Initialize debug log capture FIRST so all logs are captured
 
-import { useCallback, useEffect, useMemo, useState } from '@lynx-js/react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from '@lynx-js/react';
 import { BottomNav } from './components/BottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FavoritesView } from './components/FavoritesView';
@@ -187,12 +193,14 @@ export function App() {
   }, []);
 
   // Preload browse when search tab is selected
+  const hasAttemptedInitialLoad = useRef(false);
   useEffect(() => {
-    if (tab === 'search' && mangas.length === 0 && !loading) {
-      log('[App] Search tab selected, preloading browse...');
+    if (tab === 'search' && !hasAttemptedInitialLoad.current && !loading) {
+      log('[App] Search tab selected, performing initial load...');
+      hasAttemptedInitialLoad.current = true;
       loadBrowse();
     }
-  }, [tab, loadBrowse]);
+  }, [tab, loadBrowse, loading]);
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
