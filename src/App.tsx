@@ -408,11 +408,9 @@ export function App() {
         >
           {view === 'details' && selectedManga && mangaDetails ? (
             <MangaDetailsUi
-              manga={selectedManga}
               details={mangaDetails}
-              loading={loading}
               onBack={handleBack}
-              onSelectChapter={handleSelectChapter}
+              onRead={handleSelectChapter}
             />
           ) : view === 'details' && selectedManga ? (
             <view className="LoadingContainer">
