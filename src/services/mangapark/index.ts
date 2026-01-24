@@ -135,8 +135,11 @@ export const MangaparkService: MangaSource = {
       }
 
       if (!hasQuery && filters) {
-        // Add Order (Default to 'latest' if not views_d030)
-        const order = filters.sort === 'views_d030' ? '' : filters.sort;
+        params.push('filter=1');
+        params.push('include_mode=and');
+
+        // Add Order
+        const order = filters.sort === 'views_d030' ? 'latest' : filters.sort;
         if (order) params.push(`order=${order}`);
 
         // Add Status
@@ -144,7 +147,6 @@ export const MangaparkService: MangaSource = {
           const statusMap: Record<string, string> = {
             ongoing: '1',
             completed: '2',
-            cancelled: '0',
           };
           const statusValue = statusMap[filters.status];
           if (statusValue) {
@@ -152,13 +154,18 @@ export const MangaparkService: MangaSource = {
           }
         }
 
-        // Add Genres (Multi-param)
+        // Add Genres (Concatenated IDs with _)
         if (filters.genres && filters.genres.length > 0) {
-          filters.genres.forEach((g) => {
-            const slug = mapGenreToApi(g);
-            const genreId = slug ? GENRE_ID_BY_SLUG[slug] : undefined;
-            if (genreId) params.push(`include_genre_chk=${genreId}`);
-          });
+          const genreIds = filters.genres
+            .map((g) => {
+              const slug = mapGenreToApi(g);
+              return slug ? GENRE_ID_BY_SLUG[slug] : undefined;
+            })
+            .filter((id): id is number => Number.isFinite(id));
+
+          if (genreIds.length > 0) {
+            params.push(`include=${genreIds.join('_')}`);
+          }
         }
       }
 
@@ -173,8 +180,8 @@ export const MangaparkService: MangaSource = {
       blocks.shift(); // discard header
 
       for (const block of blocks) {
-        // Real results have data-id. Script templates in sidebar don't.
-        if (!block.includes('data-id="')) continue;
+        // Real results have a title link inside h3. Script templates don't.
+        if (!block.includes('<h3 class="title">')) continue;
 
         const genreDataMatch = block.match(/data-genre="([^"]*)"/);
         const genreIds = genreDataMatch
