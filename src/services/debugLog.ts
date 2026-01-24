@@ -1,5 +1,24 @@
 // SCORCHED EARTH DEBUG LOG SERVICE
 // Stripped to bare minimum to prevent Lynx runtime crash
+// Restoring types for TS compatibility
+
+export type LogCategory =
+  | 'INIT'
+  | 'NETWORK'
+  | 'SYNC'
+  | 'UI'
+  | 'STORAGE'
+  | 'UPDATE'
+  | 'PERF'
+  | 'GENERAL';
+
+export interface DebugReportContext {
+  settings?: any;
+  storageValues?: Record<string, string | null>;
+  supabaseStatus?: any;
+  version?: string;
+  deviceId?: string;
+}
 
 export function logCapture(level: any, ...args: any[]) {
   if (level === 'error') console.error(...args);
@@ -22,8 +41,8 @@ export const DebugLogService = {
   },
   getLogs(): any[] { return []; },
   getLogsAsText(): string { return 'Logs disabled'; },
-  getStructuredReport(): any { return {}; },
-  getDebugReport(): string { return 'Report disabled'; },
+  getStructuredReport(_context?: any): any { return {}; },
+  getDebugReport(_context?: any): string { return 'Report disabled'; },
   clear(): void {},
   count(): number { return 0; },
 };
