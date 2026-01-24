@@ -194,6 +194,17 @@ export function App() {
     try {
       log('[App] fetchHomeFeed started');
       
+      // DEBUG PROBE
+      const source = sourceManager.getSource('mangapark');
+      log(`[App] DEBUG: Source object: ${source ? 'Found' : 'Missing'}`);
+      if (source) {
+          log(`[App] DEBUG: Source keys: ${Object.keys(source).join(', ')}`);
+          log(`[App] DEBUG: getHomeFeed type: ${typeof source.getHomeFeed}`);
+          if (typeof source.getHomeFeed === 'function') {
+              log('[App] DEBUG: Calling getHomeFeed now...');
+          }
+      }
+
       const feed = await sourceManager.getSource('mangapark')!.getHomeFeed();
       setPopularMangas(feed.popular);
       setLatestMangas(feed.latest);
