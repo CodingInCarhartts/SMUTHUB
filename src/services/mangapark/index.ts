@@ -172,6 +172,9 @@ export const MangaparkService: MangaSource = {
       blocks.shift(); // discard header
 
       for (const block of blocks) {
+        // Skip script templates or malformed blocks
+        if (block.includes('"+') || block.includes("'+")) continue;
+
         const genreDataMatch = block.match(/data-genre="([^"]*)"/);
         const genreIds = genreDataMatch
           ? genreDataMatch[1]
@@ -179,6 +182,13 @@ export const MangaparkService: MangaSource = {
               .map((id) => Number.parseInt(id.trim(), 10))
               .filter((id) => Number.isFinite(id))
           : undefined;
+
+        if (genreDataMatch) {
+          log(
+            `[Search] Parsed data-genre: ${genreDataMatch[1]} -> [${genreIds?.join(', ')}]`,
+          );
+        }
+
         const titleMatch = block.match(
           /<h3 class="title">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/,
         );
@@ -220,7 +230,14 @@ export const MangaparkService: MangaSource = {
 
       if (hasGenres && filters?.genres?.length) {
         const requiredGenreIds = filters.genres
-          .map((genre) => GENRE_ID_BY_SLUG[mapGenreToApi(genre)])
+          .map((genre) => {
+            const mapped = mapGenreToApi(genre);
+            const id = GENRE_ID_BY_SLUG[mapped];
+            log(
+              `[Search] Mapping genre: "${genre}" -> "${mapped}" -> ID: ${id}`,
+            );
+            return id;
+          })
           .filter((id): id is number => Number.isFinite(id));
 
         if (requiredGenreIds.length > 0) {
@@ -229,9 +246,20 @@ export const MangaparkService: MangaSource = {
             // In search mode, if we have metadata, we verify it.
             // If metadata is missing, we allow it through to avoid zero-result searches.
             if (!manga.genreIds || manga.genreIds.length === 0) {
+              log(
+                `[Search] Item "${manga.title}" missing genre metadata, allowing through`,
+              );
               return true;
             }
-            return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
+            const matches = requiredGenreIds.every((id) =>
+              manga.genreIds?.includes(id),
+            );
+            if (!matches) {
+              log(
+                `[Search] Filtering out "${manga.title}" (Has: ${manga.genreIds.join(',')}, Needs: ${requiredGenreIds.join(',')})`,
+              );
+            }
+            return matches;
           });
           log(
             `[Search] Search Mode Filter: ${beforeCount} -> ${filteredResults.length} (Targeted: ${requiredGenreIds.join(', ')})`,
