@@ -130,7 +130,8 @@ export const MangaparkService: MangaSource = {
       const params: string[] = [];
 
       if (hasQuery) {
-        params.push(`s=${encodeURIComponent(trimmedQuery)}`);
+        params.push(`search=${encodeURIComponent(trimmedQuery)}`);
+        params.push('search_by=book_name');
       }
 
       if (!hasQuery && filters) {
@@ -172,8 +173,8 @@ export const MangaparkService: MangaSource = {
       blocks.shift(); // discard header
 
       for (const block of blocks) {
-        // Skip script templates or malformed blocks
-        if (block.includes('"+') || block.includes("'+")) continue;
+        // Real results have data-id. Script templates in sidebar don't.
+        if (!block.includes('data-id="')) continue;
 
         const genreDataMatch = block.match(/data-genre="([^"]*)"/);
         const genreIds = genreDataMatch
@@ -182,12 +183,6 @@ export const MangaparkService: MangaSource = {
               .map((id) => Number.parseInt(id.trim(), 10))
               .filter((id) => Number.isFinite(id))
           : undefined;
-
-        if (genreDataMatch) {
-          log(
-            `[Search] Parsed data-genre: ${genreDataMatch[1]} -> [${genreIds?.join(', ')}]`,
-          );
-        }
 
         const titleMatch = block.match(
           /<h3 class="title">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/,
