@@ -75,21 +75,21 @@ export const MangaparkService: MangaSource = {
       blocks.shift(); // discard header
 
       for (const block of blocks) {
-        const titleMatch = block.match(/<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/);
+        const titleMatch = block.match(/<h3 class="title">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
         if (titleMatch) {
             const href = titleMatch[1];
-            const title = titleMatch[2];
-            const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
+            const title = titleMatch[2].replace(/<[^>]+>/g, '').trim();
+            const imgMatch = block.match(/<img[\s\S]*?src="([^"]+)"/);
             
             const genres: string[] = [];
-            const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g);
+            const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+"[^>]*>([\s\S]*?)<\/a>/g);
             for (const gm of genreMatches) {
-                genres.push(gm[1]);
+                genres.push(gm[1].trim());
             }
 
             results.push({
                 id: `mangapark:${href.split('/').pop()}`,
-                title: title.trim(),
+                title: title,
                 url: href,
                 cover: imgMatch ? fixUrl(imgMatch[1]) : '',
                 genres,
@@ -263,25 +263,29 @@ export const MangaparkService: MangaSource = {
       blocks.shift();
 
       for (const block of blocks) {
-          const linkMatch = block.match(/<h3 class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/);
-          if (linkMatch) {
-              const href = linkMatch[1];
-              const title = linkMatch[2];
-              const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
-              
-              const genres: string[] = [];
-              const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+">([^<]+)<\/a>/g);
-              for (const gm of genreMatches) genres.push(gm[1]);
+        // Robust match for Title and Href
+        const titleMatch = block.match(/<h3 class="title">[\s\S]*?<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+        if (titleMatch) {
+            const href = titleMatch[1];
+            const title = titleMatch[2].replace(/<[^>]+>/g, '').trim();
+            const imgMatch = block.match(/<img[\s\S]*?src="([^"]+)"/);
+            
+            const genres: string[] = [];
+            // Match all genre links: /genre/name
+            const genreMatches = block.matchAll(/<a href="[^"]+\/genre\/[^"]+"[^>]*>([\s\S]*?)<\/a>/g);
+            for (const gm of genreMatches) {
+                genres.push(gm[1].trim());
+            }
 
-              results.push({
+            results.push({
                 id: `mangapark:${href.split('/').pop()}`,
-                title: title.trim(),
+                title: title,
                 url: href,
                 cover: imgMatch ? fixUrl(imgMatch[1]) : '',
                 genres,
-                source: 'mangapark',
-              });
-          }
+                source: 'mangapark'
+            });
+        }
       }
       log(`[Latest] Found ${results.length} items`);
       return results;
