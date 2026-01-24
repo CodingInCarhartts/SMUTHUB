@@ -372,7 +372,7 @@ export function App() {
     setTab('search');
     handleApplyFilters({
       genres: [],
-      sort: 'update',
+      sort: 'latest',
       status: 'all',
       nsfw: false,
     });
