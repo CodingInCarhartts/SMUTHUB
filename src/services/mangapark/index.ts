@@ -231,8 +231,9 @@ export const MangaparkService: MangaSource = {
 
   async getPopular(): Promise<Manga[]> {
     try {
-      log('Getting popular manga...');
+      log('getPopular: Start');
       const response = await fetchWithTimeout(BASE_URL, { headers: HEADERS });
+      log('getPopular: Fetch complete');
       
       const text = await response.text();
       log(`[Popular] Body length: ${text.length}`);
@@ -269,8 +270,10 @@ export const MangaparkService: MangaSource = {
 
   async getLatest(): Promise<Manga[]> {
     try {
+      log('getLatest: Start');
       const url = `${BASE_URL}/latest`;
       const response = await fetchWithTimeout(url, { headers: HEADERS });
+      log('getLatest: Fetch complete');
       const html = await response.text();
       const root = parse(html);
 
