@@ -431,7 +431,7 @@ export function App() {
                         <text className="HomeTitle">{randomHeaderTitle}</text>
                       </Sparkles>
                       <view style={{ padding: '4px', backgroundColor: '#ee5566', borderRadius: '4px', marginTop: '4px' }}>
-                        <text style={{ fontSize: '10px', color: 'white' }}>LIVE VERSION 1.0.188</text>
+                        <text style={{ fontSize: '10px', color: 'white' }}>LIVE VERSION 1.0.190 [Stubbed]</text>
                       </view>
                     </view>
                   <scroll-view
