@@ -426,11 +426,12 @@ export function App() {
             <>
               {tab === 'home' && (
                 <view className="Home">
-                  <view className="HomeHeader">
-                    <Sparkles>
-                      <text className="HomeTitle">{randomHeaderTitle}</text>
-                    </Sparkles>
-                  </view>
+                    <view className="HomeHeader">
+                      <Sparkles>
+                        <text className="HomeTitle">{randomHeaderTitle}</text>
+                      </Sparkles>
+                      <text style={{ fontSize: '10px', color: '#999', marginTop: '4px' }}>v1.0.187</text>
+                    </view>
                   <scroll-view
                     className="MangaList"
                     scroll-y
