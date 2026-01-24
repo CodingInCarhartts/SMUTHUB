@@ -450,11 +450,6 @@ export function App() {
                 <text>ISOLATION: DETAILS VIEW DISABLED</text>
                 <view bindtap={handleBack} style={{padding: '10px', backgroundColor: 'red'}}><text>GO BACK</text></view>
             </view>
-            /* <MangaDetailsUi
-              details={mangaDetails}
-              onBack={handleBack}
-              onRead={handleSelectChapter}
-            /> */
           )}
           {view === 'details' && selectedManga && !mangaDetails && (
             <view className="LoadingContainer">
