@@ -1,6 +1,6 @@
 {
   "name": "smuthub",
-  "version": "1.0.198",
+  "version": "1.0.199",
   "type": "module",
   "scripts": {
     "build": "rspeedy build",

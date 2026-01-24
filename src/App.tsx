@@ -1,3 +1,6 @@
+import { useState } from '@lynx-js/react';
+import { sourceManager } from './services/sourceManager';
+
 export function App() {
   const [status, setStatus] = useState('Idle');
   const [data, setData] = useState<string>('');
@@ -18,7 +21,7 @@ export function App() {
 
   return (
     <view className="Main" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#1a1a1a', padding: '20px' }}>
-      <text style={{ fontSize: '20px', color: '#ff4d4f', marginBottom: '20px' }}>DIAGNOSTIC 1.0.197</text>
+      <text style={{ fontSize: '20px', color: '#ff4d4f', marginBottom: '20px' }}>DIAGNOSTIC 1.0.199</text>
       
       <text style={{ color: 'white', marginBottom: '20px' }}>Mangago: DISABLED</text>
       <text style={{ color: 'white', marginBottom: '20px' }}>Init Logs: DISABLED</text>
