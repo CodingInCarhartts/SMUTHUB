@@ -135,22 +135,19 @@ export const MangaparkService: MangaSource = {
       const hasFilters = hasGenres || hasStatus || hasCustomOrder;
 
       // 1-1 Parity with Website:
-      // - If filters are active, use Directory Mode (/manga) for server-side filtering.
-      // - If NO filters but text is present, use Global Search Mode (/) for targeted search.
-      // - Otherwise, default to Directory Mode (Browse).
-      const shouldUseDirectory = hasFilters || !hasQuery;
+      // - If text is present, use Global Search Mode (/) for site-wide title search.
+      // - If NO text but filters are active, use Directory Mode (/manga) for deep category browsing.
+      // - Combined (Text + Filters): Use Global Search + Client-side filter to "target" specific titles in categories.
+      const shouldUseDirectory = !hasQuery && hasFilters;
       const basePath = shouldUseDirectory
         ? `${this.baseUrl}/manga`
         : `${this.baseUrl}/`;
       const params: string[] = [];
 
       if (shouldUseDirectory) {
-        // DIRECTORY MODE (Browse or Filtered Search)
+        // DIRECTORY MODE (Browse by Category)
         params.push('filter=1');
         params.push('include_mode=and');
-        if (hasQuery) {
-          params.push(`search=${encodeURIComponent(trimmedQuery)}`);
-        }
 
         if (filters) {
           // Add Order
@@ -162,7 +159,6 @@ export const MangaparkService: MangaSource = {
             const statusMap: Record<string, string> = {
               ongoing: '1',
               completed: '2',
-              cancelled: '0',
             };
             const statusValue = statusMap[filters.status];
             if (statusValue) {
@@ -170,22 +166,19 @@ export const MangaparkService: MangaSource = {
             }
           }
 
-          // Add Genres (Concatenated IDs with _)
+          // Add Genres (Concatenated Slugs with _)
           if (filters.genres && filters.genres.length > 0) {
-            const genreIds = filters.genres
-              .map((g) => {
-                const slug = mapGenreToApi(g);
-                return slug ? GENRE_ID_BY_SLUG[slug] : undefined;
-              })
-              .filter((id): id is number => Number.isFinite(id));
+            const genreSlugs = filters.genres
+              .map((g) => mapGenreToApi(g))
+              .filter(Boolean);
 
-            if (genreIds.length > 0) {
-              params.push(`include=${genreIds.join('_')}`);
+            if (genreSlugs.length > 0) {
+              params.push(`include=${genreSlugs.join('_')}`);
             }
           }
         }
       } else {
-        // GLOBAL SEARCH MODE (Pure text, no filters)
+        // GLOBAL SEARCH MODE (Targeted Title Search)
         params.push(`search=${encodeURIComponent(trimmedQuery)}`);
         params.push('search_by=book_name');
       }
@@ -193,7 +186,9 @@ export const MangaparkService: MangaSource = {
       const queryString = params.length ? `?${params.join('&')}` : '';
       const url = `${basePath}${queryString}`;
 
-      log(`[Search] Query: "${query}", URL: ${url}`);
+      log(
+        `[Search] Mode: ${shouldUseDirectory ? 'Directory' : 'GlobalSearch'}, Query: "${query}", URL: ${url}`,
+      );
       const html = await fetchSafe(url, { headers: HEADERS });
 
       const results: Manga[] = [];
@@ -241,6 +236,38 @@ export const MangaparkService: MangaSource = {
       }
 
       log(`[Search] Found ${results.length} results`);
+
+      // 1. Browsing Mode (Filters only, no text): Already server-side filtered.
+      if (!hasQuery) {
+        return results;
+      }
+
+      // 2. Searching Mode (Text + Filters): Apply strict client-side verification
+      if (hasFilters && filters?.genres?.length) {
+        const requiredGenreIds = filters.genres
+          .map((genre) => {
+            const mapped = mapGenreToApi(genre);
+            return mapped ? GENRE_ID_BY_SLUG[mapped] : undefined;
+          })
+          .filter((id): id is number => Number.isFinite(id));
+
+        if (requiredGenreIds.length > 0) {
+          const beforeCount = results.length;
+          const filtered = results.filter((manga) => {
+            // If item is missing genre metadata during site-wide search, we exclude it
+            // to ensure "targeted" results. (Site results almost always have data-genre)
+            if (!manga.genreIds || manga.genreIds.length === 0) {
+              return false;
+            }
+            return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
+          });
+          log(
+            `[Search] Targeted Filter: ${beforeCount} -> ${filtered.length} (IDs: ${requiredGenreIds.join(', ')})`,
+          );
+          return filtered;
+        }
+      }
+
       return results;
     } catch (e) {
       logError('Search failed', e);
