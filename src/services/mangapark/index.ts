@@ -125,48 +125,69 @@ export const MangaparkService: MangaSource = {
     try {
       const trimmedQuery = query.trim();
       const hasQuery = trimmedQuery.length > 0;
+
       const hasGenres = Boolean(filters?.genres?.length);
-      const basePath = hasQuery ? `${this.baseUrl}/` : `${this.baseUrl}/manga`;
+      const hasStatus = Boolean(filters && filters.status !== 'all');
+      const hasCustomOrder = Boolean(
+        filters && filters.sort !== 'latest' && filters.sort !== 'views_d030',
+      );
+
+      const hasFilters = hasGenres || hasStatus || hasCustomOrder;
+
+      // 1-1 Parity with Website:
+      // - If filters are active, use Directory Mode (/manga) for server-side filtering.
+      // - If NO filters but text is present, use Global Search Mode (/) for targeted search.
+      // - Otherwise, default to Directory Mode (Browse).
+      const shouldUseDirectory = hasFilters || !hasQuery;
+      const basePath = shouldUseDirectory
+        ? `${this.baseUrl}/manga`
+        : `${this.baseUrl}/`;
       const params: string[] = [];
 
-      if (hasQuery) {
-        params.push(`search=${encodeURIComponent(trimmedQuery)}`);
-        params.push('search_by=book_name');
-      }
-
-      if (!hasQuery && filters) {
+      if (shouldUseDirectory) {
+        // DIRECTORY MODE (Browse or Filtered Search)
         params.push('filter=1');
         params.push('include_mode=and');
-
-        // Add Order
-        const order = filters.sort === 'views_d030' ? 'latest' : filters.sort;
-        if (order) params.push(`order=${order}`);
-
-        // Add Status
-        if (filters.status && filters.status !== 'all') {
-          const statusMap: Record<string, string> = {
-            ongoing: '1',
-            completed: '2',
-          };
-          const statusValue = statusMap[filters.status];
-          if (statusValue) {
-            params.push(`status=${statusValue}`);
-          }
+        if (hasQuery) {
+          params.push(`search=${encodeURIComponent(trimmedQuery)}`);
         }
 
-        // Add Genres (Concatenated IDs with _)
-        if (filters.genres && filters.genres.length > 0) {
-          const genreIds = filters.genres
-            .map((g) => {
-              const slug = mapGenreToApi(g);
-              return slug ? GENRE_ID_BY_SLUG[slug] : undefined;
-            })
-            .filter((id): id is number => Number.isFinite(id));
+        if (filters) {
+          // Add Order
+          const order = filters.sort === 'views_d030' ? 'latest' : filters.sort;
+          if (order) params.push(`order=${order}`);
 
-          if (genreIds.length > 0) {
-            params.push(`include=${genreIds.join('_')}`);
+          // Add Status
+          if (filters.status && filters.status !== 'all') {
+            const statusMap: Record<string, string> = {
+              ongoing: '1',
+              completed: '2',
+              cancelled: '0',
+            };
+            const statusValue = statusMap[filters.status];
+            if (statusValue) {
+              params.push(`status=${statusValue}`);
+            }
+          }
+
+          // Add Genres (Concatenated IDs with _)
+          if (filters.genres && filters.genres.length > 0) {
+            const genreIds = filters.genres
+              .map((g) => {
+                const slug = mapGenreToApi(g);
+                return slug ? GENRE_ID_BY_SLUG[slug] : undefined;
+              })
+              .filter((id): id is number => Number.isFinite(id));
+
+            if (genreIds.length > 0) {
+              params.push(`include=${genreIds.join('_')}`);
+            }
           }
         }
+      } else {
+        // GLOBAL SEARCH MODE (Pure text, no filters)
+        params.push(`search=${encodeURIComponent(trimmedQuery)}`);
+        params.push('search_by=book_name');
       }
 
       const queryString = params.length ? `?${params.join('&')}` : '';
@@ -219,57 +240,8 @@ export const MangaparkService: MangaSource = {
         }
       }
 
-      // 1. Browsing Mode (Filters only, no text): Server-side filtered.
-      // 2. Searching Mode (Text + Filters): Client-side filtered.
-      if (!hasQuery) {
-        log(
-          `[Search] Browse Mode: Trusting server results (${results.length})`,
-        );
-        return results;
-      }
-
-      let filteredResults = results;
-
-      if (hasGenres && filters?.genres?.length) {
-        const requiredGenreIds = filters.genres
-          .map((genre) => {
-            const mapped = mapGenreToApi(genre);
-            const id = GENRE_ID_BY_SLUG[mapped];
-            log(
-              `[Search] Mapping genre: "${genre}" -> "${mapped}" -> ID: ${id}`,
-            );
-            return id;
-          })
-          .filter((id): id is number => Number.isFinite(id));
-
-        if (requiredGenreIds.length > 0) {
-          const beforeCount = filteredResults.length;
-          filteredResults = filteredResults.filter((manga) => {
-            // In search mode, if we have metadata, we verify it.
-            // If metadata is missing, we allow it through to avoid zero-result searches.
-            if (!manga.genreIds || manga.genreIds.length === 0) {
-              log(
-                `[Search] Item "${manga.title}" missing genre metadata, allowing through`,
-              );
-              return true;
-            }
-            const matches = requiredGenreIds.every((id) =>
-              manga.genreIds?.includes(id),
-            );
-            if (!matches) {
-              log(
-                `[Search] Filtering out "${manga.title}" (Has: ${manga.genreIds.join(',')}, Needs: ${requiredGenreIds.join(',')})`,
-              );
-            }
-            return matches;
-          });
-          log(
-            `[Search] Search Mode Filter: ${beforeCount} -> ${filteredResults.length} (Targeted: ${requiredGenreIds.join(', ')})`,
-          );
-        }
-      }
-
-      return filteredResults;
+      log(`[Search] Found ${results.length} results`);
+      return results;
     } catch (e) {
       logError('Search failed', e);
       return [];
