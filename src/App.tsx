@@ -31,6 +31,7 @@ import type {
 } from './services/types';
 import {
   type AppUpdate,
+  BUNDLE_VERSION,
   type NativeAppUpdate,
   UpdateService,
 } from './services/update';
@@ -444,7 +445,7 @@ export function App() {
                   <view className="HomeHeader">
                     <Sparkles>
                       <text className="HomeTitle">
-                        Release v1.0.212 (Filters Fixed)
+                        Release {BUNDLE_VERSION} (Filters Fixed)
                       </text>
                     </Sparkles>
                   </view>

@@ -148,11 +148,20 @@ export const MangaparkService: MangaSource = {
         // DIRECTORY MODE (Browse by Category)
         params.push('filter=1');
         params.push('include_mode=and');
+        params.push('bookmark_opts=off');
+        params.push('chapters=1');
 
         if (filters) {
           // Add Order
-          const order = filters.sort === 'views_d030' ? 'latest' : filters.sort;
-          if (order) params.push(`order=${order}`);
+          const sortMap: Record<string, string> = {
+            views_d030: 'views',
+            latest: 'latest',
+            new: 'new',
+            az: 'az',
+            numc: 'num_chapters',
+          };
+          const order = sortMap[filters.sort] || 'latest';
+          params.push(`order=${order}`);
 
           // Add Status
           if (filters.status && filters.status !== 'all') {
@@ -242,7 +251,7 @@ export const MangaparkService: MangaSource = {
         return results;
       }
 
-      // 2. Searching Mode (Text + Filters): Apply strict client-side verification
+      // 2. Searching Mode (Text + Filters): Apply resilient client-side verification
       if (hasFilters && filters?.genres?.length) {
         const requiredGenreIds = filters.genres
           .map((genre) => {
@@ -254,10 +263,11 @@ export const MangaparkService: MangaSource = {
         if (requiredGenreIds.length > 0) {
           const beforeCount = results.length;
           const filtered = results.filter((manga) => {
-            // If item is missing genre metadata during site-wide search, we exclude it
-            // to ensure "targeted" results. (Site results almost always have data-genre)
+            // RELAXED (Inclusion-first) Logic:
+            // If item is missing genre metadata during site-wide search, we INCLUDE it
+            // to ensure you don't miss targeted results from incomplete server metadata.
             if (!manga.genreIds || manga.genreIds.length === 0) {
-              return false;
+              return true;
             }
             return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
           });
