@@ -208,59 +208,41 @@ export const ComixService: MangaSource = {
 
   async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
     try {
-      let mangaId = '';
       let chapterId = '';
 
+      // Format: "hash_id:::chapter_id-chapter-number"
       if (chapterIdOrUrl.includes(':::')) {
         const parts = chapterIdOrUrl.split(':::');
-        mangaId = parts[0];
-        chapterId = parts[1];
+        const chapPart = parts[1]; // e.g., "6740075-chapter-1"
+        chapterId = chapPart.split('-')[0]; // Extract "6740075"
+      } else if (chapterIdOrUrl.includes('/')) {
+        // URL format like /title/slug/chapter_id-chapter-number
+        const parts = chapterIdOrUrl.split('/');
+        const lastPart = parts[parts.length - 1];
+        chapterId = lastPart.split('-')[0];
       } else {
-        // Fallback or if passed URL
-        // If it's a URL like /title/slug/chap-id
-        if (chapterIdOrUrl.includes('/title/')) {
-          const part = chapterIdOrUrl.split('/title/')[1];
-          const slashIdx = part.indexOf('/');
-          if (slashIdx !== -1) {
-            mangaId = part.substring(0, slashIdx);
-            chapterId = part.substring(slashIdx + 1);
-          }
-        } else {
-          logError(`Invalid chapter ID format: ${chapterIdOrUrl}`);
-          return [];
-        }
+        // Direct chapter ID
+        chapterId = chapterIdOrUrl.split('-')[0];
       }
 
-      const url = `${this.baseUrl}/title/${mangaId}/${chapterId}`;
-      log(`Fetching chapter pages from ${url}`);
-
-      const response = await fetch(url, { headers: this.headers });
-      const html = await response.text();
-
-      // Scrape for image URLs (simple regex for webp/jpg/png)
-      const matches = html.matchAll(/https:\/\/[^"']+\.(webp|jpg|png)/g);
-      const images: string[] = [];
-      const seen = new Set();
-
-      for (const match of matches) {
-        const imgUrl = match[0];
-        // Filter out assets
-        if (imgUrl.includes('static.comix.to') && imgUrl.includes('@'))
-          continue;
-        if (
-          imgUrl.includes('logo') ||
-          imgUrl.includes('icon') ||
-          imgUrl.includes('favicon')
-        )
-          continue;
-
-        if (!seen.has(imgUrl)) {
-          images.push(imgUrl);
-          seen.add(imgUrl);
-        }
+      if (!chapterId || isNaN(parseInt(chapterId))) {
+        logError(`Invalid chapter ID: ${chapterIdOrUrl}`);
+        return [];
       }
 
-      log(`Found ${images.length} images`);
+      const apiUrl = `${this.baseUrl}/api/v2/chapters/${chapterId}`;
+      log(`Fetching chapter pages from API: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, { headers: this.headers });
+      const json = await response.json();
+
+      if (!json || !json.result || !json.result.images) {
+        logError('Invalid API response for chapter pages');
+        return [];
+      }
+
+      const images = json.result.images.map((img: any) => img.url);
+      log(`Found ${images.length} images for chapter ${chapterId}`);
       return images;
     } catch (e) {
       logError('Failed to fetch chapter pages', e);
