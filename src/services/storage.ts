@@ -888,6 +888,7 @@ export const StorageService = {
     log('[Storage] AUTO-CAPTURE: Triggering debug report capture');
     try {
       const { DebugLogService } = await import('./debugLog');
+      const { SupabaseService } = await import('./supabase');
       const settings = this.getSettings();
       const deviceId = this.getDeviceId();
 
@@ -910,15 +911,34 @@ export const StorageService = {
         }
       }
 
-      const context = {
-        version: '1.0.245',
-        deviceId,
+      const structuredReport = {
+        app_version: '1.0.250',
+        environment_info: { deviceId, platform: 'Lynx' },
         settings,
-        storageValues,
+        storage_state: storageValues,
+        console_logs: [],
+        supabase_status: { status: 'Auto-capture' },
       };
 
-      const report = DebugLogService.getDebugReport(context);
-      await SupabaseService.captureDebugReport(report);
+      const debugReport = DebugLogService.getDebugReport(structuredReport);
+
+      // Use upsert like DeveloperOptions does
+      await SupabaseService.upsert(
+        'debug_logs',
+        {
+          device_id: deviceId,
+          report: debugReport,
+          app_version: structuredReport.app_version,
+          environment_info: structuredReport.environment_info,
+          settings: structuredReport.settings,
+          supabase_status: structuredReport.supabase_status,
+          storage_state: structuredReport.storage_state,
+          console_logs: structuredReport.console_logs,
+          created_at: new Date().toISOString(),
+        },
+        'device_id',
+      );
+
       log('[Storage] AUTO-CAPTURE: Debug report sent successfully');
     } catch (e) {
       logError('[Storage] AUTO-CAPTURE: Failed to capture debug report:', e);
