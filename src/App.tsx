@@ -129,7 +129,9 @@ export function App() {
 
       const source = sourceManager.getSource(sourceManager.getDefaultSource());
       if (!source) {
-        throw new Error(`${sourceManager.getDefaultSource()} source not registered`);
+        throw new Error(
+          `${sourceManager.getDefaultSource()} source not registered`,
+        );
       }
 
       const feed = await source.getHomeFeed();
@@ -236,7 +238,9 @@ export function App() {
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
-    log(`[App] Selected manga: ${manga.title}`);
+    log(
+      `[App] Selected manga: ${manga.title} (source: ${manga.source}, url: ${manga.url}, id: ${manga.id})`,
+    );
     setSelectedManga(manga);
     setView('details');
     setSettingsSubview('main');
@@ -249,8 +253,18 @@ export function App() {
       setLoading(false);
       return;
     }
-    const details = await source.getMangaDetails(manga.url || manga.id);
-    setMangaDetails(details);
+    log(
+      `[App] Resolved source: ${source.id}, fetching details for: ${manga.url || manga.id}`,
+    );
+    try {
+      const details = await source.getMangaDetails(manga.url || manga.id);
+      log(
+        `[App] Got details: ${details?.title}, chapters: ${details?.chapters?.length || 0}`,
+      );
+      setMangaDetails(details);
+    } catch (e) {
+      logError('[App] Failed to get manga details:', e);
+    }
     setLoading(false);
   }, []);
 

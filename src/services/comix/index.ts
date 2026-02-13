@@ -124,12 +124,21 @@ export const ComixService: MangaSource = {
 
   async getMangaDetails(mangaId: string): Promise<MangaDetails> {
     try {
-      const cleanId = mangaId.startsWith('title/')
-        ? mangaId.split('title/')[1]
-        : mangaId;
+      log(`getMangaDetails called with: ${mangaId}`);
+
+      // Handle full URLs like https://comix.to/title/kl6nv-the-dukes-wife-obsession
+      let cleanId = mangaId;
+      if (mangaId.includes('comix.to/title/')) {
+        cleanId = mangaId.split('comix.to/title/')[1];
+      } else if (mangaId.startsWith('title/')) {
+        cleanId = mangaId.split('title/')[1];
+      } else if (mangaId.startsWith('/title/')) {
+        cleanId = mangaId.split('/title/')[1];
+      }
 
       // Extract hash_id from slug (first part before first hyphen)
       const hashId = cleanId.split('-')[0];
+      log(`Using hashId: ${hashId}, full slug: ${cleanId}`);
 
       // Fetch manga details from API
       const apiUrl = `${this.baseUrl}/api/v2/manga/${hashId}`;
