@@ -272,9 +272,10 @@ export function App() {
       clearTimeout(autoCaptureTimer);
       return;
     }
-    log(`[App] FETCHING_DETAILS: ${manga.url || manga.id}`);
+    log(`[App] FETCHING_DETAILS: manga.id=${manga.id}, manga.url=${manga.url}`);
     try {
-      const details = await source.getMangaDetails(manga.url || manga.id);
+      // Use manga.id (which is hash_id like "pgx4") instead of manga.url
+      const details = await source.getMangaDetails(manga.id);
       log(
         `[App] DETAILS_OK: ${details?.title} ch:${details?.chapters?.length || 0}`,
       );
