@@ -78,11 +78,11 @@ export const ComixService: MangaSource = {
        // Comix home feed mixes popular and latest.
        // We can just reuse getPopular or try to find a specific latest section.
        // For now, return same as popular or empty if paginated differently.
-       return this.getPopular();
+       return this.getPopular!();
   },
 
   async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
-      const popular = await this.getPopular();
+      const popular = await this.getPopular!();
       return { popular, latest: [] };
   },
 
