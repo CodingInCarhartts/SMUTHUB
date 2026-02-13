@@ -140,15 +140,24 @@ export const ComixService: MangaSource = {
       const hashId = cleanId.split('-')[0];
       log(`Using hashId: ${hashId}, full slug: ${cleanId}`);
 
-      // Fetch manga details from API
+      // Fetch manga details from API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const apiUrl = `${this.baseUrl}/api/v2/manga/${hashId}`;
       log(`Fetching details from API: ${apiUrl}`);
 
-      const apiRes = await fetch(apiUrl, { headers: this.headers });
+      const apiRes = await fetch(apiUrl, {
+        headers: this.headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
       const json = await apiRes.json();
+      log(`API response status: ${json.status}`);
 
       if (!json || !json.result) {
-        throw new Error('Failed to fetch manga details');
+        throw new Error(`API error: ${json?.message || 'Unknown error'}`);
       }
 
       const manga = json.result;
