@@ -238,53 +238,41 @@ export function App() {
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
-    console.log(`[App] handleSelectManga called for: ${manga.title}`);
     log(
-      `[App] Selected manga: ${manga.title} (source: ${manga.source}, url: ${manga.url}, id: ${manga.id})`,
+      `[App] SELECT_MANGA: ${manga.title} src:${manga.source} url:${manga.url} id:${manga.id}`,
     );
     setSelectedManga(manga);
     setView('details');
     setSettingsSubview('main');
     setLoading(true);
 
-    // Immediate log capture to debug
-    import('./services/debugLog').then(({ DebugLogService }) => {
-      const logs = DebugLogService.getLogsAsText();
-      console.log('[App] Current logs:', logs.slice(-500));
-    });
-
-    // Auto-capture debug logs after 30 seconds if still loading
+    // Auto-capture debug logs after 10 seconds if still loading
     const autoCaptureTimer = setTimeout(() => {
-      log('[App] AUTO-CAPTURE: Still loading after 30s, triggering report');
+      log('[App] AUTO-CAPTURE TRIGGER');
       import('./services/storage').then(({ StorageService }) => {
         StorageService.triggerDebugCapture();
       });
-    }, 30000);
+    }, 10000);
 
     const source = sourceManager.resolveSource(
       manga.source || manga.url || manga.id,
     );
-    console.log('[App] Resolved source:', source?.id);
+    log(`[App] SOURCE_RESOLVED: ${source?.id || 'NULL'}`);
     if (!source) {
-      logError('[App] No source found for manga:', manga);
+      logError('[App] SOURCE_NULL');
       setLoading(false);
       clearTimeout(autoCaptureTimer);
       return;
     }
-    log(
-      `[App] Resolved source: ${source.id}, fetching details for: ${manga.url || manga.id}`,
-    );
+    log(`[App] FETCHING_DETAILS: ${manga.url || manga.id}`);
     try {
-      console.log('[App] Calling getMangaDetails...');
       const details = await source.getMangaDetails(manga.url || manga.id);
-      console.log('[App] getMangaDetails returned:', details?.title);
       log(
-        `[App] Got details: ${details?.title}, chapters: ${details?.chapters?.length || 0}`,
+        `[App] DETAILS_OK: ${details?.title} ch:${details?.chapters?.length || 0}`,
       );
       setMangaDetails(details);
     } catch (e) {
-      console.log('[App] getMangaDetails failed:', e);
-      logError('[App] Failed to get manga details:', e);
+      logError('[App] DETAILS_ERR:', e);
     }
     setLoading(false);
     clearTimeout(autoCaptureTimer);

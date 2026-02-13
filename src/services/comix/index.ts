@@ -123,9 +123,9 @@ export const ComixService: MangaSource = {
   },
 
   async getMangaDetails(mangaId: string): Promise<MangaDetails> {
-    console.log('[Comix] getMangaDetails START');
+    log(`[Comix] START mangaId:${mangaId}`);
     try {
-      log(`getMangaDetails called with: ${mangaId}`);
+      log(`[Comix] getMangaDetails called with: ${mangaId}`);
 
       // Handle full URLs like https://comix.to/title/kl6nv-the-dukes-wife-obsession
       let cleanId = mangaId;
@@ -139,23 +139,18 @@ export const ComixService: MangaSource = {
 
       // Extract hash_id from slug (first part before first hyphen)
       const hashId = cleanId.split('-')[0];
-      console.log(
-        '[Comix] Extracted hashId:',
-        hashId,
-        'from cleanId:',
-        cleanId,
-      );
+      log(`[Comix] hashId:${hashId} cleanId:${cleanId}`);
       log(`Using hashId: ${hashId}, full slug: ${cleanId}`);
 
       // Fetch manga details from API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log('[Comix] Fetch timeout reached, aborting');
+        log('[Comix] TIMEOUT_ABORT');
         controller.abort();
       }, 10000);
 
       const apiUrl = `${this.baseUrl}/api/v2/manga/${hashId}`;
-      console.log('[Comix] Fetching from:', apiUrl);
+      log(`[Comix] FETCH_URL:${apiUrl}`);
       log(`Fetching details from API: ${apiUrl}`);
 
       const apiRes = await fetch(apiUrl, {
@@ -163,7 +158,7 @@ export const ComixService: MangaSource = {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      console.log('[Comix] API response status:', apiRes.status);
+      log(`[Comix] RESPONSE_STATUS:${apiRes.status}`);
 
       const json = await apiRes.json();
       log(`API response status: ${json.status}`);
@@ -173,10 +168,10 @@ export const ComixService: MangaSource = {
       }
 
       const manga = json.result;
-      console.log('[Comix] Got manga details:', manga.title);
+      log(`[Comix] MANGA_TITLE:${manga.title}`);
 
       // Fetch chapters from API
-      console.log('[Comix] Fetching chapters...');
+      log('[Comix] FETCHING_CHAPTERS');
       const chaptersRes = await fetch(
         `${this.baseUrl}/api/v2/manga/${hashId}/chapters`,
         {
@@ -184,10 +179,7 @@ export const ComixService: MangaSource = {
         },
       );
       const chaptersJson = await chaptersRes.json();
-      console.log(
-        '[Comix] Got chapters, count:',
-        chaptersJson?.result?.items?.length || 0,
-      );
+      log(`[Comix] CHAPTERS_COUNT:${chaptersJson?.result?.items?.length || 0}`);
 
       const chapters: any[] = [];
       if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
