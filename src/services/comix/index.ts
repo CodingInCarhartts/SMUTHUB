@@ -102,10 +102,70 @@ export const ComixService: MangaSource = {
     return { popular, latest };
   },
 
-  async search(query: string, _filters?: SearchFilters): Promise<Manga[]> {
+  async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     try {
-      log(`Searching for: ${query}`);
-      const url = `${this.baseUrl}/api/v2/manga?keyword=${encodeURIComponent(query)}&limit=20`;
+      const trimmedQuery = query.trim();
+      const hasQuery = trimmedQuery.length > 0;
+
+      // Check if we have any filters to apply
+      const hasFilters =
+        filters &&
+        (filters.genres?.length ||
+          filters.status !== 'all' ||
+          filters.sort !== 'latest');
+
+      log(
+        `Searching for: "${trimmedQuery}" with filters: ${hasFilters ? 'yes' : 'no'}`,
+      );
+
+      const params: string[] = [];
+
+      // Add query if present
+      if (hasQuery) {
+        params.push(`keyword=${encodeURIComponent(trimmedQuery)}`);
+      }
+
+      // Add sort parameter
+      if (filters?.sort) {
+        const sortMap: Record<string, string> = {
+          latest: 'order[updated_at]=desc',
+          new: 'order[created_at]=desc',
+          az: 'order[title]=asc',
+          numc: 'order[total_chapters]=desc',
+          views_d030: 'order[views_30d]=desc',
+        };
+        const sortParam = sortMap[filters.sort];
+        if (sortParam) {
+          params.push(sortParam);
+        }
+      } else {
+        // Default sort
+        params.push('order[updated_at]=desc');
+      }
+
+      // Add status filter
+      if (filters?.status && filters.status !== 'all') {
+        const statusMap: Record<string, string> = {
+          ongoing: 'status=releasing',
+          completed: 'status=finished',
+        };
+        if (statusMap[filters.status]) {
+          params.push(statusMap[filters.status]);
+        }
+      }
+
+      // Add genre filters (Comix uses genre IDs, not names)
+      // For now, we skip genre filtering since we'd need a mapping
+      // The API supports: genres[]=87265 (include) or genres[]=-87265 (exclude)
+
+      // Limit results
+      params.push('limit=20');
+
+      const queryString = params.join('&');
+      const url = `${this.baseUrl}/api/v2/manga?${queryString}`;
+
+      log(`[Search] URL: ${url}`);
+
       const response = await fetch(url, { headers: this.headers });
       const json: ComixApiResponse = await response.json();
 
