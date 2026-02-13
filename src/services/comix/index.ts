@@ -18,8 +18,8 @@ export const ComixService: MangaSource = {
     Origin: 'https://comix.to',
   },
 
-  async getPopularManga(page: number): Promise<Manga[]> {
-    if (page > 1) return []; // Home feed is single page/mixed
+
+  async getPopular(): Promise<Manga[]> {
     try {
       log('Fetching popular/home feed');
       const response = await fetch(`${this.baseUrl}/home`, {
@@ -53,10 +53,11 @@ export const ComixService: MangaSource = {
             items.push({
               id,
               title,
+              url: `${this.baseUrl}${href}`,
               cover: cover || '',
               latestChapter: latestChap || '',
               status: 'Unknown', 
-              author: '',
+              authors: [],
             });
           }
       });
@@ -73,14 +74,19 @@ export const ComixService: MangaSource = {
     }
   },
 
-  async getLatestManga(page: number): Promise<Manga[]> {
-       if (page === 1) {
-           return this.getPopularManga(1);
-       }
-       return [];
+  async getLatest(): Promise<Manga[]> {
+       // Comix home feed mixes popular and latest.
+       // We can just reuse getPopular or try to find a specific latest section.
+       // For now, return same as popular or empty if paginated differently.
+       return this.getPopular();
   },
 
-  async searchManga(query: string, filters?: SearchFilters): Promise<Manga[]> {
+  async getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }> {
+      const popular = await this.getPopular();
+      return { popular, latest: [] };
+  },
+
+  async search(query: string, filters?: SearchFilters): Promise<Manga[]> {
     try {
       log(`Searching for: ${query}`);
       const url = `${this.baseUrl}/browser?keyword=${encodeURIComponent(query)}`;
@@ -107,10 +113,11 @@ export const ComixService: MangaSource = {
              items.push({
                id,
                title,
+               url: `${this.baseUrl}${href}`,
                cover: cover || '',
                latestChapter: latest || '',
                status: 'Unknown',
-               author: '',
+               authors: [],
              });
           }
        });
@@ -161,8 +168,11 @@ export const ComixService: MangaSource = {
                  json.result.items.forEach((item: any) => {
                      // Url format: {chapter_id}-chapter-{number}
                      const chapId = `${item.chapter_id}-chapter-${item.number}`;
+                     // We MUST encode mangaId in ID to allow retrieval
+                     const compositeId = `${cleanId}:::${chapId}`;
+                     
                      chapters.push({
-                         id: chapId,
+                         id: compositeId,
                          title: item.name || `Chapter ${item.number}`,
                          number: item.number,
                          date: new Date(item.created_at * 1000), 
@@ -180,23 +190,45 @@ export const ComixService: MangaSource = {
       return {
         id: cleanId,
         title,
+        url,
         description: desc,
         cover,
-        author: author || 'Unknown',
-        artist: artist || 'Unknown',
+        authors: [author, artist].filter(Boolean),
         status: statusStr.toLowerCase().includes('releasing') ? 'Ongoing' : 'Completed',
         chapters: chapters.sort((a, b) => b.number - a.number),
         isNsfw: false
-      };
+      } as MangaDetails;
     } catch (e) {
       logError('Failed to fetch details', e);
       throw e;
     }
   },
 
-  async getChapterPages(mangaId: string, chapterId: string): Promise<string[]> {
-    // chapterId is likely a sub-path e.g. "8170995-chapter-51"
+  async getChapterPages(chapterIdOrUrl: string): Promise<string[]> {
     try {
+        let mangaId = '';
+        let chapterId = '';
+
+        if (chapterIdOrUrl.includes(':::')) {
+            const parts = chapterIdOrUrl.split(':::');
+            mangaId = parts[0];
+            chapterId = parts[1];
+        } else {
+            // Fallback or if passed URL
+            // If it's a URL like /title/slug/chap-id
+             if (chapterIdOrUrl.includes('/title/')) {
+                 const part = chapterIdOrUrl.split('/title/')[1];
+                 const slashIdx = part.indexOf('/');
+                 if (slashIdx !== -1) {
+                     mangaId = part.substring(0, slashIdx);
+                     chapterId = part.substring(slashIdx + 1);
+                 }
+             } else {
+                 logError(`Invalid chapter ID format: ${chapterIdOrUrl}`);
+                 return [];
+             }
+        }
+        
         const url = `${this.baseUrl}/title/${mangaId}/${chapterId}`;
         log(`Fetching chapter pages from ${url}`);
         
