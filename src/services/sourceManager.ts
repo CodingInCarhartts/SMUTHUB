@@ -17,6 +17,10 @@ class SourceManager {
     // console.log(`[SourceManager] Keys: ${Array.from(this.sources.keys()).join(', ')}`);
   }
 
+  getDefaultSource(): string {
+    return this.defaultSource;
+  }
+
   registerSource(source: MangaSource) {
     if (!source || !source.id) {
       console.error(
