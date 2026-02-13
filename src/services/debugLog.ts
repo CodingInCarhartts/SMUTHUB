@@ -33,16 +33,31 @@ export const DebugLogService = {
   warn(category: string, message: string, ...args: any[]): void {
     console.warn(`[${category}] ${message}`, ...args);
   },
-  error(category: string, message: string, error?: Error, ...args: any[]): void {
+  error(
+    category: string,
+    message: string,
+    error?: Error,
+    ...args: any[]
+  ): void {
     console.error(`[${category}] ${message}`, error?.message || '', ...args);
   },
   reportError(category: string, context: string, error: Error): void {
     console.error(`[${category}] ERROR in ${context}:`, error.message);
   },
-  getLogs(): any[] { return []; },
-  getLogsAsText(): string { return 'Logs disabled'; },
-  getStructuredReport(_context?: any): any { return {}; },
-  getDebugReport(_context?: any): string { return 'Report disabled'; },
+  getLogs(): any[] {
+    return [];
+  },
+  getLogsAsText(): string {
+    return 'Logs disabled';
+  },
+  getStructuredReport(_context?: any): any {
+    return {};
+  },
+  getDebugReport(_context?: any): string {
+    return 'Report disabled';
+  },
   clear(): void {},
-  count(): number { return 0; },
+  count(): number {
+    return 0;
+  },
 };

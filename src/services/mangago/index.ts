@@ -191,9 +191,9 @@ export const MangagoService = {
     try {
       // Use directory sorted by views (guessing param o=v based on common engines, or default)
       // If o=v doesn't work, it defaults to alphabetical, which is better than empty.
-      const url = `${this.baseUrl}/list/directory/all/1/?o=v`; 
+      const url = `${this.baseUrl}/list/directory/all/1/?o=v`;
       log(`Fetching popular: ${url}`);
-      
+
       const response = await fetch(url, {
         headers: {
           'User-Agent':
@@ -207,26 +207,31 @@ export const MangagoService = {
 
       // Directory items structure: .flex1.listitem
       const items = root.querySelectorAll('.listitem');
-      
-      return items.map(item => {
-        const left = item.querySelector('.left');
-        const link = left?.querySelector('a');
-        const img = left?.querySelector('img');
-        const titleSpan = item.querySelector('span.title a');
-        
-        const fullUrl = link?.getAttribute('href') || '';
-        // Extract ID: /read-manga/manga_id/
-        const id = fullUrl.split('/read-manga/')[1]?.replace(/\/$/, '') || '';
 
-        return {
-          id: `mangago:${id}`,
-          title: titleSpan?.text?.trim() || link?.getAttribute('title') || 'Unknown',
-          url: fullUrl,
-          cover: img?.getAttribute('data-src') || img?.getAttribute('src') || '',
-          source: 'mangago'
-        };
-      }).filter(m => m.id !== 'mangago:');
+      return items
+        .map((item) => {
+          const left = item.querySelector('.left');
+          const link = left?.querySelector('a');
+          const img = left?.querySelector('img');
+          const titleSpan = item.querySelector('span.title a');
 
+          const fullUrl = link?.getAttribute('href') || '';
+          // Extract ID: /read-manga/manga_id/
+          const id = fullUrl.split('/read-manga/')[1]?.replace(/\/$/, '') || '';
+
+          return {
+            id: `mangago:${id}`,
+            title:
+              titleSpan?.text?.trim() ||
+              link?.getAttribute('title') ||
+              'Unknown',
+            url: fullUrl,
+            cover:
+              img?.getAttribute('data-src') || img?.getAttribute('src') || '',
+            source: 'mangago',
+          };
+        })
+        .filter((m) => m.id !== 'mangago:');
     } catch (e) {
       logError('getPopular failed', e);
       return [];
@@ -241,7 +246,7 @@ export const MangagoService = {
       log(`Fetching latest from homepage: ${url}`);
 
       const response = await fetch(url, {
-         headers: {
+        headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           Referer: this.baseUrl,
@@ -253,34 +258,37 @@ export const MangagoService = {
 
       const items = root.querySelectorAll('li.toplist');
 
-      return items.map(item => {
-         const left = item.querySelector('.left.listimg');
-         const link = left?.querySelector('a');
-         const img = left?.querySelector('img');
-         
-         // Title is in .right h3 a
-         const titleEl = item.querySelector('.right h3 a');
-         
-         const fullUrl = link?.getAttribute('href') || '';
-         const id = fullUrl.split('/read-manga/')[1]?.replace(/\/$/, '') || '';
-         
-         const latestChapter = item.querySelector('.right ul li a')?.text?.trim();
+      return items
+        .map((item) => {
+          const left = item.querySelector('.left.listimg');
+          const link = left?.querySelector('a');
+          const img = left?.querySelector('img');
 
-         return {
-           id: `mangago:${id}`,
-           title: titleEl?.text?.trim() || link?.getAttribute('title') || 'Unknown',
-           url: fullUrl,
-           cover: img?.getAttribute('data-src') || img?.getAttribute('src') || '',
-           latestChapter: latestChapter,
-           source: 'mangago'
-         };
-      }).filter(m => m.id !== 'mangago:');
-      
+          // Title is in .right h3 a
+          const titleEl = item.querySelector('.right h3 a');
+
+          const fullUrl = link?.getAttribute('href') || '';
+          const id = fullUrl.split('/read-manga/')[1]?.replace(/\/$/, '') || '';
+
+          const latestChapter = item
+            .querySelector('.right ul li a')
+            ?.text?.trim();
+
+          return {
+            id: `mangago:${id}`,
+            title:
+              titleEl?.text?.trim() || link?.getAttribute('title') || 'Unknown',
+            url: fullUrl,
+            cover:
+              img?.getAttribute('data-src') || img?.getAttribute('src') || '',
+            latestChapter: latestChapter,
+            source: 'mangago',
+          };
+        })
+        .filter((m) => m.id !== 'mangago:');
     } catch (e) {
       logError('getLatest failed', e);
       return [];
     }
   },
-
-
 };

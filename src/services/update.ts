@@ -182,9 +182,7 @@ export const UpdateService = {
       (skipped === latest.commitHash || skipped === latest.version) &&
       !latest.isMandatory
     ) {
-      log(
-        `[UpdateService] Version ${latest.version} is skipped by user.`,
-      );
+      log(`[UpdateService] Version ${latest.version} is skipped by user.`);
       return null;
     }
 
@@ -313,7 +311,7 @@ export const UpdateService = {
 
       if (update?.otaUrl && nativeUpdater && (nativeUpdater as any).setOtaUrl) {
         log(`[UpdateService] Setting remote OTA URL: ${update.otaUrl}`);
-        
+
         // LOOP PROTECTION: Mark this hash as attempted
         if (update.commitHash) {
           await StorageService.setLastUpdateAttempt(update.commitHash);

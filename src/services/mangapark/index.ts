@@ -83,6 +83,29 @@ function fixUrl(url: string | undefined | null): string {
   return url;
 }
 
+function parseRelativeDate(dateStr: string): number {
+  const now = Date.now();
+  const clean = dateStr.toLowerCase().trim();
+
+  if (clean.includes('ago')) {
+    const num = parseInt(clean.match(/\d+/)?.[0] || '0', 10);
+    if (clean.includes('minute')) return now - num * 60 * 1000;
+    if (clean.includes('hour')) return now - num * 60 * 60 * 1000;
+    if (clean.includes('day')) return now - num * 24 * 60 * 60 * 1000;
+    if (clean.includes('week')) return now - num * 7 * 24 * 60 * 60 * 1000;
+    if (clean.includes('month')) return now - num * 30 * 24 * 60 * 60 * 1000;
+    if (clean.includes('year')) return now - num * 365 * 24 * 60 * 60 * 1000;
+    return now;
+  }
+
+  if (clean === 'yesterday') return now - 24 * 60 * 60 * 1000;
+  if (clean === 'today') return now;
+
+  // Try parsing regular date "Dec-23-2025"
+  const parsed = Date.parse(dateStr);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 // SAFE FETCH
 async function fetchSafe(
   url: string,
@@ -200,7 +223,13 @@ export const MangaparkService: MangaSource = {
       );
       const html = await fetchSafe(url, { headers: HEADERS });
 
-      const results: Manga[] = [];
+      // Intermediate structure to hold data for client-side sorting/filtering
+      type ScrapedManga = Manga & {
+        _debugDate?: number;
+        _debugChapterNum?: number;
+      };
+
+      const results: ScrapedManga[] = [];
       const blocks = html.split('<div class="item"');
       blocks.shift(); // discard header
 
@@ -232,6 +261,28 @@ export const MangaparkService: MangaSource = {
             genres.push(gm[1].trim());
           }
 
+          // Parse Status
+          const statusMatch = block.match(/<div class="status ([^"]+)">/);
+          const status = statusMatch
+            ? statusMatch[1].trim().toLowerCase()
+            : undefined;
+
+          // Parse Latest Update (Date)
+          let dateTs = 0;
+          const dateMatch = block.match(/<div class="date">([\s\S]*?)<\/div>/);
+          if (dateMatch) {
+            // Strip any inner tags like <i class="icon"></i> and trim
+            const dateStr = dateMatch[1].replace(/<[^>]+>/g, '').trim();
+            dateTs = parseRelativeDate(dateStr);
+          }
+
+          // Parse Chapter Number (Best Effort)
+          let chapterNum = 0;
+          const chapterMatch = block.match(/Chapter\s+(\d+(\.\d+)?)/i);
+          if (chapterMatch) {
+            chapterNum = parseFloat(chapterMatch[1]);
+          }
+
           results.push({
             id: `mangapark:${href.split('/').pop()}`,
             title: title,
@@ -240,6 +291,12 @@ export const MangaparkService: MangaSource = {
             genres,
             genreIds: genreIds && genreIds.length > 0 ? genreIds : undefined,
             source: 'mangapark',
+            status:
+              status === 'completed' || status === 'ongoing'
+                ? status
+                : undefined,
+            _debugDate: dateTs,
+            _debugChapterNum: chapterNum,
           });
         }
       }
@@ -252,6 +309,9 @@ export const MangaparkService: MangaSource = {
       }
 
       // 2. Searching Mode (Text + Filters): Apply resilient client-side verification
+      let finalResults = results;
+
+      // Filter by Genres
       if (hasFilters && filters?.genres?.length) {
         const requiredGenreIds = filters.genres
           .map((genre) => {
@@ -261,8 +321,8 @@ export const MangaparkService: MangaSource = {
           .filter((id): id is number => Number.isFinite(id));
 
         if (requiredGenreIds.length > 0) {
-          const beforeCount = results.length;
-          const filtered = results.filter((manga) => {
+          const beforeCount = finalResults.length;
+          finalResults = finalResults.filter((manga) => {
             // RELAXED (Inclusion-first) Logic:
             // If item is missing genre metadata during site-wide search, we INCLUDE it
             // to ensure you don't miss targeted results from incomplete server metadata.
@@ -272,13 +332,50 @@ export const MangaparkService: MangaSource = {
             return requiredGenreIds.every((id) => manga.genreIds?.includes(id));
           });
           log(
-            `[Search] Targeted Filter: ${beforeCount} -> ${filtered.length} (IDs: ${requiredGenreIds.join(', ')})`,
+            `[Search] Targeted Filter (Genres): ${beforeCount} -> ${finalResults.length} (IDs: ${requiredGenreIds.join(
+              ', ',
+            )})`,
           );
-          return filtered;
         }
       }
 
-      return results;
+      // Filter by Status (Client-side)
+      if (filters?.status && filters.status !== 'all') {
+        const beforeCount = finalResults.length;
+        const targetStatus = filters.status; // 'ongoing' or 'completed'
+        finalResults = finalResults.filter((m) => {
+          if (!m.status) return true; // Keep if unknown status to be safe
+          return m.status === targetStatus;
+        });
+        log(
+          `[Search] Targeted Filter (Status): ${beforeCount} -> ${finalResults.length} (Target: ${targetStatus})`,
+        );
+      }
+
+      // Sort (Client-side)
+      if (filters?.sort) {
+        const sort = filters.sort;
+        log(`[Search] Client-side Sort: ${sort}`);
+        finalResults.sort((a, b) => {
+          switch (sort) {
+            case 'latest':
+              return (b._debugDate || 0) - (a._debugDate || 0);
+            case 'az':
+              return a.title.localeCompare(b.title);
+            case 'numc':
+              return (b._debugChapterNum || 0) - (a._debugChapterNum || 0);
+            // 'views' not supported client-side, fallback to default (relevance)
+            default:
+              return 0;
+          }
+        });
+      }
+
+      // Clean up internal props
+      return finalResults.map((r) => {
+        const { _debugDate, _debugChapterNum, ...rest } = r;
+        return rest;
+      });
     } catch (e) {
       logError('Search failed', e);
       return [];

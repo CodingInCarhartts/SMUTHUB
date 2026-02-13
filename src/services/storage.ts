@@ -3,7 +3,6 @@ import {
   HISTORY_LIMIT_LOCAL,
   NATIVE_DEVICE_ID_TIMEOUT_MS,
 } from '../config';
-import type { Manga, SearchFilters } from './types';
 import { logCapture } from './debugLog';
 import { MigrationService } from './migration';
 import {
@@ -15,6 +14,7 @@ import {
 } from './nativeStorage';
 import { SupabaseService } from './supabase';
 import { SyncEngine } from './sync';
+import type { Manga, SearchFilters } from './types';
 
 // Helper to log with capture (console override doesn't work in Lynx)
 const log = (...args: any[]) => logCapture('log', ...args);
@@ -866,7 +866,7 @@ export const StorageService = {
       }
 
       // NOTE: Batoto is removed, avoiding batch fetch for now.
-      const updates: Manga[] = []; 
+      const updates: Manga[] = [];
       log(`[Storage] Fetched updates for ${updates.length} favorites`);
 
       const updateMap = new Map<string, Manga>();

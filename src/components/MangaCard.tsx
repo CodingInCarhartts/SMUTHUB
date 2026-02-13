@@ -1,6 +1,6 @@
 import { useEffect, useState } from '@lynx-js/react';
-import type { Manga } from '../services/types';
 import { StorageService } from '../services/storage';
+import type { Manga } from '../services/types';
 import './MangaCard.css';
 
 interface Props {

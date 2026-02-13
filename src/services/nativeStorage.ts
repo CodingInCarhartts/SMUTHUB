@@ -48,10 +48,10 @@ export function setNativeItem(key: string, value: string): Promise<void> {
         // But to be safe, let's wrap it.
         nativeModule.setStorageItem(key, value);
         log('[setNativeItem] Saved:', { key, valueLen: value.length });
-        // Give it a tiny tick to ensure it hits the bridge? 
+        // Give it a tiny tick to ensure it hits the bridge?
         // Or if the native API provides a callback, use it.
         // Assuming standard bridge might be async.
-        setTimeout(resolve, 50); 
+        setTimeout(resolve, 50);
       } else {
         resolve();
       }

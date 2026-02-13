@@ -10,11 +10,11 @@ import {
   RETRY_DELAY_INCREMENT,
   SWIPE_THRESHOLD_PX,
 } from '../config';
-import type { Manga } from '../services/types';
 import { logCapture } from '../services/debugLog';
 import { SettingsStore } from '../services/settings';
 import { sourceManager } from '../services/sourceManager';
 import { normalizeUrl, StorageService } from '../services/storage';
+import type { Manga } from '../services/types';
 import './Reader.css';
 
 // Helper for debug logging

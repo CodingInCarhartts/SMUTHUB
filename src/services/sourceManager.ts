@@ -1,3 +1,4 @@
+import { ComixService } from './comix';
 import { MangagoService } from './mangago';
 import { MangaparkService } from './mangapark';
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from './types';
@@ -11,6 +12,7 @@ class SourceManager {
     // We will register sources here
     // this.registerSource(MangagoService); // KEEP DISABLED
     this.registerSource(MangaparkService);
+    this.registerSource(ComixService);
     // console.log(`[SourceManager] Registry size: ${this.sources.size}`);
     // console.log(`[SourceManager] Keys: ${Array.from(this.sources.keys()).join(', ')}`);
   }
@@ -47,6 +49,10 @@ class SourceManager {
       idOrUrl.includes('mangakatana.com')
     ) {
       return this.sources.get('mangapark');
+    }
+
+    if (idOrUrl.startsWith('comix:') || idOrUrl.includes('comix.to')) {
+      return this.sources.get('comix');
     }
 
     // Fallback based on known prefixes if we implement namespacing

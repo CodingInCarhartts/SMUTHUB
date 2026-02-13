@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { MangaparkService } from '../mangapark';
 
 describe('MangaparkService (MangaKatana Mirror)', () => {
@@ -11,14 +11,18 @@ describe('MangaparkService (MangaKatana Mirror)', () => {
   }, 15000);
 
   it('should get manga details', async () => {
-    const details = await MangaparkService.getMangaDetails('https://mangakatana.com/manga/solo-leveling.21708');
+    const details = await MangaparkService.getMangaDetails(
+      'https://mangakatana.com/manga/solo-leveling.21708',
+    );
     expect(details).not.toBeNull();
     expect(details?.title).toBe('Solo Leveling');
     expect(details?.chapters.length).toBeGreaterThan(0);
   }, 15000);
 
   it('should get chapter pages', async () => {
-    const pages = await MangaparkService.getChapterPages('https://mangakatana.com/manga/solo-leveling.21708/c200');
+    const pages = await MangaparkService.getChapterPages(
+      'https://mangakatana.com/manga/solo-leveling.21708/c200',
+    );
     expect(pages.length).toBeGreaterThan(0);
     expect(pages[0]).toContain('http');
   }, 15000);
