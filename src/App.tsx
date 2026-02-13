@@ -127,9 +127,9 @@ export function App() {
     try {
       log('[App] fetchHomeFeed started');
 
-      const source = sourceManager.getSource('mangapark');
+      const source = sourceManager.getSource(sourceManager.getDefaultSource());
       if (!source) {
-        throw new Error('MangaPark source not registered');
+        throw new Error(`${sourceManager.getDefaultSource()} source not registered`);
       }
 
       const feed = await source.getHomeFeed();
