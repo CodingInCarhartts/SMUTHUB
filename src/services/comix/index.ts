@@ -142,22 +142,13 @@ export const ComixService: MangaSource = {
       log(`[Comix] hashId:${hashId} cleanId:${cleanId}`);
       log(`Using hashId: ${hashId}, full slug: ${cleanId}`);
 
-      // Fetch manga details from API with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        log('[Comix] TIMEOUT_ABORT');
-        controller.abort();
-      }, 10000);
-
       const apiUrl = `${this.baseUrl}/api/v2/manga/${hashId}`;
       log(`[Comix] FETCH_URL:${apiUrl}`);
       log(`Fetching details from API: ${apiUrl}`);
 
       const apiRes = await fetch(apiUrl, {
         headers: this.headers,
-        signal: controller.signal,
       });
-      clearTimeout(timeoutId);
       log(`[Comix] RESPONSE_STATUS:${apiRes.status}`);
 
       const json = await apiRes.json();

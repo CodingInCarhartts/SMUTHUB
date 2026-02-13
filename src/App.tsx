@@ -238,9 +238,17 @@ export function App() {
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
-    log(
-      `[App] SELECT_MANGA: ${manga.title} src:${manga.source} url:${manga.url} id:${manga.id}`,
-    );
+    // Force log immediately to see if this is even called
+    log(`[App] SELECT_START: ${manga.title}`);
+    console.log('SELECT_START:', manga.title);
+
+    // Also immediately try to capture
+    import('./services/storage')
+      .then(({ StorageService }) => {
+        StorageService.triggerDebugCapture();
+      })
+      .catch(() => {});
+
     setSelectedManga(manga);
     setView('details');
     setSettingsSubview('main');
