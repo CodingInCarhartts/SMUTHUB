@@ -882,6 +882,48 @@ export const StorageService = {
       return new Map();
     }
   },
+
+  // Trigger debug capture for debugging stuck loading states
+  async triggerDebugCapture(): Promise<void> {
+    log('[Storage] AUTO-CAPTURE: Triggering debug report capture');
+    try {
+      const { DebugLogService } = await import('./debugLog');
+      const settings = this.getSettings();
+      const deviceId = this.getDeviceId();
+
+      const storageValues: Record<string, any> = {};
+      const keysToCapture = [
+        STORAGE_KEYS.FAVORITES,
+        STORAGE_KEYS.HISTORY,
+        STORAGE_KEYS.SETTINGS,
+        STORAGE_KEYS.FILTERS,
+      ];
+
+      for (const key of keysToCapture) {
+        try {
+          const value = getLocal(key, null);
+          if (value !== null) {
+            storageValues[key] = JSON.stringify(value).substring(0, 500); // Truncate
+          }
+        } catch (e) {
+          storageValues[key] = '<error>';
+        }
+      }
+
+      const context = {
+        version: '1.0.245',
+        deviceId,
+        settings,
+        storageValues,
+      };
+
+      const report = DebugLogService.getDebugReport(context);
+      await SupabaseService.captureDebugReport(report);
+      log('[Storage] AUTO-CAPTURE: Debug report sent successfully');
+    } catch (e) {
+      logError('[Storage] AUTO-CAPTURE: Failed to capture debug report:', e);
+    }
+  },
 };
 
 // Export initialization promise so other modules can wait

@@ -2,6 +2,7 @@
 // Bypasses the official client to avoid WebSocket/Runtime issues in Lynx
 
 import { SUPABASE_ANON_KEY, SUPABASE_REST_URL } from '../config';
+import { StorageService } from './storage';
 
 const HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -142,6 +143,24 @@ export const SupabaseService = {
     } catch (e) {
       console.warn(`[Supabase] Failed to fetch config for ${key}`, e);
       return null;
+    }
+  },
+
+  /**
+   * Insert a debug report into debug_logs table
+   */
+  async captureDebugReport(report: string): Promise<boolean> {
+    try {
+      const deviceId = StorageService?.getDeviceId?.() || 'unknown';
+      const data = {
+        device_id: deviceId,
+        report: report,
+        app_version: '1.0.245',
+      };
+      return await this.upsert('debug_logs', data, 'id');
+    } catch (e) {
+      console.warn('[Supabase] Failed to capture debug report', e);
+      return false;
     }
   },
 };
