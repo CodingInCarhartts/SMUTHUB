@@ -5,13 +5,13 @@ import type { Manga, MangaDetails, MangaSource, SearchFilters } from './types';
 
 class SourceManager {
   private sources: Map<string, MangaSource> = new Map();
-  private defaultSource: string = 'mangapark';
+  private defaultSource: string = 'comix';
 
   constructor() {
     // console.log('[SourceManager] Initializing...');
     // We will register sources here
     // this.registerSource(MangagoService); // KEEP DISABLED
-    this.registerSource(MangaparkService);
+    // this.registerSource(MangaparkService); // DISABLED FOR ISOLATION
     this.registerSource(ComixService);
     // console.log(`[SourceManager] Registry size: ${this.sources.size}`);
     // console.log(`[SourceManager] Keys: ${Array.from(this.sources.keys()).join(', ')}`);
