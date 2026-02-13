@@ -24,7 +24,7 @@ interface ComixApiResponse {
 
 function parseApiManga(item: ComixApiManga): Manga {
   return {
-    id: item.slug,
+    id: item.hash_id, // Use hash_id as the primary ID for API calls
     title: item.title,
     url: `https://comix.to/title/${item.slug}`,
     cover: item.poster?.medium || '',
@@ -127,20 +127,21 @@ export const ComixService: MangaSource = {
     try {
       log(`[Comix] getMangaDetails called with: ${mangaId}`);
 
-      // Handle full URLs like https://comix.to/title/kl6nv-the-dukes-wife-obsession
-      let cleanId = mangaId;
+      // mangaId is now the hash_id directly (e.g., "pgx4", "kl6nv")
+      // Handle legacy URLs just in case
+      let hashId = mangaId;
       if (mangaId.includes('comix.to/title/')) {
-        cleanId = mangaId.split('comix.to/title/')[1];
+        hashId = mangaId.split('comix.to/title/')[1].split('-')[0];
       } else if (mangaId.startsWith('title/')) {
-        cleanId = mangaId.split('title/')[1];
+        hashId = mangaId.split('title/')[1].split('-')[0];
       } else if (mangaId.startsWith('/title/')) {
-        cleanId = mangaId.split('/title/')[1];
+        hashId = mangaId.split('/title/')[1].split('-')[0];
+      } else if (mangaId.includes('-')) {
+        // Legacy: might be slug like "kl6nv-the-dukes-wife" - extract first part
+        hashId = mangaId.split('-')[0];
       }
 
-      // Extract hash_id from slug (first part before first hyphen)
-      const hashId = cleanId.split('-')[0];
-      log(`[Comix] hashId:${hashId} cleanId:${cleanId}`);
-      log(`Using hashId: ${hashId}, full slug: ${cleanId}`);
+      log(`[Comix] Using hashId: ${hashId}`);
 
       const apiUrl = `${this.baseUrl}/api/v2/manga/${hashId}`;
       log(`[Comix] FETCH_URL:${apiUrl}`);
@@ -176,14 +177,14 @@ export const ComixService: MangaSource = {
       if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
         chaptersJson.result.items.forEach((item: any) => {
           const chapId = `${item.chapter_id}-chapter-${item.number}`;
-          const compositeId = `${cleanId}:::${chapId}`;
+          const compositeId = `${hashId}:::${chapId}`;
 
           chapters.push({
             id: compositeId,
             title: item.name || `Chapter ${item.number}`,
             number: item.number,
             date: new Date(item.created_at * 1000),
-            url: `/title/${cleanId}/${chapId}`,
+            url: `/title/${manga.slug}/${chapId}`,
           });
         });
       }
