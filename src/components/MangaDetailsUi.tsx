@@ -35,7 +35,8 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
           id: details.id,
           title: details.title,
           cover: details.cover,
-          url: '', // Will be set by caller context
+          url: '',
+          source: details.source || 'comix',
         });
         setIsFavorite(true);
       }

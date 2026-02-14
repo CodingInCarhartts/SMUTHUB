@@ -30,13 +30,14 @@ interface ComixApiResponse {
 
 function parseApiManga(item: ComixApiManga): Manga {
   return {
-    id: item.hash_id, // Use hash_id as the primary ID for API calls
+    id: item.hash_id,
     title: item.title,
     url: `https://comix.to/title/${item.slug}`,
     cover: item.poster?.medium || '',
     latestChapter: item.latest_chapter ? `Ch. ${item.latest_chapter}` : '',
     status: item.status === 'ongoing' ? 'Ongoing' : 'Completed',
     authors: [],
+    source: 'comix',
   };
 }
 
@@ -333,6 +334,7 @@ export const ComixService: MangaSource = {
         status: manga.status === 'releasing' ? 'Ongoing' : 'Completed',
         chapters: allChapters.sort((a, b) => b.number - a.number),
         isNsfw: manga.is_nsfw || false,
+        source: 'comix',
       } as MangaDetails;
     } catch (e) {
       logError('Failed to fetch details', e);

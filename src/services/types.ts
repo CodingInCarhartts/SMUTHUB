@@ -4,6 +4,8 @@ export interface Manga {
   url: string;
   cover: string;
   latestChapter?: string;
+  latestChapterId?: string;
+  latestChapterUrl?: string;
   status?: string;
   authors?: string[];
   genres?: string[];
@@ -16,12 +18,16 @@ export interface Manga {
 export interface MangaDetails extends Manga {
   chapters: Chapter[];
   summary?: string;
+  views?: number;
 }
 
 export interface Chapter {
   id: string;
   title: string;
   number: number;
+  url: string;
+  group?: string;
+  uploadDate?: string;
   releasedAt?: string;
 }
 
