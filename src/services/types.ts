@@ -40,8 +40,9 @@ export interface Page {
 
 export interface SearchFilters {
   genres: string[];
-  status: 'all' | 'ongoing' | 'completed' | 'cancelled';
-  sort: 'latest' | 'new' | 'az' | 'numc' | 'views_d030';
+  types: string[];
+  status: 'all' | 'ongoing' | 'completed' | 'cancelled' | 'hiatus';
+  sort: 'relevance' | 'latest' | 'new' | 'az' | 'numc' | 'views_d030';
   nsfw: boolean;
   page?: number;
 }

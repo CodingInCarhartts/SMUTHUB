@@ -5,114 +5,34 @@ import './SearchFilters.css';
 interface Props {
   onApply: (filters: SearchFilters) => void;
   onClose: () => void;
-  onReset?: () => void; // Optional callback to reset search query
-  initialFilters?: SearchFilters; // Pre-populate with saved filters
+  onReset?: () => void;
+  initialFilters?: SearchFilters;
 }
 
-// Complete genre list from Batoto
-const GENRES = [
-  '4-Koma',
-  'Action',
-  'Adult',
-  'Adventure',
-  'Artbook',
-  'Award Winning',
-  'Comedy',
-  'Cooking',
-  'Doujinshi',
-  'Drama',
-  'Ecchi',
-  'Fantasy',
-  'Gender Bender',
-  'Harem',
-  'Historical',
-  'Horror',
-  'Isekai',
-  'Josei',
-  'Loli',
-  'Manhua',
-  'Manhwa',
-  'Martial Arts',
-  'Mecha',
-  'Medical',
-  'Music',
-  'Mystery',
-  'One Shot',
-  'Overpowered MC',
-  'Psychological',
-  'Reincarnation',
-  'Romance',
-  'School Life',
-  'Sci-fi',
-  'Seinen',
-  'Shota',
-  'Shoujo',
-  'Shoujo Ai',
-  'Shounen',
-  'Shounen Ai',
-  'Slice of Life',
-  'Sports',
-  'Super Power',
-  'Supernatural',
-  'Survival',
-  'Time Travel',
-  'Tragedy',
-  'Webtoon',
-  'Yaoi',
-  'Yuri',
+const TYPES = [
+  { value: 'manga', label: 'Manga' },
+  { value: 'manhwa', label: 'Manhwa' },
+  { value: 'manhua', label: 'Manhua' },
+  { value: 'webtoon', label: 'Webtoon' },
+  { value: 'other', label: 'Other' },
 ];
 
-export const GENRE_MAP: Record<string, string> = {
-  '4-Koma': '4-koma',
-  Action: 'action',
-  Adult: 'adult',
-  Adventure: 'adventure',
-  Artbook: 'artbook',
-  'Award Winning': 'award-winning',
-  Comedy: 'comedy',
-  Cooking: 'cooking',
-  Doujinshi: 'doujinshi',
-  Drama: 'drama',
-  Ecchi: 'ecchi',
-  Fantasy: 'fantasy',
-  'Gender Bender': 'gender-bender',
-  Harem: 'harem',
-  Historical: 'historical',
-  Horror: 'horror',
-  Isekai: 'isekai',
-  Josei: 'josei',
-  Loli: 'loli',
-  Manhua: 'manhua',
-  Manhwa: 'manhwa',
-  'Martial Arts': 'martial-arts',
-  Mecha: 'mecha',
-  Medical: 'medical',
-  Music: 'music',
-  Mystery: 'mystery',
-  'One Shot': 'one-shot',
-  'Overpowered MC': 'overpowered-mc',
-  Psychological: 'psychological',
-  Reincarnation: 'reincarnation',
-  Romance: 'romance',
-  'School Life': 'school-life',
-  'Sci-fi': 'sci-fi',
-  Seinen: 'seinen',
-  Shota: 'shota',
-  Shoujo: 'shoujo',
-  'Shoujo Ai': 'shoujo-ai',
-  Shounen: 'shounen',
-  'Shounen Ai': 'shounen-ai',
-  'Slice of Life': 'slice-of-life',
-  Sports: 'sports',
-  'Super Power': 'super-power',
-  Supernatural: 'supernatural',
-  Survival: 'survival',
-  'Time Travel': 'time-travel',
-  Tragedy: 'tragedy',
-  Webtoon: 'webtoon',
-  Yaoi: 'yaoi',
-  Yuri: 'yuri',
-};
+const SORT_OPTIONS = [
+  { value: 'relevance', label: 'Best Match' },
+  { value: 'latest', label: 'Latest Update' },
+  { value: 'new', label: 'New Manga' },
+  { value: 'az', label: 'A-Z' },
+  { value: 'numc', label: 'Most Chapters' },
+  { value: 'views_d030', label: 'Most Popular (30 days)' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'Any' },
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'completed', label: 'Finished' },
+  { value: 'hiatus', label: 'Hiatus' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 export function SearchFiltersModal({
   onApply,
@@ -123,8 +43,9 @@ export function SearchFiltersModal({
   const [filters, setFilters] = useState<SearchFilters>(
     initialFilters || {
       genres: [],
+      types: [],
       status: 'all',
-      sort: 'views_d030',
+      sort: 'relevance',
       nsfw: false,
     },
   );
@@ -138,37 +59,33 @@ export function SearchFiltersModal({
     }));
   };
 
+  const toggleType = (type: string) => {
+    setFilters((prev: SearchFilters) => ({
+      ...prev,
+      types: prev.types.includes(type)
+        ? prev.types.filter((t: string) => t !== type)
+        : [...prev.types, type],
+    }));
+  };
+
   const handleReset = () => {
     const resetFilters: SearchFilters = {
       genres: [],
+      types: [],
       status: 'all',
-      sort: 'views_d030',
+      sort: 'relevance',
       nsfw: false,
     };
     setFilters(resetFilters);
-    onReset?.(); // Clear search query
-    onApply(resetFilters); // Apply reset immediately
+    onReset?.();
+    onApply(resetFilters);
   };
-
-  const SORT_OPTIONS = [
-    { value: 'latest', label: 'Latest Update' },
-    { value: 'new', label: 'New Manga' },
-    { value: 'az', label: 'A-Z' },
-    { value: 'numc', label: 'Most Chapters' },
-  ];
-
-  const STATUS_OPTIONS = [
-    { value: 'all', label: 'All' },
-    { value: 'ongoing', label: 'Ongoing' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
-  ];
 
   return (
     <view className="FiltersOverlay" bindtap={onClose}>
       <view className="FiltersSheet" catchtap={() => {}}>
         <view className="FiltersHeader">
-          <text className="FiltersTitle">Search Filters</text>
+          <text className="FiltersTitle">Filters</text>
           <text className="ResetButton" bindtap={handleReset}>
             Reset
           </text>
@@ -203,7 +120,30 @@ export function SearchFiltersModal({
             ))}
           </view>
 
-          <text className="SectionLabel">Status</text>
+          <text className="SectionLabel">Types</text>
+          <view className="ChipRow">
+            {TYPES.map((t) => (
+              <view
+                key={t.value}
+                className={
+                  filters.types.includes(t.value) ? 'Chip Chip-active' : 'Chip'
+                }
+                bindtap={() => toggleType(t.value)}
+              >
+                <text
+                  className={
+                    filters.types.includes(t.value)
+                      ? 'ChipText ChipText-active'
+                      : 'ChipText'
+                  }
+                >
+                  {t.label}
+                </text>
+              </view>
+            ))}
+          </view>
+
+          <text className="SectionLabel">Release Status</text>
           <view className="ChipRow">
             {STATUS_OPTIONS.map((s) => (
               <view
@@ -233,7 +173,37 @@ export function SearchFiltersModal({
 
           <text className="SectionLabel">Genres</text>
           <view className="GenreGrid">
-            {GENRES.map((g) => (
+            {[
+              'Action',
+              'Adventure',
+              'Comedy',
+              'Drama',
+              'Fantasy',
+              'Harem',
+              'Historical',
+              'Horror',
+              'Isekai',
+              'Josei',
+              'Manhua',
+              'Manhwa',
+              'Martial Arts',
+              'Mecha',
+              'Mystery',
+              'Psychological',
+              'Reincarnation',
+              'Romance',
+              'School Life',
+              'Sci-fi',
+              'Seinen',
+              'Shoujo',
+              'Shounen',
+              'Slice of Life',
+              'Sports',
+              'Supernatural',
+              'Webtoon',
+              'Yaoi',
+              'Yuri',
+            ].map((g) => (
               <view
                 key={g}
                 className={
@@ -266,7 +236,3 @@ export function SearchFiltersModal({
     </view>
   );
 }
-
-// Minimal inline styles for now, usually goes in .css
-// .FiltersOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: flex-end; }
-// .FiltersSheet { background: #fff; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; height: 70%; }

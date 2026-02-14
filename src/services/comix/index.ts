@@ -126,7 +126,12 @@ export const ComixService: MangaSource = {
       }
 
       // Add sort parameter
-      if (filters?.sort) {
+      // When searching with a query, always use relevance by default (like the website)
+      // Only use the explicit sort filter when browsing (no query)
+      let sortParam: string | undefined;
+      if (hasQuery) {
+        sortParam = 'order=relevance:desc';
+      } else if (filters?.sort) {
         const sortMap: Record<string, string> = {
           latest: 'order[updated_at]=desc',
           new: 'order[created_at]=desc',
@@ -135,13 +140,11 @@ export const ComixService: MangaSource = {
           views_d030: 'order[views_30d]=desc',
           relevance: 'order=relevance:desc',
         };
-        const sortParam = sortMap[filters.sort];
-        if (sortParam) {
-          params.push(sortParam);
-        }
-      } else if (hasQuery) {
-        // Default to relevance sorting when searching (like the website)
-        params.push('order=relevance:desc');
+        sortParam = sortMap[filters.sort];
+      }
+
+      if (sortParam) {
+        params.push(sortParam);
       } else {
         // Default sort for browsing
         params.push('order[updated_at]=desc');
@@ -152,10 +155,19 @@ export const ComixService: MangaSource = {
         const statusMap: Record<string, string> = {
           ongoing: 'status=releasing',
           completed: 'status=finished',
+          hiatus: 'status=hiatus',
+          cancelled: 'status=cancelled',
         };
         if (statusMap[filters.status]) {
           params.push(statusMap[filters.status]);
         }
+      }
+
+      // Add types filter
+      if (filters?.types && filters.types.length > 0) {
+        filters.types.forEach((type) => {
+          params.push(`types[]=${type}`);
+        });
       }
 
       // Add genre filters (Comix uses genre IDs, not names)

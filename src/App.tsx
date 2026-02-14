@@ -170,6 +170,7 @@ export function App() {
       const browseParams = {
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres,
+        types: filters?.types,
         status: filters?.status,
         word: (filters as any)?.word,
       };
@@ -178,6 +179,7 @@ export function App() {
         ...filters,
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres || [],
+        types: filters?.types || [],
         status: filters?.status || 'all',
         nsfw: false,
       });
@@ -385,6 +387,7 @@ export function App() {
         setTab('search');
         handleApplyFilters({
           genres: [],
+          types: [],
           sort: 'views_d030',
           status: 'all',
           nsfw: false,
@@ -393,6 +396,7 @@ export function App() {
         setTab('search');
         handleApplyFilters({
           genres: [genre.toLowerCase()],
+          types: [],
           sort: 'views_d030',
           status: 'all',
           nsfw: false,
@@ -406,6 +410,7 @@ export function App() {
     setTab('search');
     handleApplyFilters({
       genres: [],
+      types: [],
       sort: 'latest',
       status: 'all',
       nsfw: false,
