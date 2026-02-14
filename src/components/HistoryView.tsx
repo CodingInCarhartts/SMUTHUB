@@ -29,8 +29,8 @@ export function HistoryView({ onBack, onSelectHistoryItem }: Props) {
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const data = await StorageService.getHistory();
-      setHistory(data);
+      const result = await StorageService.getHistory();
+      setHistory(result.data);
     } catch (e) {
       console.error('[HistoryView] Failed to load:', e);
     } finally {

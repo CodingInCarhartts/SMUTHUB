@@ -16,9 +16,9 @@ storageReady
     // Then try cloud
     return StorageService.getSettings();
   })
-  .then((cloudSettings) => {
-    console.log('[SettingsStore] Cloud settings loaded:', cloudSettings);
-    settings = cloudSettings;
+  .then((result) => {
+    console.log('[SettingsStore] Cloud settings loaded:', result.data);
+    settings = result.data;
     listeners.forEach((fn) => fn());
   })
   .catch((e) => {
@@ -70,7 +70,6 @@ export const SettingsStore = {
   setDebugOutlines(enabled: boolean): void {
     console.log('[SettingsStore] Debug outlines set to:', enabled);
     settings.debugOutlines = enabled;
-    StorageService.saveSettings({ debugOutlines: enabled });
     StorageService.saveSettings({ debugOutlines: enabled });
     listeners.forEach((fn) => fn());
   },

@@ -20,8 +20,8 @@ export function FavoritesView({ onBack, onSelectManga }: Props) {
   const loadFavorites = async () => {
     setLoading(true);
     try {
-      const data = await StorageService.getFavorites();
-      setFavorites(data);
+      const result = await StorageService.getFavorites();
+      setFavorites(result.data);
     } catch (e) {
       console.error('[FavoritesView] Failed to load:', e);
     } finally {

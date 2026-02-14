@@ -28,7 +28,8 @@ export const MigrationService = {
       }
 
       // 1. Migrate Favorites
-      const favorites = await StorageService.getFavorites();
+      const favoritesResult = await StorageService.getFavorites();
+      const favorites = favoritesResult.data;
       if (favorites.length > 0) {
         console.log(`[Migration] Migrating ${favorites.length} favorites...`);
         const payload = favorites.map((m) => ({
@@ -45,7 +46,8 @@ export const MigrationService = {
       }
 
       // 2. Migrate History
-      const history = await StorageService.getHistory();
+      const historyResult = await StorageService.getHistory();
+      const history = historyResult.data;
       if (history.length > 0) {
         console.log(`[Migration] Migrating ${history.length} history items...`);
         const payload = history.map((h) => ({
@@ -62,7 +64,8 @@ export const MigrationService = {
       }
 
       // 3. Migrate Settings
-      const settings = await StorageService.getSettings();
+      const settingsResult = await StorageService.getSettings();
+      const settings = settingsResult.data;
       if (settings) {
         console.log('[Migration] Migrating settings...');
         await SupabaseService.upsert(

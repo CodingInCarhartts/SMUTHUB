@@ -54,6 +54,53 @@ export interface ReaderPosition {
   timestamp: string;
 }
 
+export type SyncStatus = 'idle' | 'syncing' | 'error';
+
+export interface StorageResult<T> {
+  data: T;
+  status: SyncStatus;
+  lastSyncedAt?: number;
+}
+
+const syncStatus: Map<string, SyncStatus> = new Map();
+const lastSyncedAt: Map<string, number> = new Map();
+
+let currentWriteRelease: (() => void) | null = null;
+let writeLockResolve: ((value: void) => void) | null = null;
+
+function setSyncStatus(key: string, status: SyncStatus): void {
+  syncStatus.set(key, status);
+  log(`[Storage] Sync status for ${key}: ${status}`);
+}
+
+function getSyncStatus(key: string): SyncStatus {
+  return syncStatus.get(key) || 'idle';
+}
+
+function setLastSynced(key: string, timestamp: number): void {
+  lastSyncedAt.set(key, timestamp);
+}
+
+function getLastSynced(key: string): number | undefined {
+  return lastSyncedAt.get(key);
+}
+
+async function acquireWriteLock(key: string): Promise<() => void> {
+  while (currentWriteRelease !== null) {
+    await new Promise<void>((resolve) => {
+      writeLockResolve = resolve;
+    });
+  }
+
+  return () => {
+    currentWriteRelease = null;
+    if (writeLockResolve) {
+      writeLockResolve();
+      writeLockResolve = null;
+    }
+  };
+}
+
 export const STORAGE_KEYS = {
   FAVORITES: 'batoto:favorites',
   HISTORY: 'batoto:history',
@@ -313,22 +360,19 @@ export const StorageService = {
 
   // ============ FAVORITES ============
 
-  async getFavorites(): Promise<Manga[]> {
-    // 1. Immediate Return from Cache
-    const local = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+  async syncFavorites(): Promise<Manga[]> {
+    const deviceId = this.getDeviceId();
+    setSyncStatus('favorites', 'syncing');
 
-    // 2. Background Sync
-    (async () => {
-      const deviceId = this.getDeviceId();
+    try {
       const cloudData = await SupabaseService.getAll<{ manga_data: Manga }>(
         'favorites',
         `?select=manga_data&device_id=eq.${deviceId}&order=created_at.desc`,
       );
+
       if (cloudData.length > 0) {
         let cloudFavorites = cloudData.map((row) => row.manga_data);
 
-        // Filter out items that are pending deletion in our local sync queue
-        // to prevent them from "ghosting" back after being deleted locally
         const pendingDeletions =
           await SyncEngine.getPendingDeletions('favorites');
         if (pendingDeletions.size > 0) {
@@ -337,76 +381,108 @@ export const StorageService = {
           );
         }
 
-        // Smart Merge: Union of Local and Cloud
-        // This ensures we don't lose locally added favorites that haven't synced yet
-        // AND we don't lose cloud favorites that were added on another device
         const currentLocal = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
         const mergedMap = new Map<string, Manga>();
 
-        // Add all cloud items
         cloudFavorites.forEach((m) => mergedMap.set(m.id, m));
-
-        // Add all local items (local takes precedence if metadata is newer,
-        // but for favorites usually just existence matters. We keep local version to be safe)
         currentLocal.forEach((m) => mergedMap.set(m.id, m));
 
         const mergedFavorites = Array.from(mergedMap.values());
-
-        // Only update if generic "length" check or deep equality implies change?
-        // Simply setting it is safe as long as we merged correct.
         setLocal(STORAGE_KEYS.FAVORITES, mergedFavorites);
+        setLastSynced('favorites', Date.now());
+        setSyncStatus('favorites', 'idle');
+        return mergedFavorites;
       }
-    })();
 
-    return local;
+      setSyncStatus('favorites', 'idle');
+      return getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    } catch (e) {
+      logError('[Storage] Failed to sync favorites:', e);
+      setSyncStatus('favorites', 'error');
+      return getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    }
+  },
+
+  async getFavorites(
+    forceRefresh: boolean = false,
+  ): Promise<StorageResult<Manga[]>> {
+    const local = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    const status = getSyncStatus('favorites');
+    const lastSynced = getLastSynced('favorites');
+
+    if (forceRefresh || status === 'idle') {
+      if (forceRefresh || status === 'idle') {
+        const release = await acquireWriteLock('favorites');
+        try {
+          await this.syncFavorites();
+        } finally {
+          release();
+        }
+      }
+    } else {
+      this.syncFavorites();
+    }
+
+    return {
+      data: getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []),
+      status: getSyncStatus('favorites'),
+      lastSyncedAt: getLastSynced('favorites'),
+    };
   },
 
   async addFavorite(manga: Manga): Promise<void> {
-    const deviceId = this.getDeviceId();
-    console.log(
-      `[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`,
-    );
-    const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+    const release = await acquireWriteLock('favorites');
+    try {
+      const deviceId = this.getDeviceId();
+      console.log(
+        `[Storage] Adding favorite for manga ${manga.id} (Device: ${deviceId})`,
+      );
+      const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
 
-    // Check duplication by ID strictly
-    if (!favorites.some((m) => m.id === manga.id)) {
-      // Add to local immediately
-      const newFavorites = [manga, ...favorites];
-      setLocal(STORAGE_KEYS.FAVORITES, newFavorites);
+      if (!favorites.some((m) => m.id === manga.id)) {
+        const newFavorites = [manga, ...favorites];
+        setLocal(STORAGE_KEYS.FAVORITES, newFavorites);
 
-      // Enqueue sync
-      await SyncEngine.enqueue({
-        type: 'UPSERT',
-        table: 'favorites',
-        payload: {
-          device_id: deviceId,
-          manga_id: manga.id,
-          manga_data: manga,
-          created_at: new Date().toISOString(),
-        },
-        timestamp: Date.now(),
-      });
-    } else {
-      console.log(`[Storage] Favorite already exists for ${manga.id}`);
+        await SyncEngine.enqueue({
+          type: 'UPSERT',
+          table: 'favorites',
+          payload: {
+            device_id: deviceId,
+            manga_id: manga.id,
+            manga_data: manga,
+            created_at: new Date().toISOString(),
+          },
+          timestamp: Date.now(),
+        });
+      } else {
+        console.log(`[Storage] Favorite already exists for ${manga.id}`);
+      }
+    } finally {
+      release();
     }
   },
 
   async removeFavorite(mangaId: string): Promise<void> {
-    const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
-    setLocal(
-      STORAGE_KEYS.FAVORITES,
-      favorites.filter((m) => m.id !== mangaId),
-    );
+    const release = await acquireWriteLock('favorites');
+    try {
+      const favorites = getLocal<Manga[]>(STORAGE_KEYS.FAVORITES, []);
+      setLocal(
+        STORAGE_KEYS.FAVORITES,
+        favorites.filter((m) => m.id !== mangaId),
+      );
 
-    await SyncEngine.enqueue({
-      type: 'DELETE',
-      table: 'favorites',
-      payload: {
-        device_id: this.getDeviceId(),
-        manga_id: mangaId,
-      },
-      timestamp: Date.now(),
-    });
+      await SyncEngine.enqueue({
+        type: 'DELETE',
+        table: 'favorites',
+        payload: {
+          device_id: this.getDeviceId(),
+          manga_id: mangaId,
+        },
+        timestamp: Date.now(),
+      });
+    } finally {
+      release();
+    }
   },
 
   isFavoriteSync(mangaId: string): boolean {
@@ -420,11 +496,11 @@ export const StorageService = {
 
   // ============ HISTORY ============
 
-  async getHistory(): Promise<ViewedManga[]> {
-    const local = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+  async syncHistory(): Promise<ViewedManga[]> {
+    const deviceId = this.getDeviceId();
+    setSyncStatus('history', 'syncing');
 
-    (async () => {
-      const deviceId = this.getDeviceId();
+    try {
       const cloudData = await SupabaseService.getAll<any>(
         'history',
         `?select=manga_data,last_chapter_id,last_chapter_title,viewed_at&device_id=eq.${deviceId}&order=viewed_at.desc&limit=${HISTORY_LIMIT_CLOUD}`,
@@ -438,42 +514,31 @@ export const StorageService = {
           viewedAt: row.viewed_at,
         }));
 
-        // SMART MERGE: Combine Local and Cloud, prioritizing the NEWER timestamp
-        // This prevents stale cloud data from overwriting a just-read chapter
         const mergedMap = new Map<string, ViewedManga>();
 
-        // 1. Add Cloud items first
         cloudHistory.forEach((item) => {
           mergedMap.set(item.manga.id, item);
         });
 
-        // 2. Overlay Local items if they are newer
-        // We re-fetch local here to catch any changes that happened during the await
         const currentLocal = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
 
         currentLocal.forEach((localItem) => {
           const cloudItem = mergedMap.get(localItem.manga.id);
           if (!cloudItem) {
-            // Only in local
             mergedMap.set(localItem.manga.id, localItem);
           } else {
-            // Conflict: Check timestamps
             const localDate = new Date(localItem.viewedAt).getTime();
             const cloudDate = new Date(cloudItem.viewedAt).getTime();
 
             if (localDate > cloudDate) {
-              // Local is newer (e.g. user just read a chapter but sync hasn't finished)
               mergedMap.set(localItem.manga.id, localItem);
               console.log(
                 `[Storage] Conflict resolved: Keeping LOCAL for ${localItem.manga.title} (Newer)`,
               );
-            } else {
-              // Cloud is newer (or same), keep cloud (already in map)
             }
           }
         });
 
-        // 3. Convert back to array and sort
         const mergedHistory = Array.from(mergedMap.values())
           .sort(
             (a, b) =>
@@ -482,10 +547,42 @@ export const StorageService = {
           .slice(0, HISTORY_LIMIT_LOCAL);
 
         setLocal(STORAGE_KEYS.HISTORY, mergedHistory);
+        setLastSynced('history', Date.now());
+        setSyncStatus('history', 'idle');
+        return mergedHistory;
       }
-    })();
 
-    return local;
+      setSyncStatus('history', 'idle');
+      return getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+    } catch (e) {
+      logError('[Storage] Failed to sync history:', e);
+      setSyncStatus('history', 'error');
+      return getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+    }
+  },
+
+  async getHistory(
+    forceRefresh: boolean = false,
+  ): Promise<StorageResult<ViewedManga[]>> {
+    const local = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+    const status = getSyncStatus('history');
+
+    if (forceRefresh || status === 'idle') {
+      const release = await acquireWriteLock('history');
+      try {
+        await this.syncHistory();
+      } finally {
+        release();
+      }
+    } else {
+      this.syncHistory();
+    }
+
+    return {
+      data: getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []),
+      status: getSyncStatus('history'),
+      lastSyncedAt: getLastSynced('history'),
+    };
   },
 
   async addToHistory(
@@ -493,53 +590,60 @@ export const StorageService = {
     chapterId?: string,
     chapterTitle?: string,
   ): Promise<void> {
-    let history = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
-    history = history.filter((h) => h.manga.id !== manga.id);
-    history.unshift({
-      manga,
-      lastChapterId: chapterId,
-      lastChapterTitle: chapterTitle,
-      viewedAt: new Date().toISOString(),
-    });
-    setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
+    const release = await acquireWriteLock('history');
+    try {
+      let history = getLocal<ViewedManga[]>(STORAGE_KEYS.HISTORY, []);
+      history = history.filter((h) => h.manga.id !== manga.id);
+      history.unshift({
+        manga,
+        lastChapterId: chapterId,
+        lastChapterTitle: chapterTitle,
+        viewedAt: new Date().toISOString(),
+      });
+      setLocal(STORAGE_KEYS.HISTORY, history.slice(0, HISTORY_LIMIT_LOCAL));
 
-    await SyncEngine.enqueue({
-      type: 'UPSERT',
-      table: 'history',
-      payload: {
-        device_id: this.getDeviceId(),
-        manga_id: manga.id,
-        manga_data: manga,
-        last_chapter_id: chapterId,
-        last_chapter_title: chapterTitle,
-        viewed_at: new Date().toISOString(),
-      },
-      timestamp: Date.now(),
-    });
+      await SyncEngine.enqueue({
+        type: 'UPSERT',
+        table: 'history',
+        payload: {
+          device_id: this.getDeviceId(),
+          manga_id: manga.id,
+          manga_data: manga,
+          last_chapter_id: chapterId,
+          last_chapter_title: chapterTitle,
+          viewed_at: new Date().toISOString(),
+        },
+        timestamp: Date.now(),
+      });
+    } finally {
+      release();
+    }
   },
 
   async clearHistory(): Promise<void> {
-    const deviceId = this.getDeviceId();
-    setLocal(STORAGE_KEYS.HISTORY, []);
+    const release = await acquireWriteLock('history');
+    try {
+      const deviceId = this.getDeviceId();
+      setLocal(STORAGE_KEYS.HISTORY, []);
 
-    await SyncEngine.enqueue({
-      type: 'DELETE',
-      table: 'history',
-      payload: { device_id: deviceId },
-      timestamp: Date.now(),
-    });
+      await SyncEngine.enqueue({
+        type: 'DELETE',
+        table: 'history',
+        payload: { device_id: deviceId },
+        timestamp: Date.now(),
+      });
+    } finally {
+      release();
+    }
   },
 
   // ============ SETTINGS ============
 
-  async getSettings(): Promise<AppSettings> {
-    const local = getLocal<AppSettings>(
-      STORAGE_KEYS.SETTINGS,
-      DEFAULT_SETTINGS,
-    );
+  async syncSettings(): Promise<AppSettings> {
+    const deviceId = this.getDeviceId();
+    setSyncStatus('settings', 'syncing');
 
-    (async () => {
-      const deviceId = this.getDeviceId();
+    try {
       const cloudData = await SupabaseService.getAll<any>(
         'settings',
         `?select=dark_mode,dev_mode,scroll_speed&device_id=eq.${deviceId}`,
@@ -552,32 +656,70 @@ export const StorageService = {
           scrollSpeed: row.scroll_speed ?? DEFAULT_SETTINGS.scrollSpeed,
         };
         setLocal(STORAGE_KEYS.SETTINGS, settings);
+        setLastSynced('settings', Date.now());
+        setSyncStatus('settings', 'idle');
+        return settings;
       }
-    })();
 
-    return local;
+      setSyncStatus('settings', 'idle');
+      return getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    } catch (e) {
+      logError('[Storage] Failed to sync settings:', e);
+      setSyncStatus('settings', 'error');
+      return getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    }
   },
 
-  async saveSettings(settings: Partial<AppSettings>): Promise<void> {
-    const current = getLocal<AppSettings>(
+  async getSettings(): Promise<StorageResult<AppSettings>> {
+    const local = getLocal<AppSettings>(
       STORAGE_KEYS.SETTINGS,
       DEFAULT_SETTINGS,
     );
-    const updated = { ...current, ...settings };
-    setLocal(STORAGE_KEYS.SETTINGS, updated);
+    const status = getSyncStatus('settings');
 
-    await SyncEngine.enqueue({
-      type: 'UPSERT',
-      table: 'settings',
-      payload: {
-        device_id: this.getDeviceId(),
-        dark_mode: updated.darkMode,
-        dev_mode: updated.devMode,
-        scroll_speed: updated.scrollSpeed,
-        updated_at: new Date().toISOString(),
-      },
-      timestamp: Date.now(),
-    });
+    if (status === 'idle') {
+      const release = await acquireWriteLock('settings');
+      try {
+        await this.syncSettings();
+      } finally {
+        release();
+      }
+    } else {
+      this.syncSettings();
+    }
+
+    return {
+      data: getLocal<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
+      status: getSyncStatus('settings'),
+      lastSyncedAt: getLastSynced('settings'),
+    };
+  },
+
+  async saveSettings(settings: Partial<AppSettings>): Promise<void> {
+    const release = await acquireWriteLock('settings');
+    try {
+      const current = getLocal<AppSettings>(
+        STORAGE_KEYS.SETTINGS,
+        DEFAULT_SETTINGS,
+      );
+      const updated = { ...current, ...settings };
+      setLocal(STORAGE_KEYS.SETTINGS, updated);
+
+      await SyncEngine.enqueue({
+        type: 'UPSERT',
+        table: 'settings',
+        payload: {
+          device_id: this.getDeviceId(),
+          dark_mode: updated.darkMode,
+          dev_mode: updated.devMode,
+          scroll_speed: updated.scrollSpeed,
+          updated_at: new Date().toISOString(),
+        },
+        timestamp: Date.now(),
+      });
+    } finally {
+      release();
+    }
   },
 
   getSettingsSync(): AppSettings {
@@ -800,7 +942,8 @@ export const StorageService = {
     force: boolean = false,
   ): Promise<Map<string, Manga>> {
     try {
-      const settings = await this.getSettings();
+      const settingsResult = await this.getSettings();
+      const settings = settingsResult.data;
       log(
         `[Storage] checkFavoritesForUpdates. Force=${force}, Mock=${!!settings.mockUpdates}`,
       );
@@ -810,7 +953,8 @@ export const StorageService = {
           '[Storage] Mock Updates ENABLED - Forcing updates on history items',
         );
         const mockMap = new Map<string, Manga>();
-        const currentHistory = await this.getHistory();
+        const historyResult = await this.getHistory();
+        const currentHistory = historyResult.data;
 
         currentHistory.forEach((item) => {
           const mockManga = { ...item.manga };
@@ -855,16 +999,6 @@ export const StorageService = {
         }
       }
 
-      // Targeted Update Check: Favorites Only
-      log('[Storage] Fetching targeted updates for Favorites...');
-      const favorites = await this.getFavorites();
-      const ids = favorites.map((f) => f.id);
-
-      if (ids.length === 0) {
-        log('[Storage] No favorites to check.');
-        return new Map();
-      }
-
       // NOTE: Batoto is removed, avoiding batch fetch for now.
       const updates: Manga[] = [];
       log(`[Storage] Fetched updates for ${updates.length} favorites`);
@@ -889,7 +1023,8 @@ export const StorageService = {
     try {
       const { DebugLogService } = await import('./debugLog');
       const { SupabaseService } = await import('./supabase');
-      const settings = this.getSettings();
+      const settingsResult = await this.getSettings();
+      const settings = settingsResult.data;
       const deviceId = this.getDeviceId();
 
       const storageValues: Record<string, any> = {};

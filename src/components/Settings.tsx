@@ -35,8 +35,8 @@ export function Settings({ onBack, onNavigate }: Props) {
     });
 
     // Load counts
-    StorageService.getHistory().then((h) => setHistoryCount(h.length));
-    StorageService.getFavorites().then((f) => setFavoritesCount(f.length));
+    StorageService.getHistory().then((h) => setHistoryCount(h.data.length));
+    StorageService.getFavorites().then((f) => setFavoritesCount(f.data.length));
 
     return unsubscribe;
   }, []);
