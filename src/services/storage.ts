@@ -3,6 +3,7 @@ import {
   HISTORY_LIMIT_LOCAL,
   NATIVE_DEVICE_ID_TIMEOUT_MS,
 } from '../config';
+import { ComixService } from './comix';
 import { logCapture } from './debugLog';
 import { MigrationService } from './migration';
 import {
@@ -1020,9 +1021,49 @@ export const StorageService = {
         }
       }
 
-      // NOTE: Batoto is removed, avoiding batch fetch for now.
+      // Fetch fresh data from comix.to for each history item
+      const historyResult = await this.getHistory();
+      const historyItems = historyResult.data;
+      log(
+        `[Storage] Checking ${historyItems.length} history items for updates`,
+      );
+
       const updates: Manga[] = [];
-      log(`[Storage] Fetched updates for ${updates.length} favorites`);
+
+      for (const item of historyItems) {
+        try {
+          const mangaId = item.manga.id;
+          if (!mangaId) continue;
+
+          const details = await ComixService.getMangaDetails(mangaId);
+          if (!details) continue;
+
+          const remoteManga: Manga = {
+            id: details.id || mangaId,
+            title: details.title,
+            url: details.url,
+            cover: details.cover,
+            latestChapter: details.chapters?.[0]?.title || '',
+            latestChapterId: details.chapters?.[0]?.id,
+            latestChapterUrl: details.chapters?.[0]?.url,
+            status: details.status,
+            authors: details.authors,
+            source: 'comix',
+          };
+
+          if (StorageService.checkForUpdates(item.manga, remoteManga)) {
+            log(`[Storage] Update found for: ${item.manga.title}`);
+            updates.push(remoteManga);
+          }
+        } catch (e) {
+          logError(
+            `[Storage] Failed to check update for ${item.manga.title}:`,
+            e,
+          );
+        }
+      }
+
+      log(`[Storage] Fetched updates for ${updates.length} items`);
 
       const updateMap = new Map<string, Manga>();
       updates.forEach((m) => updateMap.set(m.id, m));
