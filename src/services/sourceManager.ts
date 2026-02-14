@@ -1,6 +1,4 @@
 import { ComixService } from './comix';
-import { MangagoService } from './mangago';
-import { MangaparkService } from './mangapark';
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from './types';
 
 class SourceManager {
