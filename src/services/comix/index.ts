@@ -130,15 +130,15 @@ export const ComixService: MangaSource = {
       // Only use the explicit sort filter when browsing (no query)
       let sortParam: string | undefined;
       if (hasQuery) {
-        sortParam = 'order=relevance:desc';
-      } else if (filters?.sort) {
+        sortParam = 'order[relevance]=desc';
+      } else if (filters?.sort && filters.sort !== 'relevance') {
+        // Skip relevance sort when no query - it doesn't make sense without a search term
         const sortMap: Record<string, string> = {
           latest: 'order[updated_at]=desc',
           new: 'order[created_at]=desc',
           az: 'order[title]=asc',
           numc: 'order[total_chapters]=desc',
           views_d030: 'order[views_30d]=desc',
-          relevance: 'order=relevance:desc',
         };
         sortParam = sortMap[filters.sort];
       }
