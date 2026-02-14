@@ -233,3 +233,19 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* Load More Button */
+.LoadMoreButton {
+  padding: 16px;
+  margin: 16px 0;
+  background-color: var(--accent-soft);
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.LoadMoreText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-accent);
+}

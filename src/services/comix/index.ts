@@ -1,3 +1,4 @@
+import { USER_AGENTS } from '../../config';
 import { logCapture } from '../debugLog';
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
 import {
@@ -47,8 +48,7 @@ export const ComixService: MangaSource = {
   baseUrl: 'https://comix.to',
   isNsfwSource: false,
   headers: {
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': USER_AGENTS[0],
     Referer: 'https://comix.to/',
     Origin: 'https://comix.to',
   },
@@ -241,13 +241,11 @@ export const ComixService: MangaSource = {
     }
   },
 
-  async getMangaDetails(mangaId: string): Promise<MangaDetails> {
+  async getMangaDetails(mangaId: string): Promise<MangaDetails | null> {
     log(`[Comix] START mangaId:${mangaId}`);
     try {
       log(`[Comix] getMangaDetails called with: ${mangaId}`);
 
-      // mangaId is now the hash_id directly (e.g., "pgx4", "kl6nv")
-      // Handle legacy URLs just in case
       let hashId = mangaId;
       if (mangaId.includes('comix.to/title/')) {
         hashId = mangaId.split('comix.to/title/')[1].split('-')[0];
@@ -256,7 +254,6 @@ export const ComixService: MangaSource = {
       } else if (mangaId.startsWith('/title/')) {
         hashId = mangaId.split('/title/')[1].split('-')[0];
       } else if (mangaId.includes('-')) {
-        // Legacy: might be slug like "kl6nv-the-dukes-wife" - extract first part
         hashId = mangaId.split('-')[0];
       }
 
@@ -281,48 +278,40 @@ export const ComixService: MangaSource = {
       const manga = json.result;
       log(`[Comix] MANGA_TITLE:${manga.title}`);
 
-      // Fetch chapters from API with pagination
+      // Fetch chapters from API - only first page for initial load (lazy loading)
       log('[Comix] FETCHING_CHAPTERS');
       const allChapters: any[] = [];
-      let currentPage = 1;
       let lastPage = 1;
 
-      do {
-        const chaptersRes = await fetch(
-          `${this.baseUrl}/api/v2/manga/${hashId}/chapters?page=${currentPage}`,
-          {
-            headers: this.headers,
-          },
-        );
-        const chaptersJson = await chaptersRes.json();
+      // Only fetch the first page initially (fast load)
+      const chaptersRes = await fetch(
+        `${this.baseUrl}/api/v2/manga/${hashId}/chapters?page=1`,
+        { headers: this.headers },
+      );
+      const chaptersJson = await chaptersRes.json();
 
-        if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
-          chaptersJson.result.items.forEach((item: any) => {
-            const chapId = `${item.chapter_id}-chapter-${item.number}`;
-            const compositeId = `${hashId}:::${chapId}`;
+      if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
+        chaptersJson.result.items.forEach((item: any) => {
+          const chapId = `${item.chapter_id}-chapter-${item.number}`;
+          const compositeId = `${hashId}:::${chapId}`;
 
-            allChapters.push({
-              id: compositeId,
-              title: item.name || `Chapter ${item.number}`,
-              number: item.number,
-              date: new Date(item.created_at * 1000),
-              url: `/title/${manga.slug}/${chapId}`,
-            });
+          allChapters.push({
+            id: compositeId,
+            title: item.name || `Chapter ${item.number}`,
+            number: item.number,
+            date: new Date(item.created_at * 1000),
+            url: `/title/${manga.slug}/${chapId}`,
           });
+        });
 
-          // Get pagination info
-          if (chaptersJson.result.pagination) {
-            lastPage = chaptersJson.result.pagination.last_page || 1;
-          }
+        if (chaptersJson.result.pagination) {
+          lastPage = chaptersJson.result.pagination.last_page || 1;
         }
+      }
 
-        log(
-          `[Comix] CHAPTERS_PAGE_${currentPage}:${allChapters.length} items (lastPage: ${lastPage})`,
-        );
-        currentPage++;
-      } while (currentPage <= lastPage);
-
-      log(`[Comix] TOTAL_CHAPTERS_FETCHED:${allChapters.length}`);
+      log(
+        `[Comix] TOTAL_CHAPTERS_FETCHED:${allChapters.length} (page 1/${lastPage})`,
+      );
 
       return {
         id: manga.slug,
@@ -333,12 +322,56 @@ export const ComixService: MangaSource = {
         authors: [],
         status: manga.status === 'releasing' ? 'Ongoing' : 'Completed',
         chapters: allChapters.sort((a, b) => b.number - a.number),
+        totalChapters: manga.chapters_count || allChapters.length,
+        hasMoreChapters: lastPage > 1,
+        currentChaptersPage: 1,
+        mangaId: hashId,
         isNsfw: manga.is_nsfw || false,
         source: 'comix',
       } as MangaDetails;
     } catch (e) {
       logError('Failed to fetch details', e);
       throw e;
+    }
+  },
+
+  async loadMoreChapters(mangaId: string, page: number): Promise<any[]> {
+    try {
+      let hashId = mangaId;
+      if (mangaId.includes('comix.to/title/')) {
+        hashId = mangaId.split('comix.to/title/')[1].split('-')[0];
+      } else if (mangaId.startsWith('title/')) {
+        hashId = mangaId.split('title/')[1].split('-')[0];
+      } else if (mangaId.startsWith('/title/')) {
+        hashId = mangaId.split('/title/')[1].split('-')[0];
+      } else if (mangaId.includes('-')) {
+        hashId = mangaId.split('-')[0];
+      }
+
+      const chaptersRes = await fetch(
+        `${this.baseUrl}/api/v2/manga/${hashId}/chapters?page=${page}`,
+        { headers: this.headers },
+      );
+      const chaptersJson = await chaptersRes.json();
+
+      if (!chaptersJson || !chaptersJson.result || !chaptersJson.result.items) {
+        return [];
+      }
+
+      return chaptersJson.result.items.map((item: any) => {
+        const chapId = `${item.chapter_id}-chapter-${item.number}`;
+        const compositeId = `${hashId}:::${chapId}`;
+        return {
+          id: compositeId,
+          title: item.name || `Chapter ${item.number}`,
+          number: item.number,
+          date: new Date(item.created_at * 1000),
+          url: `/title/${hashId}/${chapId}`,
+        };
+      });
+    } catch (e) {
+      logError('Failed to load more chapters', e);
+      return [];
     }
   },
 

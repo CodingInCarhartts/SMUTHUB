@@ -19,6 +19,10 @@ export interface MangaDetails extends Manga {
   chapters: Chapter[];
   summary?: string;
   views?: number;
+  totalChapters?: number;
+  hasMoreChapters?: boolean;
+  currentChaptersPage?: number;
+  mangaId?: string;
 }
 
 export interface Chapter {
@@ -55,6 +59,11 @@ export interface MangaSource {
   getHomeFeed(): Promise<{ popular: Manga[]; latest: Manga[] }>;
   getPopular?: () => Promise<Manga[]>;
   getLatest?: () => Promise<Manga[]>;
+  loadMoreChapters?: (mangaId: string, page: number) => Promise<Chapter[]>;
+  getMangaDetailsWithChapters?: (
+    idOrUrl: string,
+    chaptersPage?: number,
+  ) => Promise<MangaDetails | null>;
   headers?: Record<string, string>;
 }
 

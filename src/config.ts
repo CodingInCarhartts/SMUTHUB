@@ -17,68 +17,6 @@ export const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_REPO}
 export const DEFAULT_OTA_BUNDLE_URL = `${GITHUB_RAW_BASE}/main/main.lynx.bundle`;
 
 // ============================================================
-// BATO MIRRORS
-export const BATO_MIRRORS = [
-  'https://mto.to',
-  'https://ato.to',
-  'https://dto.to',
-  'https://fto.to',
-  'https://hto.to',
-  'https://jto.to',
-  'https://lto.to',
-  'https://nto.to',
-  'https://vto.to',
-  'https://wto.to',
-  'https://xto.to',
-  'https://yto.to',
-  'https://vba.to',
-  'https://wba.to',
-  'https://xba.to',
-  'https://yba.to',
-  'https://zba.to',
-  'https://bato.ac',
-  'https://bato.bz',
-  'https://bato.cc',
-  'https://bato.cx',
-  'https://bato.id',
-  'https://bato.pw',
-  'https://bato.sh',
-  'https://bato.to',
-  'https://bato.vc',
-  'https://bato.day',
-  'https://bato.red',
-  'https://bato.run',
-  'https://batoto.in',
-  'https://batoto.tv',
-  'https://batotoo.com',
-  'https://batotwo.com',
-  'https://batpub.com',
-  'https://batread.com',
-  'https://battwo.com',
-  'https://xbato.com',
-  'https://xbato.net',
-  'https://xbato.org',
-  'https://zbato.com',
-  'https://zbato.net',
-  'https://zbato.org',
-  'https://comiko.net',
-  'https://comiko.org',
-  'https://mangatoto.com',
-  'https://mangatoto.net',
-  'https://mangatoto.org',
-  'https://batocomic.com',
-  'https://batocomic.net',
-  'https://batocomic.org',
-  'https://readtoto.com',
-  'https://readtoto.net',
-  'https://readtoto.org',
-  'https://kuku.to',
-  'https://okok.to',
-  'https://ruru.to',
-  'https://xdxd.to',
-];
-
-// ============================================================
 // STORAGE LIMITS
 // ============================================================
 export const HISTORY_LIMIT_LOCAL = 50;
@@ -132,8 +70,8 @@ export const USER_AGENTS = [
 // ============================================================
 export const ACTIVE_EVENT = {
   enabled: true,
-  icon: '🌸',
-  color: '#f7bfcaff',
+  icon: '❤️',
+  color: '#FF4D4D',
   mode: 'drift', // 'sparkle' (pop) | 'fall' (snow/sakura) | 'drift' (heart/bubble)
 };
 

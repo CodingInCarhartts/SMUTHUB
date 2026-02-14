@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from '@lynx-js/react';
+import { ComixService } from '../services/comix';
 import { StorageService } from '../services/storage';
-import type { MangaDetails } from '../services/types';
+import type { Chapter, MangaDetails } from '../services/types';
 import './MangaDetailsUi.css';
 
 interface Props {
@@ -12,6 +13,11 @@ interface Props {
 export function MangaDetailsUi({ details, onBack, onRead }: Props) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [reverseOrder, setReverseOrder] = useState(true);
+  const [chapters, setChapters] = useState<Chapter[]>(details.chapters);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(
+    details.currentChaptersPage || 1,
+  );
 
   // Favorite state
   const [isFavorite, setIsFavorite] = useState(
@@ -22,6 +28,34 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
   useEffect(() => {
     StorageService.isFavorite(details.id).then(setIsFavorite);
   }, [details.id]);
+
+  // Update chapters when details change
+  useEffect(() => {
+    setChapters(details.chapters);
+    setCurrentPage(details.currentChaptersPage || 1);
+  }, [details.chapters, details.currentChaptersPage]);
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !details.mangaId || !details.hasMoreChapters) return;
+    if (!ComixService.loadMoreChapters) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const moreChapters = await ComixService.loadMoreChapters(
+        details.mangaId,
+        nextPage,
+      );
+      if (moreChapters.length > 0) {
+        setChapters((prev) => [...prev, ...moreChapters]);
+        setCurrentPage(nextPage);
+      }
+    } catch (e) {
+      console.error('Failed to load more chapters:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleToggleFavorite = async () => {
     if (favLoading) return;
@@ -50,12 +84,12 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
   // My wife can only read english, so we should only show english chapters.
   // For now, simple list with sort toggle.
   const displayChapters = useMemo(() => {
-    const chapters = [...details.chapters];
+    const chaptersCopy = [...chapters];
     if (reverseOrder) {
-      chapters.reverse();
+      chaptersCopy.reverse();
     }
-    return chapters;
-  }, [details.chapters, reverseOrder]);
+    return chaptersCopy;
+  }, [chapters, reverseOrder]);
 
   return (
     <view className="DetailsContainer">
@@ -135,7 +169,7 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
         {/* Chapters Actions */}
         <view className="ChapterActions">
           <text className="SectionTitle">
-            {details.chapters.length} Chapters
+            {details.totalChapters || chapters.length} Chapters
           </text>
           <view
             className="SortButton"
@@ -164,6 +198,15 @@ export function MangaDetailsUi({ details, onBack, onRead }: Props) {
             </view>
           ))}
         </view>
+
+        {/* Load More Button */}
+        {details.hasMoreChapters && (
+          <view className="LoadMoreButton" bindtap={handleLoadMore}>
+            <text className="LoadMoreText">
+              {loadingMore ? 'Loading...' : 'Load More Chapters'}
+            </text>
+          </view>
+        )}
       </scroll-view>
     </view>
   );
