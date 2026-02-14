@@ -338,10 +338,29 @@ export function App() {
     if (view === 'reader') {
       setView('details');
       triggerUpdateCheck();
+
+      // If mangaDetails isn't loaded yet (e.g., coming from history), fetch it
+      if (selectedManga && !mangaDetails) {
+        const source = sourceManager.resolveSource(
+          selectedManga.source || selectedManga.url || selectedManga.id,
+        );
+        if (source) {
+          source
+            .getMangaDetails(selectedManga.url || selectedManga.id)
+            .then((details) => {
+              if (details) {
+                setMangaDetails(details);
+              }
+            })
+            .catch((e) => {
+              logError('[App] Failed to load details on back navigation:', e);
+            });
+        }
+      }
     } else if (view === 'details') {
       setView('browse');
     }
-  }, [view, triggerUpdateCheck]);
+  }, [view, triggerUpdateCheck, selectedManga, mangaDetails]);
 
   const handleNextChapter = useCallback(() => {
     if (!mangaDetails || !selectedChapterUrl) {
