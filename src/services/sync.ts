@@ -142,14 +142,15 @@ export const SyncEngine = {
         // but our current SupabaseService.delete is a bit simplified.
         // If it's a many-to-many style table, we need complex filters.
         if (op.table === 'favorites' || op.table === 'history') {
-          const success = await SupabaseService.request(
-            `/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${op.payload.manga_id}`,
-            {
-              method: 'DELETE',
-              // Ensure we get a response body to confirm success vs error
-              headers: { Prefer: 'return=representation' },
-            },
-          );
+          const mangaId = op.payload.manga_id;
+          const query = mangaId
+            ? `/${op.table}?device_id=eq.${deviceId}&manga_id=eq.${mangaId}`
+            : `/${op.table}?device_id=eq.${deviceId}`;
+          const success = await SupabaseService.request(query, {
+            method: 'DELETE',
+            // Ensure we get a response body to confirm success vs error
+            headers: { Prefer: 'return=representation' },
+          });
           return success !== null;
         }
 
