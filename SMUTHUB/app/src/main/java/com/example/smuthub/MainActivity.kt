@@ -60,17 +60,40 @@ class MainActivity : AppCompatActivity() {
                 if (url.startsWith("http")) {
                     Thread {
                         try {
-                            val connection = URL(url).openConnection()
-                            connection.connectTimeout = 10000
-                            connection.readTimeout = 10000
-                            val inputStream = connection.getInputStream()
+                            val connection = URL(url).openConnection() as java.net.HttpURLConnection
+                            connection.connectTimeout = 15000
+                            connection.readTimeout = 15000
+                            connection.setRequestProperty("User-Agent", "SmutHub-Android/1.0")
+                            
+                            val responseCode = connection.responseCode
+                            if (responseCode != 200) {
+                                throw Exception("HTTP $responseCode: ${connection.responseMessage}")
+                            }
+                            
+                            val inputStream = connection.inputStream
                             val bytes = inputStream.readBytes()
                             Log.d(TAG, "Successfully downloaded bundle: ${bytes.size} bytes")
                             callback.onSuccess(bytes)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to download bundle: ${e.message}")
+                            val errorMsg = e.message ?: "Unknown Error"
                             runOnUiThread {
-                                Toast.makeText(this@MainActivity, "Load Failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this@MainActivity, "Load Failed: $errorMsg", Toast.LENGTH_LONG).show()
+                                
+                                // Auto-fallback: Clear OTA URL if remote load fails
+                                // This prevents the app from being stuck in a boot loop
+                                try {
+                                    val prefs = getSharedPreferences("smuthub_ota", Context.MODE_PRIVATE)
+                                    prefs.edit().remove("current_bundle_url").apply()
+                                    Log.i(TAG, "Cleared current_bundle_url due to load failure")
+                                    
+                                    // Immediate fallback to local bundle
+                                    runOnUiThread {
+                                        lynxView?.renderTemplateUrl("main.lynx.bundle", "")
+                                    }
+                                } catch (pe: Exception) {
+                                    Log.e(TAG, "Failed to clear prefs: ${pe.message}")
+                                }
                             }
                             callback.onFailed(e.message)
                         }

@@ -1,0 +1,69 @@
+🚀 Starting OTA Update Process (Commit Hash Mode)...
+
+📝 Release Notes: "Tech Debt Cleanup 2 Test"
+
+✅ Version Bump: 1.0.257 -> 1.0.258
+
+🔄 Staging source changes...
+> git add src
+
+> git add package.json
+
+> git commit -m "🚀 ota: Tech Debt Cleanup 2 Test" --allow-empty
+[main d88e202] 🚀 ota: Tech Debt Cleanup 2 Test
+ 3 files changed, 50 insertions(+), 30 deletions(-)
+
+✅ Commit Hash: d88e202 (d88e202dff98c5d1d7a6412ff3d27b8078e7e946)
+✅ Injected commit hash d88e202 into update.ts
+
+📦 Building Lynx Bundle...
+> npm run build
+
+> smuthub@1.0.258 build
+> rspeedy build
+
+
+  Rspeedy v0.12.3 (Rsbuild v1.6.13, Rspack v1.6.6)
+
+info    Type checker is enabled. It may take some time.
+info    build started...
+ready   built in 2.73 s
+
+File (lynx)                                           Size       
+dist/async/supabase.39a47162cba66d0f.bundle           0.85 kB 
+dist/async/services/storage.39a47162cba66d0f.bundle   0.85 kB 
+dist/async/debugLog.39a47162cba66d0f.bundle           0.85 kB 
+dist/services/supabase.39a47162cba66d0f.bundle        0.85 kB 
+dist/main.lynx.bundle                                 401.7 kB
+
+                                             Total:   405.1 kB   405.1 kB
+
+
+> cp "/home/yum/Work/gh-repos/batoto-uwu/dist/main.lynx.bundle" "/home/yum/Work/gh-repos/batoto-uwu/main.lynx.bundle"
+
+✅ Lynx bundle built and updated at root
+
+🔄 Amending commit with build artifacts...
+> git add src/services/update.ts
+
+> ls -la main.lynx.bundle
+-rw-r--r-- 1 yum yum 401732 Feb 13 20:16 main.lynx.bundle
+
+> git add -f main.lynx.bundle
+
+> git commit --amend --no-edit
+[main 9775883] 🚀 ota: Tech Debt Cleanup 2 Test
+ Date: Fri Feb 13 20:16:46 2026 -0800
+ 5 files changed, 52 insertions(+), 32 deletions(-)
+
+> git push origin main --force-with-lease
+
+✅ Pushed to repository
+
+📡 Registering OTA in Supabase (embedded hash: d88e202)...
+Running curl to register...
+✅ Supabase registered successfully (via curl).
+
+🎉 OTA Publish Complete!
+Commit Hash: d88e202
+Bundle URL: https://raw.githubusercontent.com/CodingInCarhartts/SMUTHUB/977588336bf3b628bc8a73cbeea51a92fa02acdc/main.lynx.bundle
