@@ -222,32 +222,48 @@ export const ComixService: MangaSource = {
       const manga = json.result;
       log(`[Comix] MANGA_TITLE:${manga.title}`);
 
-      // Fetch chapters from API
+      // Fetch chapters from API with pagination
       log('[Comix] FETCHING_CHAPTERS');
-      const chaptersRes = await fetch(
-        `${this.baseUrl}/api/v2/manga/${hashId}/chapters`,
-        {
-          headers: this.headers,
-        },
-      );
-      const chaptersJson = await chaptersRes.json();
-      log(`[Comix] CHAPTERS_COUNT:${chaptersJson?.result?.items?.length || 0}`);
+      const allChapters: any[] = [];
+      let currentPage = 1;
+      let lastPage = 1;
 
-      const chapters: any[] = [];
-      if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
-        chaptersJson.result.items.forEach((item: any) => {
-          const chapId = `${item.chapter_id}-chapter-${item.number}`;
-          const compositeId = `${hashId}:::${chapId}`;
+      do {
+        const chaptersRes = await fetch(
+          `${this.baseUrl}/api/v2/manga/${hashId}/chapters?page=${currentPage}`,
+          {
+            headers: this.headers,
+          },
+        );
+        const chaptersJson = await chaptersRes.json();
 
-          chapters.push({
-            id: compositeId,
-            title: item.name || `Chapter ${item.number}`,
-            number: item.number,
-            date: new Date(item.created_at * 1000),
-            url: `/title/${manga.slug}/${chapId}`,
+        if (chaptersJson && chaptersJson.result && chaptersJson.result.items) {
+          chaptersJson.result.items.forEach((item: any) => {
+            const chapId = `${item.chapter_id}-chapter-${item.number}`;
+            const compositeId = `${hashId}:::${chapId}`;
+
+            allChapters.push({
+              id: compositeId,
+              title: item.name || `Chapter ${item.number}`,
+              number: item.number,
+              date: new Date(item.created_at * 1000),
+              url: `/title/${manga.slug}/${chapId}`,
+            });
           });
-        });
-      }
+
+          // Get pagination info
+          if (chaptersJson.result.pagination) {
+            lastPage = chaptersJson.result.pagination.last_page || 1;
+          }
+        }
+
+        log(
+          `[Comix] CHAPTERS_PAGE_${currentPage}:${allChapters.length} items (lastPage: ${lastPage})`,
+        );
+        currentPage++;
+      } while (currentPage <= lastPage);
+
+      log(`[Comix] TOTAL_CHAPTERS_FETCHED:${allChapters.length}`);
 
       return {
         id: manga.slug,
@@ -257,7 +273,7 @@ export const ComixService: MangaSource = {
         cover: manga.poster?.medium || '',
         authors: [],
         status: manga.status === 'releasing' ? 'Ongoing' : 'Completed',
-        chapters: chapters.sort((a, b) => b.number - a.number),
+        chapters: allChapters.sort((a, b) => b.number - a.number),
         isNsfw: manga.is_nsfw || false,
       } as MangaDetails;
     } catch (e) {
