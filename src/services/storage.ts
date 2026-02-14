@@ -65,8 +65,46 @@ export interface StorageResult<T> {
 const syncStatus: Map<string, SyncStatus> = new Map();
 const lastSyncedAt: Map<string, number> = new Map();
 
-let currentWriteRelease: (() => void) | null = null;
-let writeLockResolve: ((value: void) => void) | null = null;
+const writeLockQueues = new Map<string, Array<() => void>>();
+
+async function acquireWriteLock(key: string): Promise<() => void> {
+  const queue = writeLockQueues.get(key);
+
+  if (!queue || queue.length === 0) {
+    const newQueue: Array<() => void> = [];
+    writeLockQueues.set(key, newQueue);
+
+    return () => {
+      const q = writeLockQueues.get(key);
+      if (q && q.length > 0) {
+        const next = q.shift()!;
+        next();
+      } else {
+        writeLockQueues.delete(key);
+      }
+    };
+  }
+
+  return new Promise<void>((resolve) => {
+    const q = writeLockQueues.get(key);
+    if (q) {
+      q.push(resolve);
+    }
+  }).then(() => {
+    const newQueue: Array<() => void> = [];
+    writeLockQueues.set(key, newQueue);
+
+    return () => {
+      const q = writeLockQueues.get(key);
+      if (q && q.length > 0) {
+        const next = q.shift()!;
+        next();
+      } else {
+        writeLockQueues.delete(key);
+      }
+    };
+  });
+}
 
 function setSyncStatus(key: string, status: SyncStatus): void {
   syncStatus.set(key, status);
@@ -83,22 +121,6 @@ function setLastSynced(key: string, timestamp: number): void {
 
 function getLastSynced(key: string): number | undefined {
   return lastSyncedAt.get(key);
-}
-
-async function acquireWriteLock(key: string): Promise<() => void> {
-  while (currentWriteRelease !== null) {
-    await new Promise<void>((resolve) => {
-      writeLockResolve = resolve;
-    });
-  }
-
-  return () => {
-    currentWriteRelease = null;
-    if (writeLockResolve) {
-      writeLockResolve();
-      writeLockResolve = null;
-    }
-  };
 }
 
 export const STORAGE_KEYS = {
