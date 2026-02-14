@@ -15,6 +15,9 @@ export interface Operation {
 const QUEUE_STORAGE_KEY = 'batoto:sync_queue';
 let isSyncing = false;
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
 /**
  * Background Sync Engine & Operation Queue
  */
@@ -80,7 +83,27 @@ export const SyncEngine = {
       while (queue.length > 0) {
         const op = queue[0];
         console.log(`[SyncEngine] Executing: ${op.type} on ${op.table}...`);
-        const success = await this.executeOperation(op);
+
+        let success = false;
+        let lastError = null;
+
+        // Retry logic: try up to MAX_RETRIES times
+        for (let retry = 0; retry < MAX_RETRIES; retry++) {
+          success = await this.executeOperation(op);
+
+          if (success) {
+            break;
+          }
+
+          lastError = `Attempt ${retry + 1}/${MAX_RETRIES} failed`;
+          console.warn(
+            `[SyncEngine] Retry ${retry + 1}/${MAX_RETRIES} for ${op.type} on ${op.table}`,
+          );
+
+          if (retry < MAX_RETRIES - 1) {
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          }
+        }
 
         if (success) {
           console.log(`[SyncEngine] SUCCESS: ${op.type} on ${op.table}`);
@@ -88,11 +111,15 @@ export const SyncEngine = {
           await this.saveQueue(queue);
           this.notify();
         } else {
-          // If execution fails (e.g., network error), stop and retry later
-          console.warn(
-            '[SyncEngine] Operation failed, stopping queue processing',
+          // Operation failed after all retries - skip this item and continue with next
+          console.error(
+            `[SyncEngine] FAILED after ${MAX_RETRIES} attempts: ${op.type} on ${op.table}`,
+            lastError,
           );
-          break;
+          queue.shift(); // Remove failed item to unblock the queue
+          await this.saveQueue(queue);
+          this.notify();
+          // Continue processing remaining items
         }
       }
     } catch (e: any) {
