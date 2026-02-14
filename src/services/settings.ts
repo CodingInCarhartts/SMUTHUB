@@ -3,10 +3,13 @@ import { type AppSettings, StorageService, storageReady } from './storage';
 
 let settings: AppSettings = StorageService.getSettingsSync();
 
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+
 const listeners: Set<() => void> = new Set();
 
 // Initialize from native storage first, then Supabase
-storageReady
+const initPromise = storageReady
   .then(() => {
     console.log('[SettingsStore] Storage ready, loading settings...');
     // Re-read from storage now that native data is loaded
@@ -19,13 +22,30 @@ storageReady
   .then((result) => {
     console.log('[SettingsStore] Cloud settings loaded:', result.data);
     settings = result.data;
+    isInitialized = true;
     listeners.forEach((fn) => fn());
   })
   .catch((e) => {
     console.error('[SettingsStore] Failed to load settings:', e);
+    isInitialized = true;
+    listeners.forEach((fn) => fn());
   });
 
 export const SettingsStore = {
+  isInitialized(): boolean {
+    return isInitialized;
+  },
+
+  waitForInitialization(): Promise<void> {
+    if (isInitialized) {
+      return Promise.resolve();
+    }
+    if (!initializationPromise) {
+      initializationPromise = initPromise;
+    }
+    return initializationPromise;
+  },
+
   get(): AppSettings {
     return { ...settings };
   },

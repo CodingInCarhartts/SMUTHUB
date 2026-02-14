@@ -71,12 +71,10 @@ export function App() {
   const [settingsSubview, setSettingsSubview] =
     useState<SettingsSubview>('main');
 
-  // Dark mode
-  const [darkMode, setDarkMode] = useState(SettingsStore.getDarkMode());
-  // Debug outlines
-  const [debugOutlines, setDebugOutlines] = useState(
-    SettingsStore.getDebugOutlines(),
-  );
+  // Initialization state
+  const [isReady, setIsReady] = useState(SettingsStore.isInitialized());
+  const [darkMode, setDarkMode] = useState(false);
+  const [debugOutlines, setDebugOutlines] = useState(false);
 
   // OTA Update state
   const [pendingUpdate, setPendingUpdate] = useState<AppUpdate | null>(null);
@@ -85,19 +83,19 @@ export function App() {
   const [pendingNativeUpdate, setPendingNativeUpdate] =
     useState<NativeAppUpdate | null>(null);
 
-  // Subscribe to settings changes
+  // Initialize settings and subscribe after mount
   useEffect(() => {
+    const init = async () => {
+      await SettingsStore.waitForInitialization();
+      setIsReady(true);
+      setDarkMode(SettingsStore.getDarkMode());
+      setDebugOutlines(SettingsStore.getDebugOutlines());
+    };
+    init();
+
     const unsubscribe = SettingsStore.subscribe(() => {
-      const newMode = SettingsStore.getDarkMode();
-      const newOutlines = SettingsStore.getDebugOutlines();
-      log(
-        '[App] Settings update received. Dark:',
-        newMode,
-        'Outlines:',
-        newOutlines,
-      );
-      setDarkMode(newMode);
-      setDebugOutlines(newOutlines);
+      setDarkMode(SettingsStore.getDarkMode());
+      setDebugOutlines(SettingsStore.getDebugOutlines());
     });
     return unsubscribe;
   }, []);
@@ -152,18 +150,15 @@ export function App() {
     }
   }, []);
 
-  // Fetch popular/latest manga on mount
   useEffect(() => {
     fetchHomeFeed();
 
-    // Load saved filters
     const savedFilters = StorageService.getLastFilters();
     if (savedFilters) {
       setCurrentFilters(savedFilters);
       log('[App] Loaded saved filters:', savedFilters);
     }
 
-    // Check for updates shortly after boot
     const timer = setTimeout(triggerUpdateCheck, 3000);
     return () => clearTimeout(timer);
   }, []);
@@ -176,7 +171,7 @@ export function App() {
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres,
         status: filters?.status,
-        word: (filters as any)?.word, // Search query
+        word: (filters as any)?.word,
       };
       log('[App] Browse params:', JSON.stringify(browseParams));
       const results = await sourceManager.search(browseParams.word || '', {
@@ -184,7 +179,7 @@ export function App() {
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres || [],
         status: filters?.status || 'all',
-        nsfw: false, // App default
+        nsfw: false,
       });
       log(`[App] Browse loaded: ${results.length} items`);
       setMangas(results);
@@ -195,7 +190,6 @@ export function App() {
     }
   }, []);
 
-  // Preload browse when search tab is selected
   const hasAttemptedInitialLoad = useRef(false);
   useEffect(() => {
     if (tab === 'search' && !hasAttemptedInitialLoad.current && !loading) {
@@ -205,7 +199,6 @@ export function App() {
     }
   }, [tab, loadBrowse, loading]);
 
-  // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     log('[App] Refreshing home feed...');
     await fetchHomeFeed();
@@ -238,11 +231,9 @@ export function App() {
   );
 
   const handleSelectManga = useCallback(async (manga: Manga) => {
-    // Force log immediately to see if this is even called
     log(`[App] SELECT_START: ${manga.title}`);
     console.log('SELECT_START:', manga.title);
 
-    // Also immediately try to capture
     import('./services/storage')
       .then(({ StorageService }) => {
         StorageService.triggerDebugCapture();
@@ -254,7 +245,6 @@ export function App() {
     setSettingsSubview('main');
     setLoading(true);
 
-    // Auto-capture debug logs after 10 seconds if still loading
     const autoCaptureTimer = setTimeout(() => {
       log('[App] AUTO-CAPTURE TRIGGER');
       import('./services/storage').then(({ StorageService }) => {
@@ -274,7 +264,6 @@ export function App() {
     }
     log(`[App] FETCHING_DETAILS: manga.id=${manga.id}, manga.url=${manga.url}`);
     try {
-      // Use manga.id (which is hash_id like "pgx4") instead of manga.url
       const details = await source.getMangaDetails(manga.id);
       log(
         `[App] DETAILS_OK: ${details?.title} ch:${details?.chapters?.length || 0}`,
@@ -422,6 +411,17 @@ export function App() {
       nsfw: false,
     });
   }, [handleApplyFilters]);
+
+  if (!isReady) {
+    return (
+      <view className="Main">
+        <view className="LoadingContainer">
+          <view className="LoadingSpinner" />
+          <text className="StatusText">Loading...</text>
+        </view>
+      </view>
+    );
+  }
 
   if (view === 'reader') {
     return (
