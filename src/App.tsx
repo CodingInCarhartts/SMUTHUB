@@ -170,6 +170,9 @@ export function App() {
       const browseParams = {
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres,
+        themes: filters?.themes,
+        formats: filters?.formats,
+        demographics: filters?.demographics,
         types: filters?.types,
         status: filters?.status,
         word: (filters as any)?.word,
@@ -179,6 +182,9 @@ export function App() {
         ...filters,
         sort: filters?.sort || 'views_d030',
         genres: filters?.genres || [],
+        themes: filters?.themes || [],
+        formats: filters?.formats || [],
+        demographics: filters?.demographics || [],
         types: filters?.types || [],
         status: filters?.status || 'all',
         nsfw: false,
@@ -387,6 +393,9 @@ export function App() {
         setTab('search');
         handleApplyFilters({
           genres: [],
+          themes: [],
+          formats: [],
+          demographics: [],
           types: [],
           sort: 'views_d030',
           status: 'all',
@@ -395,7 +404,10 @@ export function App() {
       } else {
         setTab('search');
         handleApplyFilters({
-          genres: [genre.toLowerCase()],
+          genres: [genre],
+          themes: [],
+          formats: [],
+          demographics: [],
           types: [],
           sort: 'views_d030',
           status: 'all',
@@ -410,6 +422,9 @@ export function App() {
     setTab('search');
     handleApplyFilters({
       genres: [],
+      themes: [],
+      formats: [],
+      demographics: [],
       types: [],
       sort: 'latest',
       status: 'all',

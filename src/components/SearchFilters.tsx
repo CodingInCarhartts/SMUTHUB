@@ -34,6 +34,93 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
+const GENRES = [
+  'Action',
+  'Adult',
+  'Adventure',
+  'Boys Love',
+  'Comedy',
+  'Crime',
+  'Drama',
+  'Ecchi',
+  'Fantasy',
+  'Girls Love',
+  'Hentai',
+  'Historical',
+  'Horror',
+  'Isekai',
+  'Magical Girls',
+  'Mature',
+  'Mecha',
+  'Medical',
+  'Mystery',
+  'Philosophical',
+  'Psychological',
+  'Romance',
+  'Sci-Fi',
+  'Slice of Life',
+  'Smut',
+  'Sports',
+  'Superhero',
+  'Thriller',
+  'Tragedy',
+  'Wuxia',
+];
+
+const THEMES = [
+  'Aliens',
+  'Animals',
+  'Cooking',
+  'Crossdressing',
+  'Delinquents',
+  'Demons',
+  'Genderswap',
+  'Ghosts',
+  'Gyaru',
+  'Harem',
+  'Incest',
+  'Loli',
+  'Mafia',
+  'Magic',
+  'Martial Arts',
+  'Military',
+  'Monster Girls',
+  'Monsters',
+  'Music',
+  'Ninja',
+  'Office Workers',
+  'Police',
+  'Post-Apocalyptic',
+  'Reincarnation',
+  'Reverse Harem',
+  'Samurai',
+  'School Life',
+  'Shota',
+  'Supernatural',
+  'Survival',
+  'Time Travel',
+  'Traditional Games',
+  'Vampires',
+  'Video Games',
+  'Villainess',
+  'Virtual Reality',
+  'Zombies',
+];
+
+const FORMATS = [
+  '4-Koma',
+  'Adaptation',
+  'Anthology',
+  'Award Winning',
+  'Doujinshi',
+  'Full Color',
+  'Long Strip',
+  'Oneshot',
+  'Web Comic',
+];
+
+const DEMOGRAPHICS = ['Josei', 'Seinen', 'Shoujo', 'Shounen'];
+
 export function SearchFiltersModal({
   onApply,
   onClose,
@@ -43,6 +130,9 @@ export function SearchFiltersModal({
   const [filters, setFilters] = useState<SearchFilters>(
     initialFilters || {
       genres: [],
+      themes: [],
+      formats: [],
+      demographics: [],
       types: [],
       status: 'all',
       sort: 'relevance',
@@ -59,6 +149,33 @@ export function SearchFiltersModal({
     }));
   };
 
+  const toggleTheme = (theme: string) => {
+    setFilters((prev: SearchFilters) => ({
+      ...prev,
+      themes: prev.themes.includes(theme)
+        ? prev.themes.filter((t: string) => t !== theme)
+        : [...prev.themes, theme],
+    }));
+  };
+
+  const toggleFormat = (format: string) => {
+    setFilters((prev: SearchFilters) => ({
+      ...prev,
+      formats: prev.formats.includes(format)
+        ? prev.formats.filter((f: string) => f !== format)
+        : [...prev.formats, format],
+    }));
+  };
+
+  const toggleDemographic = (demographic: string) => {
+    setFilters((prev: SearchFilters) => ({
+      ...prev,
+      demographics: prev.demographics.includes(demographic)
+        ? prev.demographics.filter((d: string) => d !== demographic)
+        : [...prev.demographics, demographic],
+    }));
+  };
+
   const toggleType = (type: string) => {
     setFilters((prev: SearchFilters) => ({
       ...prev,
@@ -71,6 +188,9 @@ export function SearchFiltersModal({
   const handleReset = () => {
     const resetFilters: SearchFilters = {
       genres: [],
+      themes: [],
+      formats: [],
+      demographics: [],
       types: [],
       status: 'all',
       sort: 'relevance',
@@ -171,39 +291,32 @@ export function SearchFiltersModal({
             ))}
           </view>
 
+          <text className="SectionLabel">Demographics</text>
+          <view className="ChipRow">
+            {DEMOGRAPHICS.map((d) => (
+              <view
+                key={d}
+                className={
+                  filters.demographics.includes(d) ? 'Chip Chip-active' : 'Chip'
+                }
+                bindtap={() => toggleDemographic(d)}
+              >
+                <text
+                  className={
+                    filters.demographics.includes(d)
+                      ? 'ChipText ChipText-active'
+                      : 'ChipText'
+                  }
+                >
+                  {d}
+                </text>
+              </view>
+            ))}
+          </view>
+
           <text className="SectionLabel">Genres</text>
           <view className="GenreGrid">
-            {[
-              'Action',
-              'Adventure',
-              'Comedy',
-              'Drama',
-              'Fantasy',
-              'Harem',
-              'Historical',
-              'Horror',
-              'Isekai',
-              'Josei',
-              'Manhua',
-              'Manhwa',
-              'Martial Arts',
-              'Mecha',
-              'Mystery',
-              'Psychological',
-              'Reincarnation',
-              'Romance',
-              'School Life',
-              'Sci-fi',
-              'Seinen',
-              'Shoujo',
-              'Shounen',
-              'Slice of Life',
-              'Sports',
-              'Supernatural',
-              'Webtoon',
-              'Yaoi',
-              'Yuri',
-            ].map((g) => (
+            {GENRES.map((g) => (
               <view
                 key={g}
                 className={
@@ -221,6 +334,54 @@ export function SearchFiltersModal({
                   }
                 >
                   {g}
+                </text>
+              </view>
+            ))}
+          </view>
+
+          <text className="SectionLabel">Themes</text>
+          <view className="GenreGrid">
+            {THEMES.map((t) => (
+              <view
+                key={t}
+                className={
+                  filters.themes.includes(t)
+                    ? 'GenreChip GenreChip-active'
+                    : 'GenreChip'
+                }
+                bindtap={() => toggleTheme(t)}
+              >
+                <text
+                  className={
+                    filters.themes.includes(t)
+                      ? 'GenreChipText GenreChipText-active'
+                      : 'GenreChipText'
+                  }
+                >
+                  {t}
+                </text>
+              </view>
+            ))}
+          </view>
+
+          <text className="SectionLabel">Formats</text>
+          <view className="ChipRow">
+            {FORMATS.map((f) => (
+              <view
+                key={f}
+                className={
+                  filters.formats.includes(f) ? 'Chip Chip-active' : 'Chip'
+                }
+                bindtap={() => toggleFormat(f)}
+              >
+                <text
+                  className={
+                    filters.formats.includes(f)
+                      ? 'ChipText ChipText-active'
+                      : 'ChipText'
+                  }
+                >
+                  {f}
                 </text>
               </view>
             ))}

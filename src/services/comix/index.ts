@@ -1,5 +1,11 @@
 import { logCapture } from '../debugLog';
 import type { Manga, MangaDetails, MangaSource, SearchFilters } from '../types';
+import {
+  COMIX_DEMOGRAPHICS,
+  COMIX_FORMATS,
+  COMIX_GENRES,
+  COMIX_THEMES,
+} from './genres';
 
 const log = (msg: string) => logCapture('log', `[Comix] ${msg}`);
 const logError = (msg: string, e?: any) =>
@@ -170,9 +176,45 @@ export const ComixService: MangaSource = {
         });
       }
 
-      // Add genre filters (Comix uses genre IDs, not names)
-      // For now, we skip genre filtering since we'd need a mapping
-      // The API supports: genres[]=87265 (include) or genres[]=-87265 (exclude)
+      // Add genre filters (using IDs)
+      if (filters?.genres && filters.genres.length > 0) {
+        filters.genres.forEach((genre) => {
+          const genreId = COMIX_GENRES[genre];
+          if (genreId) {
+            params.push(`genres[]=${genreId}`);
+          }
+        });
+      }
+
+      // Add theme filters (using IDs)
+      if (filters?.themes && filters.themes.length > 0) {
+        filters.themes.forEach((theme) => {
+          const themeId = COMIX_THEMES[theme];
+          if (themeId) {
+            params.push(`themes[]=${themeId}`);
+          }
+        });
+      }
+
+      // Add format filters (using IDs)
+      if (filters?.formats && filters.formats.length > 0) {
+        filters.formats.forEach((format) => {
+          const formatId = COMIX_FORMATS[format];
+          if (formatId) {
+            params.push(`formats[]=${formatId}`);
+          }
+        });
+      }
+
+      // Add demographic filters (using IDs)
+      if (filters?.demographics && filters.demographics.length > 0) {
+        filters.demographics.forEach((demographic) => {
+          const demographicId = COMIX_DEMOGRAPHICS[demographic];
+          if (demographicId) {
+            params.push(`demographics[]=${demographicId}`);
+          }
+        });
+      }
 
       // Limit results
       params.push('limit=20');

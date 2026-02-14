@@ -3,43 +3,33 @@ export interface Manga {
   title: string;
   url: string;
   cover: string;
+  latestChapter?: string;
+  status?: string;
+  authors?: string[];
   genres?: string[];
   genreIds?: number[];
-  latestChapter?: string;
-  latestChapterUrl?: string; // URL of the latest chapter (for update checking)
-  latestChapterId?: string; // ID of the latest chapter
-  description?: string;
-  authors?: string[];
-  status?: string;
   rating?: string;
-  views?: string;
-  source?: string; // Source ID (e.g., 'batoto', 'mangago')
+  description?: string;
+  source: string;
+}
+
+export interface MangaDetails extends Manga {
+  chapters: Chapter[];
+  summary?: string;
 }
 
 export interface Chapter {
   id: string;
   title: string;
-  url: string;
-  chapterNum?: string;
-  volNum?: string;
-  language?: string;
-  group?: string;
-  uploadDate?: string;
-  source?: string;
-}
-
-export interface MangaDetails extends Manga {
-  chapters: Chapter[];
-  relatedSeries?: Manga[];
-}
-
-export interface Page {
-  url: string;
-  index: number;
+  number: number;
+  releasedAt?: string;
 }
 
 export interface SearchFilters {
   genres: string[];
+  themes: string[];
+  formats: string[];
+  demographics: string[];
   types: string[];
   status: 'all' | 'ongoing' | 'completed' | 'cancelled' | 'hiatus';
   sort: 'relevance' | 'latest' | 'new' | 'az' | 'numc' | 'views_d030';
@@ -112,14 +102,4 @@ export const GENRE_API_MAPPING: Record<string, string> = {
   Webtoon: 'webtoon',
   Yaoi: 'yaoi',
   Yuri: 'yuri',
-};
-
-export const mapGenreToApi = (genre: string): string => {
-  return (
-    GENRE_API_MAPPING[genre] ||
-    genre
-      .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '')
-  );
 };
