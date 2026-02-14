@@ -133,13 +133,17 @@ export const ComixService: MangaSource = {
           az: 'order[title]=asc',
           numc: 'order[total_chapters]=desc',
           views_d030: 'order[views_30d]=desc',
+          relevance: 'order=relevance:desc',
         };
         const sortParam = sortMap[filters.sort];
         if (sortParam) {
           params.push(sortParam);
         }
+      } else if (hasQuery) {
+        // Default to relevance sorting when searching (like the website)
+        params.push('order=relevance:desc');
       } else {
-        // Default sort
+        // Default sort for browsing
         params.push('order[updated_at]=desc');
       }
 
