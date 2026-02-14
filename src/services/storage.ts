@@ -646,14 +646,13 @@ export const StorageService = {
     const release = await acquireWriteLock('history');
     try {
       const deviceId = this.getDeviceId();
-      setLocal(STORAGE_KEYS.HISTORY, []);
 
-      await SyncEngine.enqueue({
-        type: 'DELETE',
-        table: 'history',
-        payload: { device_id: deviceId },
-        timestamp: Date.now(),
+      await SupabaseService.request(`/history?device_id=eq.${deviceId}`, {
+        method: 'DELETE',
+        headers: { Prefer: 'return=minimal' },
       });
+
+      setLocal(STORAGE_KEYS.HISTORY, []);
     } finally {
       release();
     }
