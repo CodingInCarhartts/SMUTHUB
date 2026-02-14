@@ -59,6 +59,7 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState<string | null>(null);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   // Search & Filter State
   const [showFilters, setShowFilters] = useState(false);
@@ -252,6 +253,7 @@ export function App() {
     setView('details');
     setSettingsSubview('main');
     setLoading(true);
+    setDetailsError(null);
 
     const autoCaptureTimer = setTimeout(() => {
       log('[App] AUTO-CAPTURE TRIGGER');
@@ -286,7 +288,9 @@ export function App() {
 
   const handleHistorySelect = useCallback(
     async (manga: Manga, chapterUrl?: string, chapterTitle?: string) => {
-      log(`[App] History resume: ${manga.title}`);
+      log(
+        `[App] History resume: ${manga.title}, source: ${manga.source}, id: ${manga.id}`,
+      );
       setSelectedManga(manga);
       setSettingsSubview('main');
 
@@ -299,20 +303,27 @@ export function App() {
           const source = sourceManager.resolveSource(
             manga.source || manga.url || manga.id,
           );
+          log(`[App] History source resolved: ${source?.id || 'NULL'}`);
           if (source) {
             const details = await source.getMangaDetails(manga.url || manga.id);
+            log(
+              `[App] History details fetched: ${details?.title}, chapters: ${details?.chapters?.length}`,
+            );
             if (details) {
               setMangaDetails(details);
               setSelectedManga(details);
               StorageService.addToHistory(details, chapterUrl, chapterTitle);
               log('[App] Refreshed history metadata for:', details.title);
             }
+          } else {
+            logError('[App] History: No source resolved');
           }
         } catch (e) {
           logError(
             '[App] Failed to load details for history resume',
             e as Error,
           );
+          setDetailsError('Failed to load manga details');
         }
       } else {
         handleSelectManga(manga);
@@ -338,29 +349,43 @@ export function App() {
     if (view === 'reader') {
       setView('details');
       triggerUpdateCheck();
+      setDetailsError(null);
 
-      // If mangaDetails isn't loaded yet (e.g., coming from history), fetch it
-      if (selectedManga && !mangaDetails) {
+      // Always try to fetch/refresh details when returning from reader
+      // This handles cases where details weren't loaded (e.g., coming from history)
+      if (selectedManga) {
         const source = sourceManager.resolveSource(
           selectedManga.source || selectedManga.url || selectedManga.id,
         );
         if (source) {
+          log(
+            `[App] Fetching details on back navigation for: ${selectedManga.title}`,
+          );
           source
             .getMangaDetails(selectedManga.url || selectedManga.id)
             .then((details) => {
+              log(
+                `[App] Got details: ${details?.title}, chapters: ${details?.chapters?.length}`,
+              );
               if (details) {
                 setMangaDetails(details);
+                setDetailsError(null);
               }
             })
             .catch((e) => {
               logError('[App] Failed to load details on back navigation:', e);
+              setDetailsError('Failed to load manga details');
             });
+        } else {
+          setDetailsError('Could not resolve manga source');
         }
       }
     } else if (view === 'details') {
       setView('browse');
+      setMangaDetails(null);
+      setDetailsError(null);
     }
-  }, [view, triggerUpdateCheck, selectedManga, mangaDetails]);
+  }, [view, triggerUpdateCheck, selectedManga]);
 
   const handleNextChapter = useCallback(() => {
     if (!mangaDetails || !selectedChapterUrl) {
@@ -503,10 +528,29 @@ export function App() {
             />
           ) : view === 'details' && selectedManga ? (
             <view className="LoadingContainer">
-              <view className="LoadingPulse">
-                <text className="LoadingIcon">📖</text>
-              </view>
-              <text className="StatusText">Opening the story...</text>
+              {detailsError ? (
+                <>
+                  <text className="ErrorIcon">⚠️</text>
+                  <text className="ErrorTitle">Failed to Load</text>
+                  <text className="StatusText">{detailsError}</text>
+                  <view
+                    className="RetryButton"
+                    bindtap={() => {
+                      setDetailsError(null);
+                      handleBack();
+                    }}
+                  >
+                    <text className="RetryText">Try Again</text>
+                  </view>
+                </>
+              ) : (
+                <>
+                  <view className="LoadingPulse">
+                    <text className="LoadingIcon">📖</text>
+                  </view>
+                  <text className="StatusText">Opening the story...</text>
+                </>
+              )}
             </view>
           ) : null}
 
