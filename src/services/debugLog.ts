@@ -48,7 +48,12 @@ function addLog(
 }
 
 export function logCapture(level: any, ...args: any[]) {
-  addLog(level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log', 'GENERAL', args[0]?.toString() || '', ...args.slice(1));
+  addLog(
+    level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log',
+    'GENERAL',
+    args[0]?.toString() || '',
+    ...args.slice(1),
+  );
 }
 
 export const DebugLogService = {
@@ -64,7 +69,12 @@ export const DebugLogService = {
     error?: Error,
     ...args: any[]
   ): void {
-    addLog('error', category, `${message}${error ? `: ${error.message}` : ''}`, ...args);
+    addLog(
+      'error',
+      category,
+      `${message}${error ? `: ${error.message}` : ''}`,
+      ...args,
+    );
   },
   reportError(category: string, context: string, error: Error): void {
     addLog('error', category, `ERROR in ${context}: ${error.message}`);

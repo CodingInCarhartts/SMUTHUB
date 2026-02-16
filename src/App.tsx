@@ -57,9 +57,13 @@ export function App() {
   const [selectedChapterUrl, setSelectedChapterUrl] = useState<string>('');
   const [selectedChapterTitle, setSelectedChapterTitle] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  // Home feed state with timestamp tracking for smart refresh
   const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [lastHomeFeedFetch, setLastHomeFeedFetch] = useState<number | null>(
+    null,
+  );
 
   // Search & Filter State
   const [showFilters, setShowFilters] = useState(false);
@@ -136,6 +140,7 @@ export function App() {
       const feed = await source.getHomeFeed();
       setPopularMangas(feed.popular);
       setLatestMangas(feed.latest);
+      setLastHomeFeedFetch(Date.now());
 
       if (feed.popular.length === 0 && feed.latest.length === 0) {
         setHomeError('Connected but found no content.');
@@ -420,15 +425,25 @@ export function App() {
     return currentIndex !== -1 && currentIndex > 0;
   }, [mangaDetails, selectedChapterUrl]);
 
+  // Threshold for considering home feed data stale (10 minutes in milliseconds)
+  const HOME_FEED_STALE_THRESHOLD = 10 * 60 * 1000;
+
   const handleTabChange = useCallback(
     (newTab: Tab) => {
       setTab(newTab);
       setView('browse');
       if (newTab === 'home') {
+        // Refresh home feed if data is stale (older than 10 minutes) or never fetched
+        const isStale =
+          !lastHomeFeedFetch ||
+          Date.now() - lastHomeFeedFetch > HOME_FEED_STALE_THRESHOLD;
+        if (isStale) {
+          fetchHomeFeed();
+        }
         triggerUpdateCheck();
       }
     },
-    [triggerUpdateCheck],
+    [triggerUpdateCheck, lastHomeFeedFetch, fetchHomeFeed],
   );
 
   const handleGenreClick = useCallback(
